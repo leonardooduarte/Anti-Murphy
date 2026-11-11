@@ -1,0 +1,50 @@
+[http] "GET / HTTP/1.1" 200 -
+[http] "GET /release_quality.css HTTP/1.1" 200 -
+[http] "GET /studio_final.css HTTP/1.1" 200 -
+[http] "GET /design_vnext.css HTTP/1.1" 200 -
+[http] "GET /dashboards.css HTTP/1.1" 200 -
+[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
+[http] "GET /styles.css HTTP/1.1" 200 -
+[http] "GET /banca.css HTTP/1.1" 200 -
+[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
+[http] "GET /final_banca.css HTTP/1.1" 200 -
+[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
+[http] "GET /engineering_charts.css HTTP/1.1" 200 -
+[http] "GET /integridade_final.css HTTP/1.1" 200 -
+[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
+[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
+[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
+[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
+[http] "GET /engineering_charts.js HTTP/1.1" 200 -
+[http] "GET /app.js HTTP/1.1" 200 -
+[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
+[http] "GET /api/state HTTP/1.1" 200 -
+[http] "POST /api/lab HTTP/1.1" 200 -
+[http] "POST /api/lab HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "POST /api/select HTTP/1.1" 200 -
+[http] "POST /api/advanced HTTP/1.1" 200 -
+[http] "POST /api/lab HTTP/1.1" 200 -
+[http] "POST /api/lab HTTP/1.1" 200 -
+[http] "POST /api/reset HTTP/1.1" 200 -
+[http] "GET / HTTP/1.1" 200 -
+[http] "GET /api/state HTTP/1.1" 200 -
+[http] "GET /api/dashboards HTTP/1.1" 200 -
+[http] "POST /api/advanced HTTP/1.1" 200 -
+[http] "GET /api/projects HTTP/1.1" 200 -
+[http] "POST /api/project/create HTTP/1.1" 200 -
+[http] "GET /api/dashboards HTTP/1.1" 200 -
+{
+  "goal_after_target100": "18 resultados · Atual",
+  "goal_csv_status": "# Projeto: principal; Execução: d1373916dcf3; Assinatura: 41bee87cfdc108749c5215ad; Calculado em: 2026-11-11T19:04:01.674505+00:00; Estado na exportação: atual",
+  "old_goal_count": 18,
+  "duration_after_irrelevant_selection": "7 resultados · Desatualizado · outra configuração",
+  "duration_points_equal_after_select": true,
+  "advanced_unchanged_after_station": true,
+  "advanced_export_status": "atual",
+  "historical_ui": "7 resultados · Histórico · mesma configuração",
+  "historical_csv": "# Projeto: principal; Execução: d1373916dcf3; Assinatura: c08e35a55da2fcf2d0693c6d; Calculado em: 2026-11-11T19:04:05.061430+00:00; Estado na exportação: atual",
+  "dashboard_cache_new_project": "00844373267f",
+  "dashboard_cache_origin": "principal",
+  "dashboard_cached_chart_survives_clone": true
+}

@@ -1,0 +1,20 @@
+{
+  "version": "AM05-2026.1",
+  "base_commit": "4cc48a4f32045278b2fc520bfa8e022419f26cfc",
+  "zip_integrity": true,
+  "target_files": 385,
+  "patch_identical_to_full": true,
+  "zip_extracted_tests_passed": 131,
+  "regression_passed": 402,
+  "regression_preexisting_failures": 5,
+  "new_passed": 50,
+  "launcher_http_state": true,
+  "contexts": 12,
+  "http_tools_checked": 12,
+  "browser_resolutions": [
+    "1280x720",
+    "1366x768",
+    "1920x1080"
+  ],
+  "simulation_css_brand_launcher_workspace_unchanged": true
+}

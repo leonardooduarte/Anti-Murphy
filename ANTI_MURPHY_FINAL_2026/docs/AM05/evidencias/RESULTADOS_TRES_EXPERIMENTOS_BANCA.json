@@ -1,0 +1,162 @@
+{
+  "title": "Anti-Murphy | Três ensaios reproduzíveis de engenharia",
+  "source": "Motor original: simulation/nexus.py e simulation/engine.py; dados sintéticos do projeto exemplo",
+  "scope": "Verificação interna, não homologação industrial",
+  "case_A": {
+    "input": {
+      "incidence": "Incidente sob análise",
+      "station": "CNC",
+      "start_h": 4,
+      "duration_h": 8,
+      "response": "Manutenção expressa · CNC",
+      "investment_brl": 1800.0
+    },
+    "nominal": {
+      "makespan_h": 16.9,
+      "throughput_h": 5.682,
+      "sla_pct": 100.0,
+      "late_orders": 0,
+      "operating_cost": 8076.37,
+      "penalty_total": 0.0,
+      "total_cost": 8076.37
+    },
+    "incident": {
+      "makespan_h": 24.58,
+      "throughput_h": 3.906,
+      "sla_pct": 40.0,
+      "late_orders": 3,
+      "operating_cost": 11747.0,
+      "penalty_total": 4469.68,
+      "total_cost": 16216.67
+    },
+    "response": {
+      "makespan_h": 21.58,
+      "throughput_h": 4.45,
+      "sla_pct": 100.0,
+      "late_orders": 0,
+      "operating_cost": 10313.0,
+      "penalty_total": 0.0,
+      "total_cost": 10313.0
+    },
+    "response_decision_cost_brl": 12113.0,
+    "difference_vs_incident_brl": 4103.68,
+    "independent_order_checks": {
+      "normal": {
+        "orders": 5,
+        "units": 96,
+        "late_orders": 0,
+        "sla_pct": 100.0,
+        "throughput_by_total_units_over_makespan": 5.68,
+        "sum_penalties": 0.0
+      },
+      "incident": {
+        "orders": 5,
+        "units": 96,
+        "late_orders": 3,
+        "sla_pct": 40.0,
+        "throughput_by_total_units_over_makespan": 3.906,
+        "sum_penalties": 4469.68
+      },
+      "response": {
+        "orders": 5,
+        "units": 96,
+        "late_orders": 0,
+        "sla_pct": 100.0,
+        "throughput_by_total_units_over_makespan": 4.449,
+        "sum_penalties": 0.0
+      }
+    }
+  },
+  "case_B": {
+    "input": {
+      "scenario": "nominal",
+      "station": "CNC",
+      "resource": "maquinas",
+      "additions": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "rows": [
+      {
+        "Adição": 0,
+        "Throughput": 5.681763308299117,
+        "SLA": 100.0,
+        "Custo/un": 84.12881249414335,
+        "Makespan": 16.896163178740085,
+        "Ganho marginal TP": 0.0,
+        "Throughput Δ (%)": 0.0,
+        "Gargalo": "CORTE"
+      },
+      {
+        "Adição": 1,
+        "Throughput": 5.681763308299117,
+        "SLA": 100.0,
+        "Custo/un": 96.09692807908425,
+        "Makespan": 16.896163178740085,
+        "Ganho marginal TP": 0.0,
+        "Throughput Δ (%)": 0.0,
+        "Gargalo": "CORTE"
+      },
+      {
+        "Adição": 2,
+        "Throughput": 5.681763308299117,
+        "SLA": 100.0,
+        "Custo/un": 108.06504366402514,
+        "Makespan": 16.896163178740085,
+        "Ganho marginal TP": 0.0,
+        "Throughput Δ (%)": 0.0,
+        "Gargalo": "CORTE"
+      },
+      {
+        "Adição": 3,
+        "Throughput": 5.681763308299117,
+        "SLA": 100.0,
+        "Custo/un": 120.033159248966,
+        "Makespan": 16.896163178740085,
+        "Ganho marginal TP": 0.0,
+        "Throughput Δ (%)": 0.0,
+        "Gargalo": "CORTE"
+      }
+    ],
+    "interpretation": "No modelo estudado, adicionar máquinas CNC isoladamente não altera o throughput. O custo unitário aumenta."
+  },
+  "case_C": {
+    "compared": {
+      "express_maintenance": {
+        "action": "Manutenção expressa · CNC",
+        "makespan_h": 21.57530617980079,
+        "sla_pct": 100.0,
+        "decision_cost_brl": 12113.0
+      },
+      "extra_cnc_operator": {
+        "action": "+1 operador · CNC",
+        "makespan_h": 19.973006391870044,
+        "sla_pct": 60.0,
+        "decision_cost_brl": 12712.94
+      }
+    },
+    "interpretation": "Menor makespan isolado não assegura melhor SLA ou menor custo nos cenários enumerados."
+  },
+  "checks": [
+    "Integridade temporal de operações, segmentos e conclusão final",
+    "Quantidades por ordem e total de unidades",
+    "SLA e atrasos por comparação de conclusões e prazos",
+    "Throughput = total unidades / makespan",
+    "Soma das multas por pedido",
+    "Composição de custos ±2 centavos",
+    "Custo da decisão = cenário + investimento modelado",
+    "Economia = referência sem resposta - custo da decisão",
+    "Capacidade marginal sem ganho no cenário específico",
+    "Alternativa mais rápida com SLA e custo diferentes"
+  ],
+  "known_limits": [
+    "Tempos, demandas e falhas são sintéticos",
+    "Estudo de capacidade sem verificação de habilitações individuais ou custos completos de contratação",
+    "Somatórios publicados são arredondados; diferenças de R$0,01 são esperadas",
+    "Não confirma ótimo global nem economia observada em fábrica",
+    "Não usa MTBF/MTTR, refugo ou inspeção reais"
+  ]
+}

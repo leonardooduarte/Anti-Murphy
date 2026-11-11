@@ -1,5 +1,7 @@
 """Independent AM05 client-state contracts, using the shipped JavaScript module."""
 import json
+import csv
+import io
 from pathlib import Path
 import shutil
 import subprocess
@@ -72,3 +74,25 @@ console.log(JSON.stringify({count:store.list('lab','goal').length,first:store.st
 
 def test_canonical_control_key_order_and_numeric_equivalence():
     assert js('console.log(JSON.stringify(canonical({min_sla:80.0,target_throughput:5.5})===canonical({target_throughput:5.5,min_sla:80})));') is True
+
+
+def test_csv_export_uses_live_status_and_single_line_project_metadata():
+    data = js('''
+const fs=require('fs');
+const source=fs.readFileSync(''' + json.dumps(str(ROOT / 'atelier/web/engineering_charts.js')) + ''','utf8');
+const snippet=source.slice(source.indexOf('function csv('),source.indexOf('function downloadSvg('));
+let captured;
+global.window={antiMurphyResultStatus:()=>({code:'historico',label:'Histórico'})};
+global.URL={createObjectURL(blob){captured=blob;return 'blob:test';},revokeObjectURL(){}};
+global.document={createElement:()=>({click(){},remove(){}}),body:{append(){}}};
+eval(snippet);
+downloadCsv([{label:'=1+1',value:4}],'lab','goal',{provenance:{project_name:'Project;=1+1;\\r\\n=1+1',project_id:'principal',run_id:'run',signature:'signature',calculated_at:'timestamp',inputs:{min_sla:80}}});
+(async()=>{const text=await captured.text();console.log(JSON.stringify({text,lines:text.split(/\\r?\\n/)}));})();
+''')
+    assert len(data['lines']) == 3
+    parsed=list(csv.reader(io.StringIO(data['text'].lstrip('\ufeff')),delimiter=';'))
+    assert len(parsed[0]) == 1
+    assert parsed[0][0].startswith('# Projeto: Project;=1+1;  =1+1 (principal)')
+    assert 'Estado na exportação: historico' in data['lines'][0]
+    assert '"min_sla":80' in parsed[0][0]
+    assert data['lines'][2].startswith('"\'=1+1";')

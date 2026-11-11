@@ -136,7 +136,8 @@ function downloadCsv(rows,scope,key,result){
  const status=window.antiMurphyResultStatus?.(result)||{code:'desconhecido',label:'Origem não verificável'};
  const clean=value=>String(value??'').replace(/[\r\n]/g,' ');
  const hdr=origin?`# Projeto: ${clean(origin.project_name||origin.project_id)} (${clean(origin.project_id)}); Execução: ${origin.run_id}; Assinatura: ${origin.signature}; Calculado em: ${origin.calculated_at}; Estado na exportação: ${status.code}; Entradas: ${JSON.stringify(origin.inputs||{})}\r\n`:'# Estado na exportação: desconhecido\r\n';
- const blob=new Blob([hdr+csv(rows)],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=`anti_murphy_${scope}_${key}.csv`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500);
+ const metadata='"'+hdr.trimEnd().replaceAll('"','""')+'"\r\n';
+ const blob=new Blob(['\ufeff'+metadata+csv(rows).replace(/^\ufeff/,'')],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=`anti_murphy_${scope}_${key}.csv`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500);
 }
 function downloadSvg(scope){
  const suite=document.querySelector(`.eng-suite[data-eng-scope="${scope}"]`);

@@ -1,0 +1,14 @@
+{
+  "version": "AM05-2026.1",
+  "base": "AM11-2026.1",
+  "base_commit": "4cc48a4f32045278b2fc520bfa8e022419f26cfc",
+  "branch": "correcao-am05-resultados",
+  "scope": "AM-05 only",
+  "tests": {
+    "passed": 402,
+    "preexisting_failures": 5,
+    "subtests_passed": 10,
+    "new_passed": 50
+  },
+  "next_pending_authorization": "AM-12"
+}

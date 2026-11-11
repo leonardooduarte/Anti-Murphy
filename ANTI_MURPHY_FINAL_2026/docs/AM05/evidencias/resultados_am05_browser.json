@@ -1,0 +1,59 @@
+[
+  {
+    "viewport": [
+      1280,
+      720
+    ],
+    "checks": [
+      "SLA0->100: stale, no autorun, CSV/SVG origin+stale, rerun1result",
+      "same-config signature deterministic; historical UI/CSV/SVG",
+      "duration current after irrelevant alternative selection",
+      "advanced station/resource invalidate+restore, tabs/history, JSON provenance",
+      "capacity throughput input stale without autorun",
+      "late lab response after target change remains stale",
+      "late advanced response retained without replacing active different tool",
+      "Monte Carlo project clone source retained and stale, not current",
+      "late response after project switch accessible with original source+stale"
+    ],
+    "page_errors": [],
+    "post_requests": 15
+  },
+  {
+    "viewport": [
+      1366,
+      768
+    ],
+    "checks": [
+      "SLA0->100: stale, no autorun, CSV/SVG origin+stale, rerun1result",
+      "same-config signature deterministic; historical UI/CSV/SVG",
+      "duration current after irrelevant alternative selection",
+      "advanced station/resource invalidate+restore, tabs/history, JSON provenance",
+      "capacity throughput input stale without autorun",
+      "late lab response after target change remains stale",
+      "late advanced response retained without replacing active different tool",
+      "Monte Carlo project clone source retained and stale, not current",
+      "late response after project switch accessible with original source+stale"
+    ],
+    "page_errors": [],
+    "post_requests": 15
+  },
+  {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "checks": [
+      "SLA0->100: stale, no autorun, CSV/SVG origin+stale, rerun1result",
+      "same-config signature deterministic; historical UI/CSV/SVG",
+      "duration current after irrelevant alternative selection",
+      "advanced station/resource invalidate+restore, tabs/history, JSON provenance",
+      "capacity throughput input stale without autorun",
+      "late lab response after target change remains stale",
+      "late advanced response retained without replacing active different tool",
+      "Monte Carlo project clone source retained and stale, not current",
+      "late response after project switch accessible with original source+stale"
+    ],
+    "page_errors": [],
+    "post_requests": 15
+  }
+]
