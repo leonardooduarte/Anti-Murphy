@@ -34,6 +34,7 @@ from simulation.decision_store import save_record, archived_records
 from .technical_audit import summarize_audit
 from .decision_quality import review_alternatives
 from .record_integrity import audit_decision_note, cost_snapshot
+from .experiment_economics import snapshot as economic_snapshot, normalize as economic_view, compare as economic_compare
 from .persistence import atomic_bundle
 from .workspace_guard import workspace_lock, project_revision
 from .analysis_provenance import contexts as experiment_contexts, inputs as experiment_inputs, signature as experiment_signature
@@ -317,7 +318,7 @@ class Studio:
                     d=json.loads(path.read_text('utf-8'))
                     if d.get('project_id')==self.project_id:
                         out.append({k:d.get(k) for k in ('id','name','created_at','model_hash',
-                            'project_id','run_id','spec','metrics','selected_action','selected_signature')})
+                            'project_id','run_id','spec','metrics','selected_action','selected_signature')} | {'economics':economic_view(d)})
                 except (OSError,TypeError,ValueError):continue
             return sorted(out,key=lambda x:x.get('created_at') or '',reverse=True)
 
@@ -337,6 +338,7 @@ class Studio:
                 'delay_h':self.state.get('op_delay'),
                 'metrics':{'incident':_summary(a['incident']),
                            'response':_summary(selected.get('result')) if selected else None},
+                'economics':economic_snapshot(a,selected),
                 'selected_signature':selected.get('signature') if selected else None,
                 'selected_action':selected.get('action') if selected else None,
                 'assumptions':a.get('evaluation_assumptions',[]),
@@ -356,8 +358,9 @@ class Studio:
             b=two['metrics']['response'] or two['metrics']['incident'] or {}
             return _json_safe({'first':one,'second':two,
                 'same_model':one['model_hash']==two['model_hash'],
+                'economics':economic_compare(one,two),
                 'delta':{x:(metric(b,x)-metric(a,x)) if isinstance(a.get(x),(int,float)) and isinstance(b.get(x),(int,float)) else None for x in k},
-                'note':'Comparação retrospectiva. Custos de ações somente quando modelados; modelos distintos não isolam o efeito da intervenção.'})
+                'note':'Variações são B − A. Custo do cenário = operação + multas; custo da decisão inclui investimento. Economia líquida usa a referência sem resposta de cada experimento. Componentes ausentes não são presumidos zero. Modelos ou referências diferentes não isolam o efeito da intervenção.'})
 
     @staticmethod
     def _prepared_replays(state):

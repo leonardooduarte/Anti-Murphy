@@ -1514,11 +1514,19 @@ async function compareExperiments(){
  const first=$('experiment-first').value,second=$('experiment-second').value;
  if(!first||!second||first===second){notify('Selecione dois experimentos distintos.',true);return}
  try{const r=await perform(api('/api/experiment/compare','POST',{first,second}),null,false);
-  const vals=['late_orders','sla_pct','makespan_h','total_cost'];
+  const vals=['late_orders','sla_pct','makespan_h'];
   const labels={'late_orders':'Pedidos atrasados','sla_pct':'Cumprimento de prazos','makespan_h':'Conclusão (h)','total_cost':'Custo simulado (R$)'};
   const f=r.first.metrics.response||r.first.metrics.incident||{},s=r.second.metrics.response||r.second.metrics.incident||{};
   $('experiment-comparison').innerHTML=`<div class="journal-compare-head"><strong>${esc(r.first.name)} × ${esc(r.second.name)}</strong><span>${r.same_model?'Mesmo modelo produtivo':'Modelos diferentes · não atribuir causalidade'}</span></div>
    <table class="data-table"><thead><tr><th>Indicador</th><th>Referência</th><th>Comparação</th><th>Variação B − A</th></tr></thead><tbody>${vals.map(k=>`<tr><td>${labels[k]}</td><td>${h(f[k])}</td><td>${h(s[k])}</td><td>${r.delta[k]===null?'—':`${r.delta[k]>0?'+':''}${h(r.delta[k])}`}</td></tr>`).join('')}</tbody></table>
+   <h3>Composição econômica arquivada</h3>
+   <table class="data-table" data-archived-economics><thead><tr><th>Componente (R$)</th><th>Referência A</th><th>Comparação B</th><th>Variação B − A</th></tr></thead><tbody>${['scenario_cost','investment','decision_cost','savings','reference_cost'].map(k=>{
+    const labels={scenario_cost:'Custo do cenário · operação + multas',investment:'Investimento da intervenção',decision_cost:'Custo total da decisão',savings:'Economia líquida · frente à própria referência',reference_cost:'Custo da referência sem resposta'};
+    const e=r.economics,format=v=>v===null||v===undefined?'Não registrado / não calculado':brlExact(v);
+    return `<tr data-economic-component="${k}"><td>${labels[k]}</td><td>${format(e?.first?.[k])}</td><td>${format(e?.second?.[k])}</td><td>${format(e?.delta?.[k])}</td></tr>`;
+   }).join('')}</tbody></table>
+   ${r.economics?.first?.status!=='complete'||r.economics?.second?.status!=='complete'?'<p role="status">Comparação econômica parcial: há componentes não registrados ou não calculados. O investimento ausente não foi considerado zero.</p>':''}
+   ${!r.economics?.same_reference?'<p role="status">Referências econômicas diferentes ou não identificadas. As economias líquidas usam suas próprias referências.</p>':''}
    <p>${esc(r.note)}</p>`;
  }catch(_e){}
 }
