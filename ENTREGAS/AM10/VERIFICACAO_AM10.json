@@ -1,0 +1,21 @@
+{
+  "version": "AM10-2026.1",
+  "base_commit": "a56c407f35bd11b3091791c5e561ea82fa90812d",
+  "branch": "correcao-am10-capacidade",
+  "files": 451,
+  "zip_integrity": true,
+  "patch_matches_full_zip_sha256": true,
+  "regression_passed": 457,
+  "preexisting_failures": 5,
+  "subtests_passed": 10,
+  "new_am10_tests_passed": 17,
+  "extracted_directed_tests_passed": 36,
+  "extracted_http_checks": true,
+  "official_experiments_passed": 3,
+  "browser_resolutions": [
+    "1280x720",
+    "1366x768",
+    "1920x1080"
+  ],
+  "native_windows_validated": false
+}

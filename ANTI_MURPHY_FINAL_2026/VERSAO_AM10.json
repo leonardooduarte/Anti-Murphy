@@ -1,0 +1,8 @@
+{
+  "version": "AM10-2026.1",
+  "base_commit": "a56c407f35bd11b3091791c5e561ea82fa90812d",
+  "branch": "correcao-am10-capacidade",
+  "passed": 457,
+  "preexisting_failures": 5,
+  "new_passed": 17
+}

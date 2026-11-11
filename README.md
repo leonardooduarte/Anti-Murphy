@@ -1,3 +1,17 @@
+# Versão atual: AM10-2026.1 sobre AM09/AM08/AM12/AM05/AM11
+
+[Baixar aplicativo completo](ENTREGAS/AM10/ANTI_MURPHY_AM10_COMPLETO_2026.zip) · [Patch sobre AM09](ENTREGAS/AM10/ANTI_MURPHY_PATCH_AM10_2026.zip) · [Relatório](ENTREGAS/AM10/RELATORIO_AM10_2026.md) · [Continuidade](ENTREGAS/AM10/CONTINUIDADE_AM10_2026.md).
+
+Abra o ZIP e clique em **Download raw file**. Extraia em pasta nova e execute `ANTI_MURPHY_FINAL_2026/INICIAR_ANTI_MURPHY.bat`. Preserve instalações e dados anteriores.
+
+A busca de capacidade inclui combinações de máquina e operador no mesmo posto, ambas as orientações entre postos e quantidades dentro dos limites totais. A abrangência e a quantidade de candidatos aparecem na interface e nas exportações. A busca cobre até duas combinações posto/recurso e não comprova ótimo global.
+
+457 testes aprovados, cinco falhas preexistentes e dez subtestes aprovados; 17 testes novos do AM10. Três experimentos oficiais e navegador nas três resoluções passaram. ZIP e patch reproduzem os mesmos 451 arquivos. Após extração, 36 testes direcionados e a verificação HTTP passaram. Windows e projetor aguardam validação local. As versões anteriores permanecem preservadas.
+
+---
+
+Histórico de versões anteriores:
+
 # Versão atual: AM09-2026.1 sobre AM08/AM12/AM05/AM11
 
 [Aplicativo completo](ENTREGAS/AM09/ANTI_MURPHY_AM09_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM09/ANTI_MURPHY_PATCH_AM09_2026.zip) · [Relatório](ENTREGAS/AM09/RELATORIO_AM09_2026.md) · [Continuidade](ENTREGAS/AM09/CONTINUIDADE_AM09_2026.md).

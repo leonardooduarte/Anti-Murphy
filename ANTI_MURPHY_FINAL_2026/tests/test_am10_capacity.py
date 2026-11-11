@@ -41,8 +41,9 @@ def test_invalid_budget_rejected(limits):
 
 
 def test_space_limit_explicit_before_any_simulation():
+ c=cfg();base=run_simulation(c)
  with patch('simulation.innovation.run_simulation') as simulate:
-  with pytest.raises(ValueError,match='10000'):_capacity_plans(['P'],10001,0)
+  with pytest.raises(ValueError,match='10000'):goal_seek(c,base,1.5,80,10001,0)
   simulate.assert_not_called()
 
 
