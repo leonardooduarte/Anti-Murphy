@@ -783,6 +783,16 @@ function modeledRestrictions(a){
  if(a?.meets_sla!==true)fail.push('meta de SLA');
  return fail.length ? 'Não atende: '+fail.join(', ') : 'Atende às metas modeladas';
 }
+function costSlaFrontier(alternatives){
+ // Two objectives only: decision cost decreases, SLA increases. The decision
+ // record separately reviews cost, makespan and SLA; do not conflate the sets.
+ // Exact equivalents remain alternatives; strict dominance uses full precision.
+ const candidates=alternatives.filter(a=>modeledEligible(a)&&Number.isFinite(Number(a.decision_cost))&&Number.isFinite(Number(a.sla_pct)));
+ return candidates.filter(a=>!candidates.some(b=>
+  Number(b.decision_cost)<=Number(a.decision_cost)&&Number(b.sla_pct)>=Number(a.sla_pct)&&
+  (Number(b.decision_cost)<Number(a.decision_cost)||Number(b.sla_pct)>Number(a.sla_pct))
+ )).sort((a,b)=>Number(a.decision_cost)-Number(b.decision_cost)||Number(b.sla_pct)-Number(a.sla_pct)||String(a.signature).localeCompare(String(b.signature)));
+}
 function dashScenarios(){
  const scs=dashUI.data.scenarios;
  const options=Object.entries(scs);
@@ -802,14 +812,11 @@ function dashTradeoffPlot(){
  // Only alternatives satisfying modeled criteria participate in this descriptive non-dominated set.
  // This is NOT a guarantee of global optimality or real industrial feasibility.
  const modeled=options.filter(modeledEligible);
- const frontier=modeled.filter(a=>!modeled.some(b=>
-  b!==a && Number(b.decision_cost)<=Number(a.decision_cost) && Number(b.sla_pct)>=Number(a.sla_pct) &&
-  (Number(b.decision_cost)<Number(a.decision_cost)||Number(b.sla_pct)>Number(a.sla_pct))
- )).sort((a,b)=>Number(a.decision_cost)-Number(b.decision_cost));
+ const frontier=costSlaFrontier(options);
  const pareto=new Set(frontier.map(a=>a.signature));
  const line=frontier.length>1?`<polyline class="dash-pareto-line" points="${frontier.map(a=>`${x(a.decision_cost)},${y(a.sla_pct)}`).join(' ')}"/>`:'';
  const dots=options.map(a=>`<g data-dash-select="${esc(a.signature)}" role="button" tabindex="0" class="dash-chart-option ${a.signature===dashUI.data.selected?'chosen':''} ${pareto.has(a.signature)?'pareto':''}" aria-label="${esc(a.action)}; custo ${dashMoney(a.decision_cost)}; SLA ${dashPct(a.sla_pct)}"><circle cx="${x(a.decision_cost)}" cy="${y(a.sla_pct)}" r="${a.signature===dashUI.data.selected?8.5:pareto.has(a.signature)?7.2:5.9}"/><title>${esc(a.action)} | ${dashMoney(a.decision_cost)} | SLA ${dashPct(a.sla_pct)}${pareto.has(a.signature)?' | não dominada na amostra':''}</title></g>`).join('');
- return `<svg class="dash-scatter" viewBox="0 0 ${width} ${height}" role="img" aria-label="Alternativas por custo e entregas no prazo. Linha tracejada representa as opções não dominadas do conjunto enumerado.">${grid}${ticks}${line}${dots}<text x="${left}" y="14" class="dash-svg-title">Entregas no prazo (%)</text><text x="${width-right}" y="${height-5}" text-anchor="end" class="dash-svg-title">Custo da decisão (R$)</text></svg><div class="dash-plot-note"><strong>${frontier.length} alternativa(s) não dominada(s)</strong> entre ${modeled.length} que atendem à viabilidade, orçamento e SLA. A linha indica apenas o conjunto enumerado; não comprova viabilidade física nem ótimo global.</div>`;
+ return `<svg class="dash-scatter" viewBox="0 0 ${width} ${height}" role="img" aria-label="Alternativas por custo e entregas no prazo. Linha tracejada representa as opções não dominadas do conjunto enumerado.">${grid}${ticks}${line}${dots}<text x="${left}" y="14" class="dash-svg-title">Entregas no prazo (%)</text><text x="${width-right}" y="${height-5}" text-anchor="end" class="dash-svg-title">Custo da decisão (R$)</text></svg><div class="dash-plot-note"><strong>${frontier.length} alternativa(s) não dominada(s)</strong> em custo e SLA entre ${modeled.length} que atendem à viabilidade, orçamento e SLA. Empates nas duas métricas são equivalentes. A linha indica apenas o conjunto enumerado; não comprova viabilidade física nem ótimo global.</div>`;
 }
 function dashOptimize(){
  const arr=dashUI.data.alternatives;
@@ -934,9 +941,7 @@ function renderFrontier(){
  const min=Math.max(0,lo-span*.06),max=hi+span*.06;
  const xx=v=>L+(Number(v)-min)/Math.max(.001,max-min)*(W-L-R);
  const yy=v=>T+(100-Number(v))/100*(H-T-B);
- const sorted=points.filter(modeledEligible).slice().sort((a,b)=>a.decision_cost-b.decision_cost);
- let best=-1;const frontier=[];
- for(const a of sorted){if(a.sla_pct>best+.0001){frontier.push(a);best=a.sla_pct}}
+ const frontier=costSlaFrontier(points);
  const grid=[0,25,50,75,100].map(y=>`<line class="frontier-grid" x1="${L}" y1="${yy(y)}" x2="${W-R}" y2="${yy(y)}"/><text class="frontier-axis" x="${L-10}" y="${yy(y)+4}" text-anchor="end">${y}%</text>`).join('');
  const ticks=Array.from({length:5},(_,i)=>min+(max-min)*i/4).map(v=>`<text class="frontier-axis" x="${xx(v)}" y="${H-15}" text-anchor="middle">${brl(v)}</text>`).join('');
  const path=frontier.length>1?`<polyline class="frontier-line" points="${frontier.map(a=>`${xx(a.decision_cost)},${yy(a.sla_pct)}`).join(' ')}"/>`:'';
@@ -950,7 +955,7 @@ function renderFrontier(){
    g.addEventListener('click',()=>selectAlternative(g.dataset.signature));
    g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();g.dispatchEvent(new MouseEvent('click',{bubbles:true}))}});
  });
- $('frontier-description').textContent=`${points.length} alternativas · ${frontier.length} pontos não dominados entre alternativas que atendem às metas modeladas. Habilitações e buffers ainda exigem verificação.`;
+ $('frontier-description').textContent=`${points.length} alternativas · ${frontier.length} não dominada(s) em custo e SLA entre as que atendem às metas modeladas. Empates nas duas métricas são equivalentes. Habilitações e buffers ainda exigem verificação; não há garantia de ótimo global.`;
 }
 
 async function selectAlternative(signature){
