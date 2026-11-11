@@ -1,0 +1,26 @@
+{
+  "version": "AM04-FRONTEIRA-2026.1",
+  "base_commit": "97683444f7160f35d86f0bb7b8c96baddb07412a",
+  "branch": "correcao-am04-fronteira",
+  "project_files": 475,
+  "zip_integrity": true,
+  "patch_matches_full_zip_sha256": true,
+  "changed_production_files": [
+    "atelier/web/app.js"
+  ],
+  "regression_passed": 473,
+  "preexisting_failures": 5,
+  "subtests_passed": 10,
+  "new_am04_tests_passed": 16,
+  "extracted_directed_tests_passed": 57,
+  "extracted_http_checks": true,
+  "official_experiments_passed": 3,
+  "browser_resolutions": [
+    "1280x720",
+    "1366x768",
+    "1920x1080"
+  ],
+  "controlled_browser_cases_per_resolution": 5,
+  "real_keyboard_selection_verified": true,
+  "native_windows_validated": false
+}

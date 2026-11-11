@@ -1,3 +1,19 @@
+# Versão atual: complemento AM04 sobre AM10
+
+AM04-FRONTEIRA-2026.1 preserva AM10/AM09/AM08/AM12/AM05/AM11 e a base reconstruída AM01–AM06. O número AM04 identifica o achado complementado; esta é a continuação da AM10.
+
+[Baixar aplicativo completo](ENTREGAS/AM04_FRONTEIRA/ANTI_MURPHY_AM04_FRONTEIRA_COMPLETO_2026.zip) · [Patch sobre AM10](ENTREGAS/AM04_FRONTEIRA/ANTI_MURPHY_PATCH_AM04_FRONTEIRA_2026.zip) · [Relatório](ENTREGAS/AM04_FRONTEIRA/RELATORIO_AM04_FRONTEIRA_2026.md) · [Continuidade](ENTREGAS/AM04_FRONTEIRA/CONTINUIDADE_AM04_FRONTEIRA_2026.md) · [Plano para finalizar](ENTREGAS/AM04_FRONTEIRA/STATUS_E_PLANO_FINALIZACAO_2026.md).
+
+Abra o ZIP e clique em **Download raw file**. Extraia em pasta nova e execute `ANTI_MURPHY_FINAL_2026/INICIAR_ANTI_MURPHY.bat`. Preserve instalações e dados anteriores.
+
+As telas de Análise e Otimização usam a mesma fronteira custo/SLA: custos empatados, equivalentes e diferenças pequenas são tratados consistentemente. Todas as alternativas continuam consultáveis e selecionáveis. A revisão tridimensional da decisão permanece inalterada; não há garantia de ótimo global.
+
+473 testes aprovados, cinco falhas preexistentes e dez subtestes aprovados; 16 casos novos do AM04. Três experimentos oficiais, navegador com casos controlados e fluxos reais do Modo Banca passaram nas três resoluções. ZIP e patch reproduzem os mesmos 475 arquivos; após extração, 57 testes direcionados e a verificação HTTP passaram. Windows e projetor ainda exigem validação local. Versões anteriores preservadas.
+
+---
+
+Histórico das versões anteriores:
+
 # Versão atual: AM10-2026.1 sobre AM09/AM08/AM12/AM05/AM11
 
 [Baixar aplicativo completo](ENTREGAS/AM10/ANTI_MURPHY_AM10_COMPLETO_2026.zip) · [Patch sobre AM09](ENTREGAS/AM10/ANTI_MURPHY_PATCH_AM10_2026.zip) · [Relatório](ENTREGAS/AM10/RELATORIO_AM10_2026.md) · [Continuidade](ENTREGAS/AM10/CONTINUIDADE_AM10_2026.md).

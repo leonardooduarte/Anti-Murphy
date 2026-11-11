@@ -1,0 +1,7 @@
+[http] "GET / HTTP/1.1" 200 -
+[http] "GET /app.js HTTP/1.1" 200 -
+[http] "GET /banca.css HTTP/1.1" 200 -
+[http] "GET /dashboards.css HTTP/1.1" 200 -
+[http] "GET /api/dashboards HTTP/1.1" 200 -
+[http] "GET /api/technical-audit HTTP/1.1" 200 -
+Extracted ZIP HTTP checks OK [('/', 36571), ('/app.js', 195591), ('/banca.css', 6830), ('/dashboards.css', 11830), ('/api/dashboards', 46728), ('/api/technical-audit', 4368)]

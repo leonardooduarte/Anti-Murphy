@@ -1,0 +1,10 @@
+{
+  "version": "AM04-FRONTEIRA-2026.1",
+  "base_version": "AM10-2026.1",
+  "base_commit": "97683444f7160f35d86f0bb7b8c96baddb07412a",
+  "branch": "correcao-am04-fronteira",
+  "regression_passed": 473,
+  "preexisting_failures": 5,
+  "subtests_passed": 10,
+  "new_tests_passed": 16
+}

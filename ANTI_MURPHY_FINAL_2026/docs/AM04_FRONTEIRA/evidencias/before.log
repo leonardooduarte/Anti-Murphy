@@ -1,0 +1,4 @@
+{"case":"lower_first","analysis":"2 alternativas · 2 pontos não dominados entre alternativas que atendem às metas modeladas. Habilitações e buffers ainda exigem verificação.","dashboard":"1","line":"<polyline class=\"frontier-line\" points=\"584.5,66.6 584.5,30\"/>"}
+{"case":"higher_first","analysis":"2 alternativas · 1 pontos não dominados entre alternativas que atendem às metas modeladas. Habilitações e buffers ainda exigem verificação.","dashboard":"1","line":null}
+{"case":"equivalent","analysis":"2 alternativas · 1 pontos não dominados entre alternativas que atendem às metas modeladas. Habilitações e buffers ainda exigem verificação.","dashboard":"2","line":null}
+{"case":"precise_sla","analysis":"2 alternativas · 1 pontos não dominados entre alternativas que atendem às metas modeladas. Habilitações e buffers ainda exigem verificação.","dashboard":"2","line":null}
