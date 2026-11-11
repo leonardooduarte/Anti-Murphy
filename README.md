@@ -1,3 +1,11 @@
+# Versão atual desta branch: AM12-2026.1
+
+AM12 concluído sobre AM05+AM11. [Baixar aplicativo completo](ENTREGAS/AM12/ANTI_MURPHY_AM12_COMPLETO_2026.zip), [patch](ENTREGAS/AM12/ANTI_MURPHY_PATCH_AM12_2026.zip), [relatório](ENTREGAS/AM12/RELATORIO_AM12_2026.md). Abra o ZIP e clique Download raw file no GitHub. Extraia em pasta nova e execute ANTI_MURPHY_FINAL_2026/INICIAR_ANTI_MURPHY.bat.
+
+415 testes aprovados, cinco falhas históricas, dez subtestes.13 novosAM12 aprovados. Gravações de instâncias desatualizadas são bloqueadas com aviso para reabrir o programa. Caminho Windows implementado, homologação nativa pendente. Arquivos de entregas anteriores permanecem preservados. O texto abaixo é o histórico da versão AM05.
+
+---
+
 # Anti-Murphy — AM05-2026.1 sobre AM11
 
 Nesta branch, AM05 foi concluído sobre a versão AM11 preservada no commit4cc48a4. Foram corrigidas identificação de resultados desatualizados, dependências por ferramenta, histórico e exportações. Motor/fórmulas/identidade visual foram preservados.

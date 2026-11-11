@@ -1,0 +1,12 @@
+{
+  "version": "AM12-2026.1",
+  "base": "bbc4ff10fd5c6af50e2478c75df41f385e1c4195",
+  "files": 399,
+  "zip_integrity": true,
+  "patch_identical": true,
+  "new_tests_extracted_passed": 13,
+  "regression_passed": 415,
+  "preexisting_failures": 5,
+  "subtests_passed": 10,
+  "native_windows_tested": false
+}

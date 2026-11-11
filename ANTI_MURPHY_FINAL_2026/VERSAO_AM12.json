@@ -1,0 +1,8 @@
+{
+  "version": "AM12-2026.1",
+  "base_commit": "bbc4ff10fd5c6af50e2478c75df41f385e1c4195",
+  "branch": "correcao-am12-persistencia",
+  "passed": 415,
+  "preexisting_failures": 5,
+  "new_passed": 13
+}
