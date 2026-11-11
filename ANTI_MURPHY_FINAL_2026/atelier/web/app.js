@@ -43,9 +43,13 @@ function analysisSample(result){
  if(!sample)return '';
  return `<p class="lab-secondary" role="status" data-analysis-sample>Execuções: ${integer(sample.runs)} · Viáveis: ${integer(sample.viable_runs)} · Inviáveis: ${integer(sample.infeasible_runs)}. Estatísticas somente das execuções viáveis; métricas dos inviáveis não são calculadas. ${sample.viable_runs===0?'Sem amostra viável para estatísticas.':''} ${result.mode==='stress'?'Taxa de resiliência usa todas as tentativas, incluindo inviáveis como não atendidas.':''}</p>`;
 }
+function analysisSearch(result){
+ const q=result.search_space;if(!q)return '';
+ return `<p class="lab-secondary" role="status" data-capacity-search>Espaço pesquisado: ${integer(q.candidates_evaluated)} candidatos avaliados · ${integer(q.returned_count)} exibidos. Limites totais: ${integer(q.max_extra_workers)} operadores e ${integer(q.max_extra_machines)} máquinas adicionais. Uma ou duas combinações posto/recurso por alternativa, incluindo máquina + operador no mesmo posto. A operação nominal é a referência. Busca limitada; não comprova ótimo global.</p>`;
+}
 function analysisBanner(result){
  const state=analysisHistory.status(result);
- return analysisSample(result)+`<div class="lab-secondary ${state.code==='desatualizado'?'am-stale-warning':''}" role="status" data-analysis-status="${state.code}"><b>${esc(state.label)}</b> · ${esc(analysisOrigin(result))}${state.code!=='atual'?'<p>Resultado anterior preservado. Confira a origem; execute novamente para obter dados da configuração vigente.</p>':''}</div>`;
+ return analysisSample(result)+analysisSearch(result)+`<div class="lab-secondary ${state.code==='desatualizado'?'am-stale-warning':''}" role="status" data-analysis-status="${state.code}"><b>${esc(state.label)}</b> · ${esc(analysisOrigin(result))}${state.code!=='atual'?'<p>Resultado anterior preservado. Confira a origem; execute novamente para obter dados da configuração vigente.</p>':''}</div>`;
 }
 function analysisHistoryMarkup(scope,mode,attribute){
  const entries=analysisHistory.list(scope,mode);

@@ -54,7 +54,7 @@ def contexts(state, project_id, selected=None):
                           'response':response,'seeds':list(range(700,706))},
         'lab:stress':{**model,'dispatch_rule':rule,'runs':16,'max_absent':1,
                       'demand_low':.9,'demand_high':1.2,'durations_h':[2,4,8],'seed':2026},
-        'lab:capacity':{**nominal,'max_extra_workers':2,'max_extra_machines':1,'max_results':12},
+        'lab:capacity':{**nominal,'search_policy':'station-resource-pairs-v2','max_extra_workers':2,'max_extra_machines':1,'max_results':12},
         # Goal reads the finite alternatives calculated using the full policy.
         # Selection itself is not an input; it only changes the examined row.
         'lab:goal':{**crisis,'policy':spec,'delay_h':delay},

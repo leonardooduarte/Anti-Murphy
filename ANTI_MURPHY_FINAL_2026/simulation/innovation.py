@@ -114,6 +114,35 @@ def stress_test(
     return {"summary": summary, "runs": rows, "fragility": fragility}
 
 
+MAX_CAPACITY_CANDIDATES = 10000
+
+
+def _capacity_plans(stations, workers, machines):
+    """All singles and pairs of station/resource channels within total budgets."""
+    def integer(value):
+        if isinstance(value,bool):raise ValueError('Limites de capacidade devem ser inteiros não negativos.')
+        try:n=float(value)
+        except (ValueError,TypeError,OverflowError):raise ValueError('Limite de capacidade inválido.')
+        if not isfinite(n) or n<0 or not n.is_integer():raise ValueError('Limites de capacidade devem ser inteiros não negativos.')
+        return int(n)
+    workers,machines=integer(workers),integer(machines)
+    channels=[(sid,field,limit) for sid in sorted(stations) for field,limit in [('operadores',workers),('maquinas',machines)] if limit]
+    plans=[]
+    def add(plan):
+        plans.append(plan)
+        if len(plans)>MAX_CAPACITY_CANDIDATES:
+            raise ValueError('A busca excede 10000 candidatos. Reduza postos ou limites de recursos; nenhum candidato foi simulado.')
+    for sid,field,limit in channels:
+        for amount in range(1,limit+1):add(((sid,field,amount),))
+    for i,(a,fa,la) in enumerate(channels):
+        for b,fb,lb in channels[i+1:]:
+            for x in range(1,la+1):
+                for y in range(1,lb+1):
+                    plan=((a,fa,x),(b,fb,y))
+                    if sum(n for _,f,n in plan if f=='operadores')<=workers and sum(n for _,f,n in plan if f=='maquinas')<=machines:add(plan)
+    return plans
+
+
 def goal_seek(
     base_config: ScenarioConfig,
     base_result: Dict[str, Any],
@@ -122,46 +151,32 @@ def goal_seek(
     max_extra_workers: int = 3,
     max_extra_machines: int = 2,
     max_results: int = 12,
+    search_report: dict | None = None,
 ) -> List[Dict[str, Any]]:
     """Busca mudanças discretas simples capazes de atingir uma meta operacional.
 
     Explora ações de baixo grau (uma ou duas alterações) para manter o resultado
     explicável e apresentável ao gestor.
     """
-    station_ids = list(base_config.stations.keys())
-    candidates: List[ScenarioConfig] = []
-
-    # Ações simples.
-    for sid in station_ids:
-        for w in range(1, max(0, int(max_extra_workers)) + 1):
-            c = base_config.clone(name=f"+{w} op. em {sid}")
-            c.stations[sid]["operadores"] += w
-            candidates.append(c)
-        for m in range(1, max(0, int(max_extra_machines)) + 1):
-            c = base_config.clone(name=f"+{m} maq. em {sid}")
-            c.stations[sid]["maquinas"] += m
-            candidates.append(c)
-
-    # Combinações pequenas focadas em pares de postos.
-    for i, a in enumerate(station_ids):
-        for b in station_ids[i + 1:]:
-            if max_extra_workers >= 2:
-                c = base_config.clone(name=f"+1 op. {a} +1 op. {b}")
-                c.stations[a]["operadores"] += 1
-                c.stations[b]["operadores"] += 1
-                candidates.append(c)
-            if max_extra_machines >= 1 and max_extra_workers >= 1:
-                c = base_config.clone(name=f"+1 maq. {a} +1 op. {b}")
-                c.stations[a]["maquinas"] += 1
-                c.stations[b]["operadores"] += 1
-                candidates.append(c)
-
-    rows = []
-    seen = set()
-    for cfg in candidates:
-        if cfg.name in seen:
-            continue
-        seen.add(cfg.name)
+    if not isfinite(float(target_throughput)) or target_throughput<0 or not isfinite(float(target_sla)) or not 0<=target_sla<=100:
+        raise ValueError('Metas devem ser finitas: throughput não negativo e SLA entre 0 e 100.')
+    if isinstance(max_results,bool) or not isinstance(max_results,int) or max_results<0:
+        raise ValueError('Quantidade de resultados deve ser inteira não negativa.')
+    plans=_capacity_plans(base_config.stations,max_extra_workers,max_extra_machines)
+    station_ids=list(base_config.stations)
+    if search_report is not None:
+        search_report.update(policy='station-resource-pairs-v2',max_changed_channels=2,
+            max_extra_workers=int(max_extra_workers),max_extra_machines=int(max_extra_machines),
+            candidates_in_space=len(plans),candidates_evaluated=0,returned_count=0,
+            includes_baseline=False,global_optimum=False,candidate_limit=MAX_CAPACITY_CANDIDATES)
+    if max_results==0:return []
+    rows=[]
+    for plan in plans:
+        def short(field):return 'op.' if field=='operadores' else 'maq.'
+        label=(f'+{plan[0][2]} {short(plan[0][1])} em {plan[0][0]}' if len(plan)==1 else
+               ' '.join(f'+{n} {short(field)} {sid}' for sid,field,n in plan))
+        cfg=base_config.clone(name=label)
+        for sid,field,amount in plan:cfg.stations[sid][field]+=amount
         r = run_simulation(cfg)
         d = compare_results(base_result, r)
         workers_added = sum(
@@ -172,13 +187,14 @@ def goal_seek(
             max(0, cfg.stations[s]["maquinas"] - base_config.stations[s]["maquinas"])
             for s in station_ids
         )
-        feasible = metric(r, "throughput_h") >= target_throughput and metric(r, "sla_pct") >= target_sla
+        feasible = bool(r.get("feasible",True)) and metric(r, "throughput_h") >= target_throughput and metric(r, "sla_pct") >= target_sla
         # Penaliza complexidade e custo, valoriza proximidade da meta quando inviável.
         gap = max(0.0, target_throughput - metric(r, "throughput_h")) * 22 + max(0.0, target_sla - metric(r, "sla_pct")) * 0.8
         complexity = workers_added * 2.0 + machines_added * 4.5
         score = (0 if feasible else 1000) + gap + complexity + max(0, d["unit_cost_pct"]) * 0.7
         rows.append({
             "Cenário": cfg.name,
+            "changes":[{"station":sid,"resource":field,"addition":n} for sid,field,n in plan],
             "Atinge meta": "Sim" if feasible else "Não",
             "Throughput": metric(r, "throughput_h"),
             "SLA": metric(r, "sla_pct"),
@@ -193,9 +209,10 @@ def goal_seek(
             "result": r,
             "config": cfg,
         })
-    rows.sort(key=lambda x: (x["score"], x["Custo/un"], x["Máquinas +"], x["Operadores +"]))
+    rows.sort(key=lambda x: (x["Atinge meta"]!="Sim",x["score"], x["Custo/un"], x["Máquinas +"], x["Operadores +"],x["Cenário"]))
     for row in rows:
         row["score"] = round(row["score"], 2)
+    if search_report is not None:search_report.update(candidates_evaluated=len(plans),returned_count=min(len(rows),max_results))
     return rows[:max_results]
 
 

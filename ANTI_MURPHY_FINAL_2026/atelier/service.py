@@ -706,14 +706,15 @@ class Studio:
                 if not 0<=target<=100 or not 0<throughput<=100000:
                     raise StudioError('Meta de serviço ou throughput fora do intervalo permitido.')
                 base=nominal(self.state)
+                search_space={}
                 rows=goal_seek(cfg,base,target_throughput=throughput,target_sla=target,
-                               max_extra_workers=2,max_extra_machines=1,max_results=12)
+                               max_extra_workers=2,max_extra_machines=1,max_results=12,search_report=search_space)
                 points=[{'label':r['Cenário'],'sla_pct':r['SLA'],
                         'makespan_h':r['Makespan'],'unit_cost':r['Custo/un'],
                         'throughput_h':r['Throughput'],'goal_met':r['Atinge meta']=='Sim',
-                        'added_workers':r['Operadores +'],'added_machines':r['Máquinas +']}
+                        'added_workers':r['Operadores +'],'added_machines':r['Máquinas +'],'changes':json.dumps(r['changes'],ensure_ascii=False)}
                         for r in rows]
-                return self._stamp_result({'mode':mode,'points':points,'notes':[
+                return self._stamp_result({'mode':mode,'points':points,'search_space':search_space,'notes':[
                      'Busca discreta de capacidade sobre operação nominal, sem indisponibilidade; não inclui custos de contratação ou compra e não prova ótimo global.']},mode,payload)
             elif mode=='goal':
                 target=float(payload.get('min_sla',80))
