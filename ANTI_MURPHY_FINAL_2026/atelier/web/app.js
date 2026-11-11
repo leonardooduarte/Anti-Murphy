@@ -21,6 +21,35 @@ const icon = id => `<svg aria-hidden="true"><use href="#ico-${id}"/></svg>`;
 const st = {data:null, view:'simulacao', scene:'incident', station:'CNC', order:null,
   playing:false, speed:1, pauseOnEvent:true, presentation:false, presentationStep:0, presentationOverview:false, reportOpened:false, t:0, lastFrame:0, lastPaint:0, lastInspectorPaint:0, zoom:1, wipe:50, focus:false,
   modelTab:'stations', lab:'duration', labHistory:[], labVisible:null, advanced:'diagnostic', advancedResult:null, editing:null, stageKey:'', toastTimer:null, navStack:[], savedExperiments:[], scheduleKey:'', helpTopic:'simulacao', tourStep:-1, tourOrigin:'simulacao'};
+function analysisInputs(scope,mode){
+ if(scope==='lab'){
+  if(mode==='goal')return {min_sla:Number($('goal-value').value)};
+  if(mode==='capacity')return {min_sla:Number($('goal-value').value),target_throughput:Number($('throughput-value').value)};
+ }else{
+  if(mode==='sensitivity')return {station:$('advanced-station').value,resource:$('advanced-resource').value};
+  if(mode==='demand')return {min_sla:Number($('advanced-sla').value)};
+ }
+ return {};
+}
+const analysisHistory=window.AMAnalysisState.createStore(()=>({contexts:st.data?.analysis_contexts,inputs:analysisInputs}));
+const pageHistoryNote='Histórico temporário desta página: recarregar ou fechar descarta os resultados. Exporte os arquivos para guardar. Nenhum ensaio é recalculado automaticamente.';
+window.antiMurphyResultStatus=result=>analysisHistory.status(result);
+function analysisOrigin(result){
+ const p=result.provenance||{};
+ return `Projeto: ${p.project_name||p.project_id||'?'} (${p.project_id||'?'}) · Execução: ${p.run_id||'?'} · Assinatura: ${p.signature||'?'} · ${p.calculated_at||''} · Entradas do ensaio: ${JSON.stringify(p.inputs||{})}`;
+}
+function analysisBanner(result){
+ const state=analysisHistory.status(result);
+ return `<div class="lab-secondary ${state.code==='desatualizado'?'am-stale-warning':''}" role="status" data-analysis-status="${state.code}"><b>${esc(state.label)}</b> · ${esc(analysisOrigin(result))}${state.code!=='atual'?'<p>Resultado anterior preservado. Confira a origem; execute novamente para obter dados da configuração vigente.</p>':''}</div>`;
+}
+function analysisHistoryMarkup(scope,mode,attribute){
+ const entries=analysisHistory.list(scope,mode);
+ return `<p class="lab-secondary">${esc(pageHistoryNote)}</p>`+(entries.length?`<details class="am-lab-history"><summary>Histórico desta página · ${entries.length} análises</summary>${entries.map(e=>`<button type="button" ${attribute}="${e.id}" class="subtle-button">${esc(analysisHistory.status(e.result).label)} · ${esc(e.result.provenance?.project_name||e.result.provenance?.project_id||'?')} · ${esc(e.result.provenance?.calculated_at||'')}</button>`).join('')}</details>`:'');
+}
+function refreshAnalysisViews(){
+ renderLabInfo();renderAdvancedInfo();
+ if(st.view==='paineis'&&dashUI.data)renderDashboards();
+}
 async function api(path,method='GET',body=null){
   let opts={method,headers:{}};
   if(body!==null){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}
@@ -184,20 +213,8 @@ function goBack(){
 
 const metrics = (label,value,foot,cls='') => `<div class="metric-unit ${cls}"><div class="metric-label">${esc(label)} <button class="metric-explain" type="button" data-metric="${esc(label)}" title="Como interpretar ${esc(label)}" aria-label="Explicar ${esc(label)}">?</button></div><strong class="metric-value">${esc(value)}</strong><div class="metric-foot">${esc(foot)}</div></div>`;
 function applyData(data){
-  if(st.advancedResult){
-    const previous=st.advancedResult.provenance?.analysis_signature;
-    st.advancedResult.outdated=previous!==data.analysis_signature;
-    if(st.advancedResult.outdated){
-      $('advanced-result-count').textContent='Desatualizado · análise anterior';
-      $('advanced-export').disabled=false; // export labels the original provenance
-      const panel=$('advanced-results');
-      if(panel && !panel.querySelector('.am-stale-warning')){
-        panel.insertAdjacentHTML('afterbegin','<p class="am-stale-warning" role="status">Resultado de outra configuração. Consulte somente como histórico; recalcule antes de utilizar na decisão.</p>');
-      }
-    }
-  }
-  if(dashUI.data && dashUI.data.run_id!==data.run_id){dashUI.data=null;dashUI.robustness=null;dashUI.audit=null;}
-  else if(dashUI.data && dashUI.data.selected!==data.selected){dashUI.data=null;dashUI.robustness=null;dashUI.audit=null;}
+  // Snapshot panels refresh lazily; experiment histories remain inspectable.
+  if(dashUI.data && (dashUI.data.run_id!==data.run_id || dashUI.data.selected!==data.selected || dashUI.data.project_id!==data.active_project_id)){dashUI.data=null;dashUI.audit=null;}
   st.data=data;
   if(data.recovery_warning && data.recovery_warning!==st.lastRecoveryWarning){st.lastRecoveryWarning=data.recovery_warning;notify(data.recovery_warning,true);}
   if(!data.stations[st.station])st.station=Object.keys(data.stations)[0];
@@ -693,13 +710,13 @@ function dashScenarioSelectOptions(){
 async function openDashboards(force=false){
  if(!st.data)return;
  if(dashUI.loading)return;
- if(!force && dashUI.data?.run_id===st.data.run_id && dashUI.data?.project_id===st.data.active_project_id){if(dashUI.tab==='auditoria')loadAudit();else renderDashboards();return;}
+ if(!force && dashUI.data?.analysis_signature===st.data.analysis_signature && dashUI.data?.project_id===st.data.active_project_id){if(dashUI.tab==='auditoria')loadAudit();else renderDashboards();return;}
+ const expected=st.data.analysis_signature;
  dashUI.loading=true;
  $('dash-body').innerHTML='<div class="dash-loading" role="status">Atualizando indicadores do experimento…</div>';
  try{
   const result=await api('/api/dashboards');
-  if(result.run_id!==st.data.run_id)throw Error('O experimento mudou durante a consulta. Atualize os painéis.');
-  if(dashUI.data?.run_id!==result.run_id)dashUI.robustness=null;
+  if(expected!==st.data?.analysis_signature || result.analysis_signature!==expected || result.project_id!==st.data?.active_project_id || result.selected!==st.data?.selected)throw Error('O projeto ou a seleção mudou durante a consulta. Atualize os painéis.');
   dashUI.data=result;
   $('dash-project').textContent=st.data.active_project_name||'Projeto principal';
   $('dash-experiment').textContent=`Execução ${result.run_id} · ${Object.keys(st.data.stations).length} postos · ${st.data.orders.length} pedidos`;
@@ -792,23 +809,23 @@ function dashOptimize(){
  return `<div class="dash-panel-layout"><article class="dash-panel dash-primary-panel"><header><div><h2>Alternativas: custo × cumprimento de prazos</h2><p>Selecione um ponto para recalcular a resposta exibida no projeto</p></div></header>${dashTradeoffPlot()}<p class="dash-footnote">Os pontos representam alternativas enumeradas, não uma fronteira ótima global. Habilitações e buffers podem alterar a viabilidade real.</p></article><aside class="dash-panel dash-side-panel"><header><div><h2>Busca e sensibilidade</h2><p>Ferramentas do motor original</p></div></header><div class="dash-stat-mini"><span>Alternativas enumeradas</span><strong>${integer(arr.length)}</strong></div><div class="dash-stat-mini"><span>Atendem critérios modelados</span><strong>${integer(good.length)}</strong></div><div class="dash-stat-mini"><span>Menor custo entre essas respostas</span><strong>${dashMoney(good[0]?.decision_cost)}</strong></div><div class="dash-actions"><button class="dash-cta" data-dash-lab="goal">Executar Goal Seek →</button><button data-dash-advanced="sensitivity">Sensibilidade de recursos →</button><button data-dash-advanced="opportunities">Opportunity Engine →</button><button data-dash-go="modelo">Ajustar capacidade →</button></div></aside></div><article class="dash-panel"><header><div><h2>Resposta atual</h2><p>Premissas, resultado e próximos passos</p></div></header><div class="dash-response-line"><strong>${esc(selected?.action||'Nenhuma selecionada')}</strong><span>Investimento ${dashMoney(selected?.investment)}</span><span>Custo total de decisão ${dashMoney(selected?.decision_cost)}</span><button class="dash-text-button" data-dash-go="decisoes">Abrir evidências e registro →</button></div></article>`;
 }
 function dashRobust(){
- const r=dashUI.robustness;
- if(!r || r.experiment_id!==dashUI.data.run_id){return `<div class="dash-panel dash-robust-empty"><div class="dash-robust-icon">∿</div><h2>Resultados sob variações do modelo</h2><p>Execute 12 simulações com sementes diferentes sobre o incidente selecionado. A análise não altera o projeto nem a resposta escolhida.</p><button class="dash-cta" data-dash-robust-run>Executar Monte Carlo (12 execuções)</button><p class="dash-footnote">As sementes são uma análise de sensibilidade interna. Não representam frequências reais de falhas industriais nem um intervalo de confiança calibrado com dados de fábrica.</p></div><div class="dash-actions-inline"><button data-dash-lab="stress" class="subtle-button">Abrir Stress Lab</button><button data-dash-advanced="demand" class="subtle-button">Limite de demanda</button></div>`;}
+ const r=dashUI.robustness||analysisHistory.list('advanced','uncertainty')[0]?.result;
+ if(!r){return analysisHistoryMarkup('advanced','uncertainty','data-dash-history')+`<div class="dash-panel dash-robust-empty"><div class="dash-robust-icon">∿</div><h2>Resultados sob variações do modelo</h2><p>Execute 12 simulações com sementes diferentes sobre o incidente selecionado. A análise não altera o projeto nem a resposta escolhida.</p><button class="dash-cta" data-dash-robust-run>Executar Monte Carlo (12 execuções)</button><p class="dash-footnote">As sementes são uma análise de sensibilidade interna. Não representam frequências reais de falhas industriais nem um intervalo de confiança calibrado com dados de fábrica.</p></div><div class="dash-actions-inline"><button data-dash-lab="stress" class="subtle-button">Abrir Stress Lab</button><button data-dash-advanced="demand" class="subtle-button">Limite de demanda</button></div>`;}
  const rows=r.rows||[],m=r.summary?.makespan||{},sla=r.summary?.sla||{};
  const slas=rows.map(x=>Number(x.sla)).filter(Number.isFinite);
  const constantSla=slas.length>1&&slas.every(v=>Math.abs(v-slas[0])<.005);
  const consistencyNote=constantSla?`<div class="dash-robust-constant"><strong>SLA sem variação entre as ${integer(slas.length)} execuções (${h(slas[0])}%).</strong> O experimento não demonstrou sensibilidade desse indicador às perturbações consideradas; isso não significa risco de atraso nulo nem modelo calibrado.</div>`:'';
 
- return `<div class="dash-stat-strip">${dashStat('Execuções',integer(rows.length),'Sementes sintéticas')}${dashStat('Makespan médio',dashH(m.mean),'Não é prazo garantido')}${dashStat('P10 / P90',`${dashVal(m.p10,2)} / ${dashVal(m.p90,2)} h`,'Faixa descritiva')}${dashStat('SLA médio',dashPct(sla.mean),'Sobre as execuções')}</div><article class="dash-panel"><header><div><h2>Dispersão do término previsto</h2><p>Uma coluna por execução · a posição vertical não representa probabilidade</p></div><button data-dash-robust-run class="dash-text-button">Executar novamente</button></header>${window.AMCharts.render(r,'dash')}${consistencyNote}<div class="dash-robust-note">Gargalo mais frequente: <strong>${esc(r.dominant_bottleneck||'—')}</strong>. As execuções podem compartilhar a mesma estrutura e não caracterizam incerteza industrial real.</div></article><div class="dash-actions-inline"><button data-dash-lab="stress" class="subtle-button">Stress Lab →</button><button data-dash-advanced="demand" class="subtle-button">Limite de demanda →</button></div>`;
+ return analysisBanner(r)+analysisHistoryMarkup('advanced','uncertainty','data-dash-history')+`<div class="dash-stat-strip">${dashStat('Execuções',integer(rows.length),'Sementes sintéticas')}${dashStat('Makespan médio',dashH(m.mean),'Não é prazo garantido')}${dashStat('P10 / P90',`${dashVal(m.p10,2)} / ${dashVal(m.p90,2)} h`,'Faixa descritiva')}${dashStat('SLA médio',dashPct(sla.mean),'Sobre as execuções')}</div><article class="dash-panel"><header><div><h2>Dispersão do término previsto</h2><p>Uma coluna por execução · a posição vertical não representa probabilidade</p></div><button data-dash-robust-run class="dash-text-button">Executar novamente</button></header>${window.AMCharts.render(r,'dash')}${consistencyNote}<div class="dash-robust-note">Gargalo mais frequente: <strong>${esc(r.dominant_bottleneck||'—')}</strong>. As execuções podem compartilhar a mesma estrutura e não caracterizam incerteza industrial real.</div></article><div class="dash-actions-inline"><button data-dash-lab="stress" class="subtle-button">Stress Lab →</button><button data-dash-advanced="demand" class="subtle-button">Limite de demanda →</button></div>`;
 }
 /* Evidence read from the same DES run. Honest about unmodeled industrial dimensions. */
 async function loadAudit(force=false){
  const data=st.data;if(!data)return;
- if(!force&&dashUI.audit?.run_id===data.run_id&&dashUI.audit?.project_id===data.active_project_id&&dashUI.audit?.selected_signature===data.selected){renderDashboards();return;}
+ if(!force&&dashUI.audit?.analysis_signature===data.analysis_signature&&dashUI.audit?.run_id===data.run_id&&dashUI.audit?.project_id===data.active_project_id&&dashUI.audit?.selected_signature===data.selected){renderDashboards();return;}
  $('dash-body').innerHTML='<div class="dash-loading" role="status">Conferindo evidências do experimento…</div>';
  try{
   const result=await api('/api/technical-audit');
-  if(result.run_id!==st.data?.run_id||result.project_id!==st.data?.active_project_id||result.selected_signature!==st.data?.selected){throw Error('A análise mudou. Atualize o painel para consultar o experimento ativo.');}
+  if(result.analysis_signature!==st.data?.analysis_signature||result.run_id!==st.data?.run_id||result.project_id!==st.data?.active_project_id||result.selected_signature!==st.data?.selected){throw Error('A análise mudou. Atualize o painel para consultar o experimento ativo.');}
   dashUI.audit=result;renderDashboards();
  }catch(e){$('dash-body').innerHTML=`<div class="dash-error" role="alert">Não foi possível abrir a auditoria técnica: ${esc(e.message)} <button class="subtle-button" data-audit-refresh>Repetir</button></div>`;}
 }
@@ -832,15 +849,22 @@ function dashAudit(){
 }
 function renderDashboards(){
  if(!dashUI.data)return;
+ if(dashUI.data.analysis_signature!==st.data?.analysis_signature||dashUI.data.project_id!==st.data?.active_project_id){$('dash-body').innerHTML='<p role="status">Painel de outra configuração. <button data-dash-retry>Atualizar indicadores</button></p>';return;}
  $$('#dash-tabs button').forEach(btn=>{const active=btn.dataset.dashTab===dashUI.tab;btn.classList.toggle('active',active);btn.setAttribute('aria-selected',String(active));});
  $('dash-scenario').value=dashUI.scenario;
  const body={operacao:dashUtilization,desempenho:dashPerformance,cenarios:dashScenarios,otimizacao:dashOptimize,robustez:dashRobust,auditoria:dashAudit};
  $('dash-body').innerHTML=body[dashUI.tab]();
 }
 async function dashRunRobustness(){
- const button=$('[data-dash-robust-run]');if(button){button.disabled=true;button.textContent='Executando simulações…';}
- try{const result=await api('/api/advanced','POST',{mode:'uncertainty'});if(result.experiment_id!==dashUI.data.run_id)throw Error('O projeto mudou durante a análise.');dashUI.robustness=result;renderDashboards();notify('Análise de robustez concluída.');}
- catch(e){notify(e.message||'Erro no experimento.',true);renderDashboards();}
+ const id=analysisHistory.begin();
+ try{
+  const result=await api('/api/advanced','POST',{mode:'uncertainty'});
+  analysisHistory.add(result,'advanced',id);
+  const visible=analysisHistory.find(dashUI.robustness);
+  if(!visible||id>visible.id)dashUI.robustness=result;
+  if(st.view==='paineis'&&dashUI.data)renderDashboards();
+  notify('Monte Carlo preservado com projeto e configuração de origem.');
+ }catch(e){notify(e.message||'Erro no experimento.',true);if(st.view==='paineis'&&dashUI.data)renderDashboards();}
 }
 function dashBindEvents(){
  $$('#dash-tabs button').forEach(b=>b.onclick=()=>{dashUI.tab=b.dataset.dashTab;if(dashUI.tab==='auditoria')loadAudit();else renderDashboards();});
@@ -850,7 +874,8 @@ function dashBindEvents(){
  $('dash-open-analysis').onclick=()=>navigate('analise');
  $('dash-report').onclick=generateReport;
  $('dash-body').addEventListener('click',async e=>{
-  const node=e.target.closest('[data-dash-station],[data-dash-order],[data-dash-go],[data-dash-scene],[data-dash-select],[data-dash-lab],[data-dash-advanced],[data-dash-robust-run],[data-dash-retry],[data-audit-refresh]');if(!node)return;
+  const node=e.target.closest('[data-dash-station],[data-dash-order],[data-dash-go],[data-dash-scene],[data-dash-select],[data-dash-lab],[data-dash-advanced],[data-dash-robust-run],[data-dash-history],[data-dash-retry],[data-audit-refresh]');if(!node)return;
+  if(node.hasAttribute('data-dash-history')){dashUI.robustness=analysisHistory.entries.find(x=>x.id===Number(node.dataset.dashHistory))?.result;renderDashboards();return;}
   if(node.hasAttribute('data-dash-retry'))return openDashboards(true);
   if(node.hasAttribute('data-audit-refresh'))return loadAudit(true);
   if(node.hasAttribute('data-dash-robust-run'))return dashRunRobustness();
@@ -859,8 +884,8 @@ function dashBindEvents(){
   if(node.dataset.dashGo){navigate(node.dataset.dashGo);return;}
   if(node.dataset.dashScene){st.scene=node.dataset.dashScene;st.t=Number(st.data.spec.start_h)||0;navigate('simulacao');return;}
   if(node.dataset.dashSelect){await selectAlternative(node.dataset.dashSelect);if(st.data){dashUI.data=null;await openDashboards(true);}return;}
-  if(node.dataset.dashLab){st.lab=node.dataset.dashLab;navigate('laboratorio');return;}
-  if(node.dataset.dashAdvanced){st.advanced=node.dataset.dashAdvanced;st.advancedResult=null;navigate('avancadas');return;}
+  if(node.dataset.dashLab){st.lab=node.dataset.dashLab;st.labIntent=(st.labIntent||0)+1;navigate('laboratorio');return;}
+  if(node.dataset.dashAdvanced){st.advanced=node.dataset.dashAdvanced;st.advancedIntent=(st.advancedIntent||0)+1;navigate('avancadas');return;}
  });
  $('dash-body').addEventListener('change',e=>{if(e.target.id==='dash-risk-limit'){dashUI.riskMinutes=Number(e.target.value)||30;renderDashboards();}});
  $('dash-body').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-dash-select]')){e.preventDefault();e.target.click();}});
@@ -1066,44 +1091,26 @@ function labEmptyState(){
  return `<div class="helpful-empty"><span>PREPARAÇÃO DO EXPERIMENTO</span><h3>${esc(a[0])}</h3><p>${esc(a[1])}</p><p><strong>Interpretação:</strong> ${esc(a[2])}</p><button type="button" class="subtle-button" data-run-context="lab">Executar ${esc(labInfo[st.lab]?.[0]||'ensaio')}</button></div>`;
 }
 window.antiMurphyAnalysisSignature=()=>st.data?.analysis_signature;
-function labState(entry){
- if(!entry?.result?.provenance)return 'Histórico sem origem identificada';
- if(entry.result.provenance.analysis_signature!==st.data?.analysis_signature)return 'Desatualizado · outra configuração';
- const newer=st.labHistory.some(x=>x.result.mode===entry.result.mode && x.id!==entry.id && x.id>entry.id);
- return newer?'Histórico · mesma configuração':'Atual';
-}
+function labState(entry){return analysisHistory.status(entry?.result).label;}
 function renderLabInfo(){
  const info=labInfo[st.lab];
  $('lab-name').textContent=info[0];$('lab-description').textContent=info[1];
- $('goal-label').hidden=!['goal','capacity'].includes(st.lab);
- $('throughput-label').hidden=st.lab!=='capacity';
+ $('goal-label').hidden=!['goal','capacity'].includes(st.lab);$('throughput-label').hidden=st.lab!=='capacity';
  $$('#lab-tabs button').forEach(btn=>btn.classList.toggle('active',btn.dataset.lab===st.lab));
- const entries=st.labHistory.filter(e=>e.result.mode===st.lab);
- const selected=entries.find(e=>e.id===st.labVisible)||entries[0];
- const node=$('lab-results');
- if(!selected){$('lab-result-count').textContent='Nenhum ensaio';node.innerHTML=labEmptyState();return;}
+ const entries=analysisHistory.list('lab',st.lab),selected=entries.find(e=>e.id===st.labVisible)||entries[0],node=$('lab-results');
+ if(!selected){$('lab-result-count').textContent='Nenhum ensaio';node.innerHTML=analysisHistoryMarkup('lab',st.lab,'data-lab-history')+labEmptyState();return;}
  const result=selected.result,points=result.points||result.pairs||[];
- const status=labState(selected),past=status.startsWith('Desatualizado');
- $('lab-result-count').textContent=`${points.length} resultados · ${status}`;
- const origin=result.provenance||{};
- const source=`Projeto: ${esc(origin.project_id||'?')} · Execução: ${esc(origin.run_id||'?')} · Assinatura: ${esc(origin.signature||'?')} · ${esc(origin.calculated_at||'')}`;
- const description=`<div class="lab-secondary ${past?'am-stale-warning':''}" role="status"><b>${esc(status)}</b> · ${source}${past?'<p>Estes resultados não representam a configuração atual. Você pode consultar e exportar com identificação, mas execute novamente para comparações atuais.</p>':''}</div>`;
- const history=entries.length>1?`<details class="am-lab-history"><summary>Histórico desta sessão · ${entries.length} ensaios</summary>${entries.map(e=>`<button type="button" data-lab-history="${e.id}" class="subtle-button">${esc(labState(e))} · ${esc(e.result.provenance?.calculated_at||'')}</button>`).join('')}</details>`:'';
- node.innerHTML=description+history+(points.length?`<div class="lab-secondary">${esc(result.notes?.join(' ')||'')}</div>${window.AMCharts.render(result,'lab')}`:'<div class="empty-state">Nenhuma observação atende aos filtros deste ensaio.</div>');
- node.querySelectorAll('[data-lab-history]').forEach(b=>b.onclick=()=>{st.labVisible=Number(b.dataset.labHistory);renderLabInfo();});
+ $('lab-result-count').textContent=`${points.length} resultados · ${labState(selected)}`;
+ node.innerHTML=analysisBanner(result)+analysisHistoryMarkup('lab',st.lab,'data-lab-history')+(points.length?`<div class="lab-secondary">${esc(result.notes?.join(' ')||'')}</div>${window.AMCharts.render(result,'lab')}`:'<div class="empty-state">Nenhuma observação atende aos filtros deste ensaio.</div>');
+ node.querySelectorAll('[data-lab-history]').forEach(b=>b.onclick=()=>{st.labIntent=(st.labIntent||0)+1;st.labVisible=Number(b.dataset.labHistory);renderLabInfo();});
 }
 async function runLab(){
- const mode=st.lab;
+ const mode=st.lab,id=analysisHistory.begin(),intent=st.labIntent||0;
  try{
-  const result=await perform(api('/api/lab','POST',{
-    mode,min_sla:Number($('goal-value').value),target_throughput:Number($('throughput-value').value)
-  }),null,false);
-  const id=Date.now()+Math.random();
-  st.labHistory.unshift({id,result});
-  st.labHistory=st.labHistory.slice(0,25); // browser-session only, no silent disk writes
-  st.labVisible=id;
-  renderLabInfo();
-  notify('Experimento concluído; assinatura e origem registradas para esta sessão.');
+  const result=await perform(api('/api/lab','POST',{mode,...analysisInputs('lab',mode)}),null,false);
+  analysisHistory.add(result,'lab',id);
+  if(mode===st.lab&&intent===(st.labIntent||0)&&id>(st.labVisible||0))st.labVisible=id;
+  renderLabInfo();notify('Experimento preservado no histórico com origem e estado de validade.');
  }catch(_e){}
 }
 /* Specialist tools reuse the verified Python simulation modules. No client-side metrics. */
@@ -1138,7 +1145,9 @@ function renderAdvancedInfo(){
  const selected=$('advanced-station').value;
  $('advanced-station').innerHTML=Object.entries(st.data?.stations||{}).map(([id,r])=>`<option value="${esc(id)}">${esc(r.nome||id)} · ${esc(id)}</option>`).join('');
  $('advanced-station').value=st.data?.stations?.[selected]?selected:(st.data?.stations?.[st.station]?st.station:Object.keys(st.data?.stations||{})[0]||'');
- if(!st.advancedResult && $('advanced-results'))$('advanced-results').innerHTML=advancedEmptyState();
+ const entries=analysisHistory.list('advanced',st.advanced);
+ const entry=entries.find(e=>e.id===st.advancedVisible)||entries[0];
+ if(entry){renderAdvanced(entry.result);}else{st.advancedResult=null;$('advanced-export').disabled=true;$('advanced-result-count').textContent='Nenhuma análise';$('advanced-results').innerHTML=analysisHistoryMarkup('advanced',st.advanced,'data-advanced-history')+advancedEmptyState();}
 }
 const showVal=(v)=>v===null||v===undefined?'—':typeof v==='number'?h(Math.abs(v)<.0001?0:v):typeof v==='boolean'?(v?'Sim':'Não'):String(v);
 const fieldName={
@@ -1187,7 +1196,7 @@ function renderAdvanced(result){
  let head='';let rows=result.rows||[];
  if(result.mode==='diagnostic'){
   const q=result.quality||{};
-  head=`<div class="advanced-report"><div><span>Completude do cadastro</span><strong>${h(q.score)} / 100</strong><small>Não mede acurácia industrial</small></div><div><span>Alertas ativos</span><strong>${integer(result.alerts?.length||0)}</strong><small>Regras do modelo</small></div><div><span>Gargalo da operação</span><strong>${esc(st.data?.metrics?.incident?.bottleneck||'—')}</strong><small>Incidente atual</small></div></div>`;
+  head=`<div class="advanced-report"><div><span>Completude do cadastro</span><strong>${h(q.score)} / 100</strong><small>Não mede acurácia industrial</small></div><div><span>Alertas ativos</span><strong>${integer(result.alerts?.length||0)}</strong><small>Regras do modelo</small></div><div><span>Gargalo da operação</span><strong>${esc(result.bottleneck||'—')}</strong><small>Incidente da análise de origem</small></div></div>`;
   head+=`<h3 class="advanced-subheading">Alertas do modelo</h3><div class="advanced-alerts">${(result.alerts||[]).length?result.alerts.map(a=>{const valid=!!st.data?.stations?.[a.station];return `<${valid?'button':'div'} class="advanced-alert ${valid?'advanced-focus':''}" ${valid?`data-focus="${esc(a.station)}" title="Inspecionar ${esc(a.station)} na simulação"`:''}><span class="advanced-level">${esc(a.level)}</span><div><strong>${esc(a.title)}</strong><p>${esc(a.detail)}</p></div>${valid?'<span class="advanced-open">Inspecionar posto ↗</span>':''}</${valid?'button':'div'}>`;}).join(''):'<p>Nenhum alerta pelas regras configuradas.</p>'}</div>`;
   if(q.missing?.length)head+=`<div class="advanced-notes"><strong>Pontos para revisar</strong><p>${esc(q.missing.join(' · '))}</p></div>`;
   rows=result.stations||[];
@@ -1200,8 +1209,9 @@ function renderAdvanced(result){
   head=`<div class="advanced-report"><div><span>Primeira ruptura de SLA</span><strong>${result.first_break===null?'Não identificada':h(result.first_break)+'×'}</strong><small>Faixa de 1,0× a 1,6×</small></div><div><span>Último nível que atende à meta</span><strong>${result.last_safe===null?'Nenhum':h(result.last_safe)+'×'}</strong><small>Meta de ${h(result.min_sla)}%</small></div></div>`;
  }
  // Gráficos técnicos específicos substituem as barras genéricas; tabela e notas permanecem.
- $('advanced-result-count').textContent=(result.mode==='diagnostic'?`${rows.length} postos`:`${rows.length} resultados`);
- container.innerHTML=head+window.AMCharts.render(result,'advanced')+`<details class="advanced-extra-table"><summary>Tabela técnica original (consulta adicional)</summary>${advancedTable(rows)}</details>`+notes;
+ $('advanced-result-count').textContent=(result.mode==='diagnostic'?`${rows.length} postos`:`${rows.length} resultados`)+' · '+analysisHistory.status(result).label;
+ container.innerHTML=analysisBanner(result)+analysisHistoryMarkup('advanced',result.mode,'data-advanced-history')+head+window.AMCharts.render(result,'advanced')+`<details class="advanced-extra-table"><summary>Tabela técnica original (consulta adicional)</summary>${advancedTable(rows)}</details>`+notes;
+ container.querySelectorAll('[data-advanced-history]').forEach(b=>b.onclick=()=>{st.advancedIntent=(st.advancedIntent||0)+1;st.advancedVisible=Number(b.dataset.advancedHistory);renderAdvancedInfo();});
  container.querySelectorAll('[data-focus]').forEach(btn=>btn.addEventListener('click',()=>{
   const sid=btn.dataset.focus;if(!st.data?.stations?.[sid])return;
   st.station=sid;st.scene='incident';st.t=Math.min(horizon(),Number(st.data.spec?.start_h||0));
@@ -1209,14 +1219,14 @@ function renderAdvanced(result){
  }));
 }
 async function runAdvanced(){
+ const mode=st.advanced,id=analysisHistory.begin(),intent=st.advancedIntent||0;
  try{
   $('advanced-result-count').textContent='Calculando…';
-  const r=await perform(api('/api/advanced','POST',{
-   mode:st.advanced, station:$('advanced-station').value,resource:$('advanced-resource').value,
-   min_sla:Number($('advanced-sla').value)
-  }),null,false);
-  renderAdvanced(r);notify('Análise concluída com resultados do motor.');
- }catch(e){$('advanced-result-count').textContent='Erro na análise';}
+  const result=await perform(api('/api/advanced','POST',{mode,...analysisInputs('advanced',mode)}),null,false);
+  analysisHistory.add(result,'advanced',id);
+  if(mode===st.advanced&&intent===(st.advancedIntent||0)&&id>(st.advancedVisible||0))st.advancedVisible=id;
+  renderAdvancedInfo();notify('Análise preservada com seus parâmetros de origem.');
+ }catch(e){if(mode===st.advanced)$('advanced-result-count').textContent='Erro na análise';}
 }
 /* Editable engineering-language suggestion derived only from the current run.
  * The operator still has to verify the reasoning and acknowledge real constraints. */
@@ -1746,13 +1756,15 @@ function bindEvents(){
  $('inspect-alternatives').onclick=()=>navigate('analise');
  $('see-order-analysis').onclick=()=>navigate('analise');
  $('analysis-recalculate').onclick=calculate;
- $$('#advanced-tabs button').forEach(b=>b.onclick=()=>{st.advanced=b.dataset.advanced;st.advancedResult=null;$('advanced-export').disabled=true;renderAdvancedInfo();$('advanced-results').innerHTML=advancedEmptyState();$('advanced-result-count').textContent='Novo experimento';});
+ $$('#advanced-tabs button').forEach(b=>b.onclick=()=>{st.advanced=b.dataset.advanced;st.advancedIntent=(st.advancedIntent||0)+1;renderAdvancedInfo();});
  $('advanced-run').onclick=runAdvanced;
+ ['goal-value','throughput-value'].forEach(id=>{for(const event of ['input','change'])$(id).addEventListener(event,()=>{st.labIntent=(st.labIntent||0)+1;renderLabInfo();});});
+ ['advanced-station','advanced-resource','advanced-sla'].forEach(id=>{for(const event of ['input','change'])$(id).addEventListener(event,()=>{st.advancedIntent=(st.advancedIntent||0)+1;renderAdvancedInfo();});});
  document.addEventListener('click',event=>{const button=event.target.closest('[data-run-context]');if(!button)return;if(button.dataset.runContext==='lab')runLab();if(button.dataset.runContext==='advanced')runAdvanced();});
  $('advanced-export').onclick=()=>{if(!st.advancedResult)return;download(JSON.stringify({
   produto:'Anti-Murphy',formato:'analise_avancada',versao:'1.0',
   experimento:st.advancedResult.experiment_id,proveniencia:st.advancedResult.provenance,
-  status:st.advancedResult.outdated?'desatualizado':'atual',fonte:st.data?.source||'',
+  status:analysisHistory.status(st.advancedResult).code,fonte:st.advancedResult.provenance?.source||'',
   horario_exportacao:new Date().toISOString(),resultado:st.advancedResult
  },null,2),`anti_murphy_${st.advancedResult.mode}_${st.advancedResult.experiment_id}.json`)};
  $('advanced-to-analysis').onclick=()=>navigate('analise');
@@ -1816,7 +1828,7 @@ function bindEvents(){
  $('model-import-button').onclick=()=>$('model-file').click();
  $('model-file').onchange=e=>{if(e.target.files?.[0])importModel(e.target.files[0]);e.target.value=''};
  $('header-export').onclick=async()=>{try{const r=await fetch('/api/model/export');if(!r.ok)throw Error('Exportação indisponível');download(await r.text(),'anti_murphy_modelo.json')}catch(e){notify(e.message,true)}};
- $$('#lab-tabs button').forEach(b=>b.onclick=()=>{st.lab=b.dataset.lab;st.labVisible=null;renderLabInfo()});
+ $$('#lab-tabs button').forEach(b=>b.onclick=()=>{st.lab=b.dataset.lab;st.labIntent=(st.labIntent||0)+1;st.labVisible=null;renderLabInfo()});
  $('run-lab').onclick=runLab;
  $('register-decision').onclick=saveDecision;
  $('decision-note').addEventListener('input',()=>{$('decision-external-ack').checked=false;updateDecisionValidation();});

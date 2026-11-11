@@ -116,7 +116,7 @@ function selectedDetail(row,cfg,metric){
  const label=String(row.label??row['Ação']??row['Posto']??row.run??row.seed??`Observação ${row.__index+1}`);
  const primary=valid(row[field])?fmt(row[field],unit):'—';
  const other=cfg.metrics.filter(m=>m[0]!==field&&valid(row[m[0]])).slice(0,3);
- return `<div class="eng-selection-title"><span>CENÁRIO SELECIONADO</span><strong>${safe(label)}</strong></div><div class="eng-selection-values"><div class="eng-selection-primary"><small>${safe(title)}</small><b>${safe(primary)}</b></div>${other.map(m=>`<div><small>${safe(m[1])}</small><b>${safe(fmt(row[m[0]],m[2]))}</b></div>`).join('')}</div><p>Valores produzidos pela execução atual do motor. Os campos completos permanecem na tabela e no CSV.</p>`;
+ return `<div class="eng-selection-title"><span>CENÁRIO SELECIONADO</span><strong>${safe(label)}</strong></div><div class="eng-selection-values"><div class="eng-selection-primary"><small>${safe(title)}</small><b>${safe(primary)}</b></div>${other.map(m=>`<div><small>${safe(m[1])}</small><b>${safe(fmt(row[m[0]],m[2]))}</b></div>`).join('')}</div><p>Valores da análise de origem; confira o estado e os parâmetros identificados acima. Os campos completos permanecem na tabela e no CSV.</p>`;
 }
 function fullTable(rows){if(!rows.length)return '<p>Sem resultados detalhados.</p>';
  const keys=Object.keys(rows[0]).filter(k=>!k.startsWith('__'));
@@ -133,7 +133,9 @@ function csv(rows){if(!rows.length)return '';
 }
 function downloadCsv(rows,scope,key,result){
  const origin=result?.provenance;
- const hdr=origin?`# Projeto: ${origin.project_id}; Execução: ${origin.run_id}; Assinatura: ${origin.signature}; Calculado em: ${origin.calculated_at}; Estado na exportação: ${scope==='lab'?(origin.analysis_signature===window.antiMurphyAnalysisSignature?.()?'atual':'desatualizado ou histórico'):(result.outdated?'desatualizado':'atual')}\r\n`:'';
+ const status=window.antiMurphyResultStatus?.(result)||{code:'desconhecido',label:'Origem não verificável'};
+ const clean=value=>String(value??'').replace(/[\r\n]/g,' ');
+ const hdr=origin?`# Projeto: ${clean(origin.project_name||origin.project_id)} (${clean(origin.project_id)}); Execução: ${origin.run_id}; Assinatura: ${origin.signature}; Calculado em: ${origin.calculated_at}; Estado na exportação: ${status.code}; Entradas: ${JSON.stringify(origin.inputs||{})}\r\n`:'# Estado na exportação: desconhecido\r\n';
  const blob=new Blob([hdr+csv(rows)],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=`anti_murphy_${scope}_${key}.csv`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500);
 }
 function downloadSvg(scope){
@@ -141,14 +143,17 @@ function downloadSvg(scope){
  const svg=suite?.querySelector('svg.eng-svg');const item=state.get(scope);
  if(!svg||!item)return;
  const clone=svg.cloneNode(true);clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
- if(item.result.provenance){
-   const desc=document.createElementNS('http://www.w3.org/2000/svg','desc');
-   const pr=item.result.provenance;
-   desc.textContent=`Anti-Murphy: projeto ${pr.project_id}; execução ${pr.run_id}; assinatura ${pr.signature}; calculado em ${pr.calculated_at}; verificar se a configuração atual ainda corresponde à origem.`;
-   clone.insertBefore(desc,clone.firstChild);
- }
- const view=svg.getAttribute('viewBox')||'0 0 920 350',parts=view.split(/\s+/);
- clone.setAttribute('width',parts[2]||'920');clone.setAttribute('height',parts[3]||'350');
+ const pr=item.result.provenance||{},status=window.antiMurphyResultStatus?.(item.result)||{code:'desconhecido',label:'Origem não verificável'};
+ const view=svg.getAttribute('viewBox')||'0 0 920 350',parts=view.split(/\s+/).map(Number),width=parts[2]||920,height=parts[3]||350;
+ // Keep origin and validity visibly inside the exported figure, not only metadata.
+ const plot=document.createElementNS('http://www.w3.org/2000/svg','g');
+ plot.setAttribute('transform','translate(0 76)');
+ while(clone.firstChild)plot.appendChild(clone.firstChild);
+ clone.appendChild(plot);clone.setAttribute('viewBox',`${parts[0]||0} ${parts[1]||0} ${width} ${height+76}`);
+ clone.setAttribute('width',width);clone.setAttribute('height',height+76);
+ const lines=[`ESTADO: ${status.code.toUpperCase()} · ${status.label}`,`Projeto: ${pr.project_name||pr.project_id||'?'} (${pr.project_id||'?'}) · ${pr.calculated_at||''}`,`Entradas: ${JSON.stringify(pr.inputs||{})} · Assinatura: ${pr.signature||'?'}`];
+ lines.forEach((line,i)=>{const text=document.createElementNS('http://www.w3.org/2000/svg','text');text.setAttribute('x','12');text.setAttribute('y',String(20+i*21));text.setAttribute('font-size','12');text.setAttribute('fill','#203C42');text.textContent=line.length>125?line.slice(0,122)+'…':line;clone.appendChild(text);});
+ const desc=document.createElementNS('http://www.w3.org/2000/svg','desc');desc.textContent=JSON.stringify({status:status.code,provenance:pr});clone.appendChild(desc);
  const style=document.createElementNS('http://www.w3.org/2000/svg','style');
  style.textContent=`svg{background:#FCFDFC;font-family:Arial,sans-serif} .eng-grid{stroke:#DDE7E7;stroke-width:1}
  .eng-tick{fill:#526C74;font-size:11px}.eng-axis-title{fill:#34545B;font-size:12px;font-weight:700}

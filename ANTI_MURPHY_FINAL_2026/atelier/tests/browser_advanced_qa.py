@@ -41,9 +41,10 @@ with TemporaryDirectory() as tmp,sync_playwright() as pw:
         errors=[]
         page.on('pageerror',lambda e:errors.append(str(e)))
         page.expose_function('am_bridge',bridge)
-        page.set_content(html,wait_until='load')
+        page.set_content(html.replace('<script src="/analysis_state.js" defer></script>',''),wait_until='load')
         page.add_style_tag(content='\n'.join((WEB/(n+'.css')).read_text('utf8') for n in ('styles','design_vnext','dashboards','studio_final','release_quality','prefinal_polish','banca','engineering_charts','final_banca')))
         page.evaluate('''window.fetch=async(path,options={})=>{const r=await window.am_bridge(path,options.method||'GET',options.body?JSON.parse(options.body):{});return {ok:r.ok,status:r.status,json:async()=>r.data}}''')
+        page.add_script_tag(content=(WEB/'analysis_state.js').read_text('utf8'))
         page.add_script_tag(content=(WEB/'engineering_charts.js').read_text('utf8'))
         page.add_script_tag(content=(WEB/'app.js').read_text('utf8'))
         page.locator('#sim-metrics .metric-unit').first.wait_for(timeout=30000)

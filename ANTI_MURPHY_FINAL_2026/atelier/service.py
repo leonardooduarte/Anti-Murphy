@@ -34,6 +34,7 @@ from .technical_audit import summarize_audit
 from .decision_quality import review_alternatives
 from .record_integrity import audit_decision_note, cost_snapshot
 from .persistence import atomic_bundle
+from .analysis_provenance import contexts as experiment_contexts, inputs as experiment_inputs, signature as experiment_signature
 
 class StudioError(Exception):
     pass
@@ -385,17 +386,29 @@ class Studio:
             'delay_h':self.state.get('op_delay')}
         return hashlib.sha256(json.dumps(context,sort_keys=True,allow_nan=False).encode()).hexdigest()[:24]
 
-    def _stamp_result(self, result, mode, payload):
-        """Provenance ties calculated datasets to the model, scenario and inputs."""
+    def _analysis_contexts(self):
         analysis=current_analysis(self.state)
-        context={'mode':mode,'project_id':self.project_id,
+        selected=selected_action(self.state,analysis) if analysis else None
+        return experiment_contexts(self.state,self.project_id,selected)
+
+    def _stamp_result(self, result, mode, payload, scope='lab'):
+        """Immutable origin and deterministic, tool-specific configuration."""
+        analysis=current_analysis(self.state)
+        key=scope+':'+mode
+        calculation_context=self._analysis_contexts()[key]
+        context_signature=calculation_context['context_signature']
+        actual_inputs=experiment_inputs(scope,mode,payload,self.state)
+        project_name=next((x['name'] for x in self.projects() if x['active']),'Projeto principal')
+        context={'schema':'am05-v2','scope':scope,'mode':mode,'context_key':key,
+                 'project_id':self.project_id,'project_name':project_name,
+                 'source':self.state.get('nx_source'),
                  'run_id':analysis['run_id'] if analysis else None,
                  'analysis_signature':self._analysis_signature(),
-                 'inputs':{k:v for k,v in payload.items() if k in
-                           ('mode','min_sla','target_throughput','station','resource')},
+                 'context_signature':context_signature,'inputs':actual_inputs,
+                 'dependencies':calculation_context['dependencies'],
                  'calculated_at':datetime.now(timezone.utc).isoformat()}
-        context['signature']=hashlib.sha256(json.dumps(context,sort_keys=True,
-            ensure_ascii=False,default=str).encode()).hexdigest()[:24]
+        context['signature']=experiment_signature({'context_signature':context_signature,
+                                                   'inputs':actual_inputs})
         return _json_safe({**result,'provenance':context})
 
     def info(self):
@@ -411,6 +424,8 @@ class Studio:
                 'rule':self.state.get('nx_rule','EDD'),
                 'run_id':a.get('run_id') if a else None,
                 'analysis_signature':self._analysis_signature(),
+                'analysis_contexts':{k:{'context_signature':v['context_signature']}
+                                     for k,v in self._analysis_contexts().items()},
                 'spec':asdict(ExperimentSpec(**self.state['nx_spec'])),
                 'delay_h':self.state.get('op_delay',2.),
                 'policy':{'status':a.get('policy_status'),'reason':a.get('policy_explanation'),
@@ -433,8 +448,10 @@ class Studio:
             analysis = current_analysis(self.state)
             if not analysis: raise StudioError('Não existe experimento calculado.')
             selected = selected_action(self.state, analysis)
-            return _json_safe(summarize_audit(analysis, selected, self.state['orders'],
-                self.state['nx_spec'], self.project_id, self._model_hash()))
+            snapshot=summarize_audit(analysis, selected, self.state['orders'],
+                self.state['nx_spec'], self.project_id, self._model_hash())
+            snapshot['analysis_signature']=self._analysis_signature()
+            return _json_safe(snapshot)
 
     def dashboards(self):
         """Read-only analytical snapshot for the current project and selected response.
@@ -463,6 +480,7 @@ class Studio:
                 }
             return _json_safe({
                 'schema_version': '1.0',
+                'analysis_signature': self._analysis_signature(),
                 'run_id': analysis['run_id'],
                 'project_id': self.project_id,
                 'model_hash': self._model_hash(),
@@ -693,6 +711,7 @@ class Studio:
                 result={
                     'run_id':a['run_id'],
                     'quality':model_confidence(self.state['stations'],self.state['orders']),
+                    'bottleneck':incident.get('bottleneck'),
                     'alerts':operating_alerts(incident),
                     'comparison':explain_comparison(nominal_result, incident),
                     'stations':[{k:r.get(k) for k in ('Posto','Nome','Utilização máquina (%)',
@@ -742,7 +761,7 @@ class Studio:
                     'Solicitação (h)','Efetivação (h)','Custo cenário (R$)','Investimento adicional (R$)')}
                     for r in rows], 'basis':'Intervenções de capacidade sobre o cenário com falha.',
                     'notes':[base_note,'Reforços são aplicados somente no instante de resposta (falha + espera configurada); histórico anterior é compartilhado.','Custo de cenário inclui capacidade após a ação e multas, mas não inclui investimento adicional em pessoal/equipamentos, que depende de orçamento externo.']}
-            return self._stamp_result({'mode':mode,'experiment_id':a['run_id'],**result},mode,payload)
+            return self._stamp_result({'mode':mode,'experiment_id':a['run_id'],**result},mode,payload,scope='advanced')
 
     def export_model(self):
         return json.dumps({'stations':self.state['stations'],'orders':self.state['orders'],
