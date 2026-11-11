@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import plotly.graph_objects as go
+from ui.stat_values import stat_value
 import streamlit as st
 
 BRAND_DIR = Path(__file__).resolve().parents[1] / "assets" / "brand"
@@ -293,7 +294,7 @@ def stress_summary_panel(summary: Dict[str, Any]) -> None:
     st.markdown(f'''<div class="am16-signals">
       <div class="am16-signal {'good' if float(summary.get('resilience_rate',0))>=80 else 'risk'}"><div class="ey">Survival rate</div><b>{float(summary.get('resilience_rate',0)):.0f}% dos futuros</b><p>Cenários que mantiveram SLA ≥ 80%.</p></div>
       <div class="am16-signal risk"><div class="ey">Weakest link</div><b>{_e(summary.get('most_fragile','-'))}</b><p>Posto mais sensível à bateria de perturbações.</p></div>
-      <div class="am16-signal"><div class="ey">Tail risk</div><b>P90 {float(summary.get('makespan_p90',0)):.1f} h</b><p>Cauda superior do tempo de conclusão sob estresse.</p></div>
+      <div class="am16-signal"><div class="ey">Tail risk</div><b>P90 {stat_value(summary.get('makespan_p90'),1,' h')}</b><p>Cauda superior do tempo de conclusão sob estresse.</p></div>
     </div>''',unsafe_allow_html=True)
 
 

@@ -88,3 +88,23 @@ def test_new_policy_only_invalidates_affected_experiments(tmp_path):
  assert 'statistics_policy' in contexts['lab:stress']['dependencies']
  assert 'statistics_policy' in contexts['advanced:uncertainty']['dependencies']
  assert 'statistics_policy' not in contexts['lab:duration']['dependencies']
+
+
+def test_historical_panels_accept_all_invalid_statistics():
+ from ui.v21 import monte_carlo_panel
+ from ui.v16 import stress_summary_panel
+ from ui.v18 import resilience_callout
+ from ui.experience import render_fragility_map
+ from ui.v15 import stress_landscape
+ with patch('simulation.advanced.run_simulation',return_value=packet(False)):
+  mc=monte_carlo_analysis(cfg(),runs=4)
+ with patch('simulation.innovation.run_simulation',return_value=packet(False)):
+  stress=stress_test(cfg(),runs=4)
+ html=[]
+ with patch('ui.v21.st.markdown',side_effect=lambda x,**kw:html.append(x)):
+  monte_carlo_panel(mc);stress_summary_panel(stress['summary']);resilience_callout(stress['summary'])
+ assert any('Não calculado' in x for x in html)
+ assert all(x.count('<div')==x.count('</div>') for x in html)
+ with patch('ui.experience.components.html') as draw:
+  render_fragility_map(stress['fragility']);assert 'Não calculado' in draw.call_args.args[0]
+ assert stress_landscape(stress) is None

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import json
+from ui.stat_values import stat_value
 import streamlit.components.v1 as components
 
 
@@ -43,10 +44,10 @@ def render_replay(result, height: int = 440):
 
 def render_fragility_map(fragility):
     cards=[]
-    max_score=max([float(x.get('Índice de fragilidade',0)) for x in fragility] or [1])
+    max_score=max([float(x['Índice de fragilidade']) for x in fragility if x.get('Índice de fragilidade') is not None] or [1])
     for x in fragility:
-        score=float(x.get('Índice de fragilidade',0)); pct=min(100,100*score/max_score)
-        cards.append(f'''<div class="fcard"><div class="fid">{_esc(x.get('Posto'))}</div><div class="fscore">{score:.1f}</div><div class="bar"><i style="width:{pct:.1f}%"></i></div><div class="meta">SLA médio <b>{float(x.get('SLA médio',0)):.0f}%</b> · makespan <b>{float(x.get('Makespan médio',0)):.1f}h</b></div></div>''')
+        score=x.get('Índice de fragilidade'); pct=min(100,100*score/max_score) if score is not None and max_score>0 else 0
+        cards.append(f'''<div class="fcard"><div class="fid">{_esc(x.get('Posto'))}</div><div class="fscore">{stat_value(score)}</div><div class="bar"><i style="width:{pct:.1f}%"></i></div><div class="meta">SLA médio <b>{stat_value(x.get('SLA médio'),0,'%')}</b> · makespan <b>{stat_value(x.get('Makespan médio'),1,'h')}</b></div></div>''')
     doc=f'''<style>.fgrid{{display:grid;grid-template-columns:repeat({min(5,max(1,len(cards)))},1fr);gap:10px}}.fcard{{background:#162124;border:1px solid #314044;border-radius:16px;padding:15px;color:#F7F7F3}}.fid{{font-size:10px;letter-spacing:.15em;color:#9EAEAB;font-weight:800}}.fscore{{font-size:27px;font-weight:850;margin:8px 0 7px}}.bar{{height:5px;background:#29383B;border-radius:99px;overflow:hidden}}.bar i{{display:block;height:100%;background:linear-gradient(90deg,#4AA49E,#FF681B);border-radius:99px}}.meta{{font-size:10px;color:#92A19E;margin-top:9px}}.meta b{{color:#EAF1EF}}@media(max-width:900px){{.fgrid{{grid-template-columns:1fr 1fr}}}}</style><div class="fgrid">{''.join(cards)}</div>'''
     components.html(doc,height=135 if len(cards)<=5 else 270,scrolling=False)
 

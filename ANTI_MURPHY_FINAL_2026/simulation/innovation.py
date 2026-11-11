@@ -6,7 +6,7 @@ import random
 from typing import Any, Dict, List
 
 from simulation.engine import run_simulation
-from simulation.numeric import metric, product_ratio
+from simulation.numeric import metric, product_ratio, present
 from simulation.metrics import compare_results
 from simulation.factory import ScenarioConfig
 
@@ -77,8 +77,8 @@ def stress_test(
             "Posto": sid,
             "Índice de fragilidade": round(score, 1) if score is not None else None,
             "SLA médio": round(mean_sla, 1) if mean_sla is not None else None,
-            "Makespan médio": round(mean_mk, 1) if mean_mk is not None else None,
-            "Throughput médio": round(mean_tp, 2) if mean_tp is not None else None,
+            "Makespan médio": present(mean_mk, 1) if mean_mk is not None else None,
+            "Throughput médio": present(mean_tp, 2) if mean_tp is not None else None,
             "Cenários": len(items),
             "Viáveis":sum(x["feasible"] for x in items),
             "Inviáveis":sum(not x["feasible"] for x in items),
@@ -105,9 +105,9 @@ def stress_test(
         "infeasible_rate":100*(len(rows)-len(viable))/len(rows),
         "sla_avg": round(sum(slas) / len(slas), 1) if slas else None,
         "sla_worst": round(min(slas), 1) if slas else None,
-        "makespan_p90": round(percentile(makespans, 0.90), 2) if makespans else None,
-        "unit_cost_p90": round(percentile(unit_costs, 0.90), 2) if unit_costs else None,
-        "throughput_p10": round(percentile(throughputs, 0.10), 3) if throughputs else None,
+        "makespan_p90": present(percentile(makespans, 0.90), 2) if makespans else None,
+        "unit_cost_p90": present(percentile(unit_costs, 0.90), 2) if unit_costs else None,
+        "throughput_p10": present(percentile(throughputs, 0.10), 3) if throughputs else None,
         "resilience_rate": round(100 * sum(1 for x in viable if x["SLA"] >= 80) / len(rows), 1),
         "most_fragile": fragility[0]["Posto"] if fragility else "-",
     }

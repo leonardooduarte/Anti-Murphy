@@ -1,3 +1,15 @@
+# Versão atual: AM09-2026.1 sobre AM08/AM12/AM05/AM11
+
+[Aplicativo completo](ENTREGAS/AM09/ANTI_MURPHY_AM09_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM09/ANTI_MURPHY_PATCH_AM09_2026.zip) · [Relatório](ENTREGAS/AM09/RELATORIO_AM09_2026.md) · [Continuidade](ENTREGAS/AM09/CONTINUIDADE_AM09_2026.md).
+
+Abra o ZIP e clique Download raw file. Extraia em pasta nova e execute ANTI_MURPHY_FINAL_2026/INICIAR_ANTI_MURPHY.bat. Guarde versões e dados anteriores.
+
+Stress/MonteCarlo preservam tentativas inviáveis com motivos e não calculam custo/duração como zero. Médias/percentis usam somente viáveis e identificam amostra. Resiliência usa todas as tentativas.440testes aprovados,5falhas históricas,10subtestes;12novosAM09. Três experimentos oficiais e navegador nas3resoluções passaram. Windows/projetor aguardam aceite local. Nenhuma outra correção foi implementada.
+
+---
+
+Histórico de versões anteriores:
+
 # Versão atual: AM08-2026.1 sobre AM12/AM05/AM11
 
 [Aplicativo completo](ENTREGAS/AM08/ANTI_MURPHY_AM08_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM08/ANTI_MURPHY_PATCH_AM08_2026.zip) · [Relatório](ENTREGAS/AM08/RELATORIO_AM08_2026.md) · [Continuidade](ENTREGAS/AM08/CONTINUIDADE_AM08_2026.md).

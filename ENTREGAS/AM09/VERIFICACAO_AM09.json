@@ -1,0 +1,19 @@
+{
+  "version": "AM09-2026.1",
+  "base": "4d877444df33d0a7ae1fa503fb6ab465ad2c124c",
+  "files": 433,
+  "zip_integrity": true,
+  "patch_identical": true,
+  "zip_extracted_tests_passed": 31,
+  "regression_passed": 440,
+  "preexisting_failures": 5,
+  "subtests_passed": 10,
+  "new_passed": 12,
+  "browser_resolutions": [
+    "1280x720",
+    "1366x768",
+    "1920x1080"
+  ],
+  "statistical_scope": "viable_only",
+  "trial_count_includes_infeasible": true
+}

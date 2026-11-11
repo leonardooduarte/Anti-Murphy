@@ -1,6 +1,7 @@
 from __future__ import annotations
 import html
 from typing import Any, Dict, List
+from ui.stat_values import stat_value
 import streamlit as st
 
 
@@ -182,6 +183,6 @@ def resilience_callout(summary: Dict[str, Any]) -> None:
     st.markdown(f'''<div class="v18-pulse">
       <div><div class="ey">Resilience verdict</div><div class="big">{score:.0f}% dos futuros preservam o critério</div><div class="sub">A leitura agrega a bateria de cenários, não um único caso extremo.</div></div>
       <div><div class="ey">Weakest link</div><div class="big"><em>{_e(fragile)}</em></div><div class="sub">posto com maior sensibilidade no conjunto perturbado</div></div>
-      <div><div class="ey">Tail completion</div><div class="big">P90 {float(p90):.1f} h</div><div class="sub">cauda superior do tempo de conclusão</div></div>
+      <div><div class="ey">Tail completion</div><div class="big">P90 {stat_value(p90,1,' h')}</div><div class="sub">cauda superior do tempo de conclusão</div></div>
       <div><div class="ey">Interpretation</div><div class="big">Teste a fronteira, não a média</div><div class="sub">Use Rupture Lab para localizar o primeiro ponto de falha.</div></div>
     </div>''',unsafe_allow_html=True)

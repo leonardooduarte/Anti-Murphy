@@ -299,7 +299,7 @@ def opportunity_matrix(opps: List[Dict[str, Any]]):
 
 
 def stress_landscape(stress_result: Dict[str, Any]):
-    runs=stress_result.get("runs",[])
+    runs=[r for r in stress_result.get("runs",[]) if r.get("feasible",True) and r.get("Makespan") is not None and r.get("SLA") is not None]
     if not runs:
         return None
     import plotly.graph_objects as go

@@ -4,6 +4,7 @@ import html
 from typing import Any, Dict, List
 
 import plotly.graph_objects as go
+from ui.stat_values import stat_value
 import streamlit as st
 
 
@@ -111,11 +112,11 @@ def decision_narrative(base: Dict[str, Any], alt: Dict[str, Any], d: Dict[str, A
 
 
 def monte_carlo_panel(mc: Dict[str, Any], label: str='Scenario') -> None:
-    s=mc.get('summary',{}); n=len(mc.get('runs',[])); bn=mc.get('dominant_bottleneck','-'); share=float(mc.get('bottleneck_share',0))
+    s=mc.get('summary',{}); n=len(mc.get('runs',[])); bn=mc.get('dominant_bottleneck','-'); share=mc.get('bottleneck_share')
     def block(key,title,fmt):
-        x=s.get(key,{}); mean=float(x.get('mean',0)); lo=float(x.get('ci_low',0)); hi=float(x.get('ci_high',0))
+        x=s.get(key,{}); mean=x.get('mean');lo=x.get('ci_low');hi=x.get('ci_high'); fmt_original=fmt;fmt=lambda v:'Não calculado' if v is None else fmt_original(v)
         return f'<div><div class="k">{title}</div><div class="v">{fmt(mean)}</div><div class="s">95% CI {fmt(lo)} – {fmt(hi)}</div></div>'
-    st.markdown('<div class="v21-mc"><div class="lead"><div class="k">SIMULATION CONFIDENCE</div><div class="v">'+_e(label)+'</div><div class="s">'+str(n)+' replicações · gargalo '+_e(str(bn))+' em '+f'{share:.0f}% dos runs</div></div>'+block('throughput','Throughput',lambda v:f'{v:.2f}')+block('sla','SLA',lambda v:f'{v:.0f}%')+block('makespan','Makespan',lambda v:f'{v:.1f}h')+block('unit_cost','Cost / unit',lambda v:f'R$ {v:.0f}')+'</div>',unsafe_allow_html=True)
+    st.markdown('<div class="v21-mc"><div class="lead"><div class="k">SIMULATION CONFIDENCE</div><div class="v">'+_e(label)+'</div><div class="s">'+str(n)+' replicações · gargalo '+_e(str(bn))+' em '+stat_value(share,0,'% dos viáveis')+'</div></div>'+block('throughput','Throughput',lambda v:f'{v:.2f}')+block('sla','SLA',lambda v:f'{v:.0f}%')+block('makespan','Makespan',lambda v:f'{v:.1f}h')+block('unit_cost','Cost / unit',lambda v:f'R$ {v:.0f}')+'</div>',unsafe_allow_html=True)
 
 
 def resilience_surface_chart(surface: Dict[str, Any]) -> go.Figure:

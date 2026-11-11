@@ -1,0 +1,3 @@
+inviáveis 11 de 16
+[{'Posto': 'P', 'Índice de fragilidade': 29.3, 'SLA médio': 100.0, 'Makespan médio': 24.7, 'Throughput médio': 0.84, 'Cenários': 16, 'Viáveis': 5, 'Inviáveis': 11, 'Taxa inviáveis (%)': 68.75}]
+{'runs': 16, 'viable_runs': 5, 'infeasible_runs': 11, 'statistics_scope': 'viable_only', 'infeasible_rate': 68.75, 'sla_avg': 100.0, 'sla_worst': 100.0, 'makespan_p90': 28.1, 'unit_cost_p90': 28.1, 'throughput_p10': 0.712, 'resilience_rate': 31.2, 'most_fragile': 'P'}

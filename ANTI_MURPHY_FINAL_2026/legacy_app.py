@@ -8,6 +8,7 @@ from io import BytesIO
 import json
 import os
 import pandas as pd
+from ui.stat_values import stat_value
 import streamlit as st
 import time
 
@@ -1788,13 +1789,14 @@ with main_col:
         if "stress_results" in st.session_state:
             sr = st.session_state.stress_results
             sm = sr["summary"]
+            st.info(f"Amostra: {sm.get('viable_runs',sm['runs'])} viáveis de {sm['runs']}; {sm.get('infeasible_runs',0)} inviáveis. Estatísticas somente dos viáveis.")
             stress_summary_panel(sm)
             st.markdown("### Resilience Scan")
             r1,r2,r3,r4,r5 = st.columns(5)
             with r1: metric_card("Resiliência", f"{sm['resilience_rate']:.0f}%", "cenários com SLA ≥ 80%", "#2B7A5A")
-            with r2: metric_card("SLA médio", f"{sm['sla_avg']:.0f}%", f"pior caso {sm['sla_worst']:.0f}%", "#1D292D")
-            with r3: metric_card("P90 makespan", f"{sm['makespan_p90']:.1f} h", "90% dos cenários abaixo disso", "#1D292D")
-            with r4: metric_card("P10 throughput", f"{sm['throughput_p10']:.2f}", "cauda inferior da capacidade", "#1D292D")
+            with r2: metric_card("SLA médio", f"{stat_value(sm['sla_avg'],0,'%')}", f"pior caso {stat_value(sm['sla_worst'],0,'%')}", "#1D292D")
+            with r3: metric_card("P90 makespan", f"{stat_value(sm['makespan_p90'],1,' h')}", "90% dos cenários abaixo disso", "#1D292D")
+            with r4: metric_card("P10 throughput", f"{stat_value(sm['throughput_p10'],2,'')}", "cauda inferior da capacidade", "#1D292D")
             with r5: metric_card("Posto frágil", sm['most_fragile'], "maior impacto quando perturbado", "#FF681B", emphasis=True)
             st.markdown("#### Mapa de fragilidade")
             render_fragility_map(sr["fragility"])
@@ -1807,11 +1809,11 @@ with main_col:
                     st.plotly_chart(sl, use_container_width=True)
             with cr:
                 st.markdown("#### Cenários mais severos")
-                severe=dfstress.sort_values(["SLA","Makespan"],ascending=[True,False]).head(8)
+                severe=dfstress.sort_values(["SLA","Makespan"],ascending=[True,False],na_position="first").head(8)
                 st.dataframe(severe, use_container_width=True, hide_index=True, height=330)
-            worst = sr["runs"][dfstress.sort_values(["SLA","Makespan"],ascending=[True,False]).index[0]] if sr["runs"] else None
+            worst = sr["runs"][dfstress.sort_values(["SLA","Makespan"],ascending=[True,False],na_position="first").index[0]] if sr["runs"] else None
             if worst:
-                st.markdown(f"<div class='insight'><b>What broke the system?</b> O caso mais severo atingiu <b>{worst['Posto afetado']}</b>, com demanda <b>{worst['Demanda x']:.2f}×</b>, parada de <b>{worst['Parada (h)']:.1f} h</b> e {worst['Ausências']} ausência(s). O SLA caiu para <b>{worst['SLA']:.0f}%</b> e o gargalo terminou em <b>{worst['Gargalo']}</b>.</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='insight'><b>What broke the system?</b> O caso mais severo atingiu <b>{worst['Posto afetado']}</b>, com demanda <b>{worst['Demanda x']:.2f}×</b>, parada de <b>{worst['Parada (h)']:.1f} h</b> e {worst['Ausências']} ausência(s). O SLA caiu para <b>{stat_value(worst['SLA'],0,'%')}</b> e o gargalo terminou em <b>{worst['Gargalo']}</b>.</div>", unsafe_allow_html=True)
                 st.markdown("### Recovery Planner")
                 st.caption("Mantém o mesmo pior cenário e testa respostas simples para recuperar serviço, fluxo e tempo. É uma exploração contrafactual, não uma ordem de implementação.")
                 if st.button("Construir plano de recuperação do pior caso", use_container_width=True, key="recovery_run"):
