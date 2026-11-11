@@ -360,7 +360,7 @@ class Studio:
                 'same_model':one['model_hash']==two['model_hash'],
                 'economics':economic_compare(one,two),
                 'delta':{x:(metric(b,x)-metric(a,x)) if isinstance(a.get(x),(int,float)) and isinstance(b.get(x),(int,float)) else None for x in k},
-                'note':'Variações são B − A. Custo do cenário = operação + multas; custo da decisão inclui investimento. Economia líquida usa a referência sem resposta de cada experimento. Componentes ausentes não são presumidos zero. Modelos ou referências diferentes não isolam o efeito da intervenção.'})
+                'note':'Variações são B − A. Custo do cenário = operação + multas; custo da decisão inclui investimento. Economia líquida usa a referência sem resposta de cada experimento. Componentes ausentes não são presumidos zero. modelos distintos ou referências diferentes não isolam o efeito da intervenção.'})
 
     @staticmethod
     def _prepared_replays(state):

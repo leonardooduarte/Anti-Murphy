@@ -1,3 +1,15 @@
+# Versão atual: AM08-2026.1 sobre AM12/AM05/AM11
+
+[Aplicativo completo](ENTREGAS/AM08/ANTI_MURPHY_AM08_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM08/ANTI_MURPHY_PATCH_AM08_2026.zip) · [Relatório](ENTREGAS/AM08/RELATORIO_AM08_2026.md) · [Continuidade](ENTREGAS/AM08/CONTINUIDADE_AM08_2026.md).
+
+No GitHub, abra o ZIP e clique Download raw file. Extraia em pasta nova e execute ANTI_MURPHY_FINAL_2026/INICIAR_ANTI_MURPHY.bat. Guarde instalações e dados anteriores.
+
+Comparação arquivada agora separa custo do cenário, investimento, custo da decisão e economia líquida. Arquivos antigos não foram regravados e valores ausentes não viram zero.428 testes aprovados,5falhas históricas,10subtestes;13novosAM08 aprovados. Três experimentos oficiais e navegador nas3resoluções passaram. Windows/projetor pendem de aceite local. Entregas anteriores permanecem preservadas.
+
+---
+
+Histórico das versões anteriores:
+
 # Versão atual desta branch: AM12-2026.1
 
 AM12 concluído sobre AM05+AM11. [Baixar aplicativo completo](ENTREGAS/AM12/ANTI_MURPHY_AM12_COMPLETO_2026.zip), [patch](ENTREGAS/AM12/ANTI_MURPHY_PATCH_AM12_2026.zip), [relatório](ENTREGAS/AM12/RELATORIO_AM12_2026.md). Abra o ZIP e clique Download raw file no GitHub. Extraia em pasta nova e execute ANTI_MURPHY_FINAL_2026/INICIAR_ANTI_MURPHY.bat.

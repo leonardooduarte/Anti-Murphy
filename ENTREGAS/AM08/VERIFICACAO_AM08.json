@@ -1,0 +1,18 @@
+{
+  "version": "AM08-2026.1",
+  "base": "6410e6bfa7919864c965d4c9dd9ca6e43740afbf",
+  "files": 415,
+  "zip_integrity": true,
+  "patch_identical": true,
+  "zip_extracted_am08_am12_tests_passed": 26,
+  "regression_passed": 428,
+  "preexisting_failures": 5,
+  "subtests_passed": 10,
+  "new_passed": 13,
+  "legacy_documents_unchanged": true,
+  "browser_resolutions": [
+    "1280x720",
+    "1366x768",
+    "1920x1080"
+  ]
+}
