@@ -2,6 +2,7 @@
 No Streamlit or frontend dependencies. Predictions are synthetic planning results.
 """
 from __future__ import annotations
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import asdict, replace
 from datetime import datetime, timezone
@@ -34,6 +35,7 @@ from .technical_audit import summarize_audit
 from .decision_quality import review_alternatives
 from .record_integrity import audit_decision_note, cost_snapshot
 from .persistence import atomic_bundle
+from .workspace_guard import workspace_lock, project_revision
 from .analysis_provenance import contexts as experiment_contexts, inputs as experiment_inputs, signature as experiment_signature
 
 class StudioError(Exception):
@@ -87,6 +89,18 @@ def _atomic_json(path: Path, payload):
 
 class Studio:
     def __init__(self, storage: Path):
+        storage=Path(storage).resolve()
+        self._initializing=True
+        try:
+            with workspace_lock(storage):
+                self._storage_revision=project_revision(storage)
+                self._initialize(storage)
+        except OSError as exc:
+            raise StudioError('Não foi possível abrir o projeto: '+str(exc)) from exc
+        finally:
+            self._initializing=False
+
+    def _initialize(self, storage: Path):
         self.storage=storage
         self.lock=RLock()
         self.state={}
@@ -180,7 +194,30 @@ class Studio:
             raise StudioError('Nome do projeto: informe entre 3 e 70 caracteres.')
         return name
 
+    @contextmanager
+    def _writing_workspace(self):
+        try:
+            with workspace_lock(self.storage):
+                if project_revision(self.storage)!=self._storage_revision:
+                    raise StudioError('O projeto foi alterado por outra instância ou fora deste programa. '
+                                      'Esta gravação foi bloqueada para preservar os dados. '
+                                      'Feche e reabra o Anti-Murphy nesta pasta antes de tentar novamente.')
+                yield
+        except OSError as exc:
+            raise StudioError('Gravação indisponível: '+str(exc)) from exc
+
     def _persist_model(self, state=None, project_id=None, name=None):
+        with self._writing_workspace():
+            pid=project_id or self.project_id
+            paths=[self.storage/'projeto.json',self._project_file(pid),
+                   self.storage/'projeto_ativo.json',self.storage/'projeto_confirmado.json']
+            # A second reader must not change revisions merely by starting.
+            if self._initializing and not self._recovery_warning and all(p.is_file() for p in paths):
+                return
+            self._persist_model_locked(state,project_id,name)
+            self._storage_revision=project_revision(self.storage)
+
+    def _persist_model_locked(self, state=None, project_id=None, name=None):
         """Stage all local model files; publish no memory until disk confirms."""
         state = state if state is not None else self.state
         pid = project_id or self.project_id
@@ -285,7 +322,7 @@ class Studio:
             return sorted(out,key=lambda x:x.get('created_at') or '',reverse=True)
 
     def save_experiment(self,name):
-        with self.lock:
+        with self.lock, self._writing_workspace():
             name=self._project_name(name)
             if len(self.experiment_list())>=100:raise StudioError('Limite de 100 experimentos por projeto atingido.')
             a=current_analysis(self.state)
@@ -546,7 +583,7 @@ class Studio:
                         'objective':'cost','critical_order':''})
 
     def decision(self,payload:dict):
-        with self.lock:
+        with self.lock, self._writing_workspace():
             a=current_analysis(self.state)
             if not a:raise StudioError('É necessário executar uma simulação.')
             signature=str(payload.get('signature') or self.state.get('nx_selected') or '')
