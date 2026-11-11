@@ -66,6 +66,8 @@ def contexts(state, project_id, selected=None):
                                 'runs':12,'seed_start':2100},
         'advanced:recovery':{**crisis,'delay_h':delay,'max_results':8},
     }
+    for key in ('lab:stress','advanced:uncertainty'):
+        deps[key]['statistics_policy']='am09-viable-only-v1'
     return {key:{'context_signature':signature({'schema':SCHEMA,'project_id':project_id,
                                                 'context_key':key,'dependencies':value}),
                  'dependencies':canonical(value)} for key,value in deps.items()}

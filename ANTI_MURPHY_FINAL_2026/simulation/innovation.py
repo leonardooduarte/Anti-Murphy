@@ -43,14 +43,16 @@ def stress_test(
         result = run_simulation(cfg)
         row = {
             "Run": i + 1,
+            "feasible":bool(result.get("feasible",True)),
+            "reason":"; ".join(result.get("warnings",[])) if not result.get("feasible",True) else "",
             "Posto afetado": sid,
             "Demanda x": cfg.demand_multiplier,
             "Parada (h)": cfg.chaos_duration_h,
             "Ausências": absent,
-            "Throughput": metric(result, "throughput_h"),
-            "SLA": metric(result, "sla_pct"),
-            "Makespan": metric(result, "makespan_h"),
-            "Custo/un": metric(result, "unit_cost"),
+            "Throughput": metric(result, "throughput_h") if result.get("feasible",True) else None,
+            "SLA": metric(result, "sla_pct") if result.get("feasible",True) else None,
+            "Makespan": metric(result, "makespan_h") if result.get("feasible",True) else None,
+            "Custo/un": metric(result, "unit_cost") if result.get("feasible",True) else None,
             "Gargalo": result["bottleneck"],
             "result": result,
             "config": cfg,
@@ -59,8 +61,8 @@ def stress_test(
         station_hits[sid].append(row)
 
     def avg(xs, key):
-        vals = [float(x[key]) for x in xs]
-        return sum(vals) / max(1, len(vals))
+        vals = [float(x[key]) for x in xs if x["feasible"]]
+        return sum(vals) / len(vals) if vals else None
 
     fragility = []
     for sid, items in station_hits.items():
@@ -70,36 +72,43 @@ def stress_test(
         mean_sla = avg(items, "SLA")
         mean_mk = avg(items, "Makespan")
         mean_tp = avg(items, "Throughput")
-        score = (100 - mean_sla) * 0.52 + mean_mk * 0.85 + (1 / max(mean_tp, 0.01)) * 7
+        score = ((100 - mean_sla) * 0.52 + mean_mk * 0.85 + (1 / max(mean_tp, 0.01)) * 7) if mean_sla is not None else None
         fragility.append({
             "Posto": sid,
-            "Índice de fragilidade": round(score, 1),
-            "SLA médio": round(mean_sla, 1),
-            "Makespan médio": round(mean_mk, 1),
-            "Throughput médio": round(mean_tp, 2),
+            "Índice de fragilidade": round(score, 1) if score is not None else None,
+            "SLA médio": round(mean_sla, 1) if mean_sla is not None else None,
+            "Makespan médio": round(mean_mk, 1) if mean_mk is not None else None,
+            "Throughput médio": round(mean_tp, 2) if mean_tp is not None else None,
             "Cenários": len(items),
+            "Viáveis":sum(x["feasible"] for x in items),
+            "Inviáveis":sum(not x["feasible"] for x in items),
+            "Taxa inviáveis (%)":100*sum(not x["feasible"] for x in items)/len(items),
         })
-    fragility.sort(key=lambda x: x["Índice de fragilidade"], reverse=True)
+    fragility.sort(key=lambda x: (x["Taxa inviáveis (%)"],x["Índice de fragilidade"] if x["Índice de fragilidade"] is not None else -1), reverse=True)
 
-    slas = sorted(float(x["SLA"]) for x in rows)
-    makespans = sorted(float(x["Makespan"]) for x in rows)
-    unit_costs = sorted(float(x["Custo/un"]) for x in rows)
-    throughputs = sorted(float(x["Throughput"]) for x in rows)
+    viable=[x for x in rows if x["feasible"]]
+    slas = sorted(float(x["SLA"]) for x in viable)
+    makespans = sorted(float(x["Makespan"]) for x in viable)
+    unit_costs = sorted(float(x["Custo/un"]) for x in viable)
+    throughputs = sorted(float(x["Throughput"]) for x in viable)
 
     def percentile(vals, p):
         if not vals:
-            return 0.0
+            return None
         idx = min(len(vals) - 1, max(0, round((len(vals) - 1) * p)))
         return vals[idx]
 
     summary = {
         "runs": len(rows),
-        "sla_avg": round(sum(slas) / len(slas), 1),
-        "sla_worst": round(min(slas), 1),
-        "makespan_p90": round(percentile(makespans, 0.90), 2),
-        "unit_cost_p90": round(percentile(unit_costs, 0.90), 2),
-        "throughput_p10": round(percentile(throughputs, 0.10), 3),
-        "resilience_rate": round(100 * sum(1 for x in rows if x["SLA"] >= 80) / len(rows), 1),
+        "viable_runs":len(viable),"infeasible_runs":len(rows)-len(viable),
+        "statistics_scope":"viable_only",
+        "infeasible_rate":100*(len(rows)-len(viable))/len(rows),
+        "sla_avg": round(sum(slas) / len(slas), 1) if slas else None,
+        "sla_worst": round(min(slas), 1) if slas else None,
+        "makespan_p90": round(percentile(makespans, 0.90), 2) if makespans else None,
+        "unit_cost_p90": round(percentile(unit_costs, 0.90), 2) if unit_costs else None,
+        "throughput_p10": round(percentile(throughputs, 0.10), 3) if throughputs else None,
+        "resilience_rate": round(100 * sum(1 for x in viable if x["SLA"] >= 80) / len(rows), 1),
         "most_fragile": fragility[0]["Posto"] if fragility else "-",
     }
     return {"summary": summary, "runs": rows, "fragility": fragility}

@@ -697,7 +697,7 @@ class Studio:
                                    demand_high=1.2, durations=(2.,4.,8.),seed=2026)
                 points=[{'label':f"#{r['Run']:02d} · {r['Posto afetado']}",'sla_pct':r['SLA'],
                          'makespan_h':r['Makespan'],'unit_cost':r['Custo/un'],
-                         'throughput_h':r['Throughput']} for r in result['runs']]
+                         'throughput_h':r['Throughput'],'feasible':r['feasible'],'reason':r['reason']} for r in result['runs']]
                 return self._stamp_result({'mode':mode,'points':points,'summary':result['summary'],
                     'notes':['16 perturbações sintéticas reproduzíveis. Fragilidade relativa do modelo; não são frequências de falhas medidas na indústria.']},mode,payload)
             elif mode=='capacity':
@@ -788,7 +788,7 @@ class Studio:
                 spec=ExperimentSpec(**self.state['nx_spec'])
                 crisis=scenario_from_incident(cfg,spec.station,spec.start_h,spec.duration_h)
                 r=monte_carlo_analysis(crisis,runs=12,seed_start=2100)
-                result={'rows':r['runs'],'summary':r['summary'],
+                result={'rows':r['runs'],'summary':r['summary'],'sample':r['sample'],
                     'dominant_bottleneck':r['dominant_bottleneck'],
                     'bottleneck_share':r['bottleneck_share'],
                     'notes':[base_note,'12 sementes diferentes da mesma falha; dispersão interna do modelo, não probabilidade empírica de falha.']}

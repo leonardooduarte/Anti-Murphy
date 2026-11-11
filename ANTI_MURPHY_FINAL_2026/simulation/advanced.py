@@ -188,16 +188,21 @@ def monte_carlo_analysis(config: ScenarioConfig, runs: int = 12, seed_start: int
         r = run_simulation(cfg)
         rows.append({
             "run": i + 1,
+            "feasible":bool(r.get("feasible",True)),
+            "reason":"; ".join(r.get("warnings",[])) if not r.get("feasible",True) else "",
             "seed": cfg.seed,
-            "throughput": float(_metric_or_zero(r, 'throughput_h')),
-            "sla": float(_metric_or_zero(r, 'sla_pct')),
-            "makespan": float(_metric_or_zero(r, 'makespan_h')),
-            "unit_cost": float(_metric_or_zero(r, 'unit_cost')),
+            "throughput": float(_metric_or_zero(r, 'throughput_h')) if r.get("feasible",True) else None,
+            "sla": float(_metric_or_zero(r, 'sla_pct')) if r.get("feasible",True) else None,
+            "makespan": float(_metric_or_zero(r, 'makespan_h')) if r.get("feasible",True) else None,
+            "unit_cost": float(_metric_or_zero(r, 'unit_cost')) if r.get("feasible",True) else None,
             "bottleneck": str(r.get("bottleneck", "-")),
         })
 
+    viable=[x for x in rows if x["feasible"]]
+
     def metric_summary(key: str) -> Dict[str, float]:
-        vals = [float(x[key]) for x in rows]
+        vals = [float(x[key]) for x in viable]
+        if not vals:return {"n":0,**{k:None for k in ("mean","sd","ci_low","ci_high","p10","p50","p90")}}
         mean = statistics.fmean(vals) if vals else 0.0
         sd = statistics.stdev(vals) if len(vals) > 1 else 0.0
         half = 1.96 * sd / math.sqrt(len(vals)) if vals else 0.0
@@ -208,18 +213,19 @@ def monte_carlo_analysis(config: ScenarioConfig, runs: int = 12, seed_start: int
             lo = int(math.floor(pos)); hi = int(math.ceil(pos))
             if lo == hi: return sv[lo]
             return sv[lo] + (sv[hi]-sv[lo]) * (pos-lo)
-        return {"mean": mean, "sd": sd, "ci_low": mean-half, "ci_high": mean+half,
+        return {"n":len(vals),"mean": mean, "sd": sd if len(vals)>1 else None, "ci_low": mean-half if len(vals)>1 else None, "ci_high": mean+half if len(vals)>1 else None,
                 "p10": pct(.10), "p50": pct(.50), "p90": pct(.90)}
 
     bn_counts: Dict[str, int] = {}
-    for x in rows:
+    for x in viable:
         bn_counts[x["bottleneck"]] = bn_counts.get(x["bottleneck"], 0) + 1
     dominant_bn = max(bn_counts, key=bn_counts.get) if bn_counts else "-"
     return {
         "runs": rows,
+        "sample":{"runs":len(rows),"viable_runs":len(viable),"infeasible_runs":len(rows)-len(viable),"statistics_scope":"viable_only"},
         "summary": {k: metric_summary(k) for k in ["throughput", "sla", "makespan", "unit_cost"]},
         "dominant_bottleneck": dominant_bn,
-        "bottleneck_share": (bn_counts.get(dominant_bn, 0) / max(1, len(rows))) * 100,
+        "bottleneck_share": (bn_counts.get(dominant_bn, 0) / len(viable)) * 100 if viable else None,
     }
 
 

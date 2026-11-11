@@ -38,9 +38,14 @@ function analysisOrigin(result){
  const p=result.provenance||{};
  return `Projeto: ${p.project_name||p.project_id||'?'} (${p.project_id||'?'}) · Execução: ${p.run_id||'?'} · Assinatura: ${p.signature||'?'} · ${p.calculated_at||''} · Entradas do ensaio: ${JSON.stringify(p.inputs||{})}`;
 }
+function analysisSample(result){
+ const sample=result.sample||(result.summary?.viable_runs!==undefined?result.summary:null);
+ if(!sample)return '';
+ return `<p class="lab-secondary" role="status" data-analysis-sample>Execuções: ${integer(sample.runs)} · Viáveis: ${integer(sample.viable_runs)} · Inviáveis: ${integer(sample.infeasible_runs)}. Estatísticas somente das execuções viáveis; métricas dos inviáveis não são calculadas. ${sample.viable_runs===0?'Sem amostra viável para estatísticas.':''} ${result.mode==='stress'?'Taxa de resiliência usa todas as tentativas, incluindo inviáveis como não atendidas.':''}</p>`;
+}
 function analysisBanner(result){
  const state=analysisHistory.status(result);
- return `<div class="lab-secondary ${state.code==='desatualizado'?'am-stale-warning':''}" role="status" data-analysis-status="${state.code}"><b>${esc(state.label)}</b> · ${esc(analysisOrigin(result))}${state.code!=='atual'?'<p>Resultado anterior preservado. Confira a origem; execute novamente para obter dados da configuração vigente.</p>':''}</div>`;
+ return analysisSample(result)+`<div class="lab-secondary ${state.code==='desatualizado'?'am-stale-warning':''}" role="status" data-analysis-status="${state.code}"><b>${esc(state.label)}</b> · ${esc(analysisOrigin(result))}${state.code!=='atual'?'<p>Resultado anterior preservado. Confira a origem; execute novamente para obter dados da configuração vigente.</p>':''}</div>`;
 }
 function analysisHistoryMarkup(scope,mode,attribute){
  const entries=analysisHistory.list(scope,mode);
@@ -812,7 +817,7 @@ function dashRobust(){
  const r=dashUI.robustness||analysisHistory.list('advanced','uncertainty')[0]?.result;
  if(!r){return analysisHistoryMarkup('advanced','uncertainty','data-dash-history')+`<div class="dash-panel dash-robust-empty"><div class="dash-robust-icon">∿</div><h2>Resultados sob variações do modelo</h2><p>Execute 12 simulações com sementes diferentes sobre o incidente selecionado. A análise não altera o projeto nem a resposta escolhida.</p><button class="dash-cta" data-dash-robust-run>Executar Monte Carlo (12 execuções)</button><p class="dash-footnote">As sementes são uma análise de sensibilidade interna. Não representam frequências reais de falhas industriais nem um intervalo de confiança calibrado com dados de fábrica.</p></div><div class="dash-actions-inline"><button data-dash-lab="stress" class="subtle-button">Abrir Stress Lab</button><button data-dash-advanced="demand" class="subtle-button">Limite de demanda</button></div>`;}
  const rows=r.rows||[],m=r.summary?.makespan||{},sla=r.summary?.sla||{};
- const slas=rows.map(x=>Number(x.sla)).filter(Number.isFinite);
+ const slas=rows.filter(x=>x.feasible!==false&&x.sla!==null&&x.sla!==undefined).map(x=>Number(x.sla)).filter(Number.isFinite);
  const constantSla=slas.length>1&&slas.every(v=>Math.abs(v-slas[0])<.005);
  const consistencyNote=constantSla?`<div class="dash-robust-constant"><strong>SLA sem variação entre as ${integer(slas.length)} execuções (${h(slas[0])}%).</strong> O experimento não demonstrou sensibilidade desse indicador às perturbações consideradas; isso não significa risco de atraso nulo nem modelo calibrado.</div>`:'';
 
@@ -1174,7 +1179,7 @@ function advancedBars(rows,valueKey,labelKey,title,unit,maxFixed=null){
  }).join('')}</div></div>`;
 }
 function monteCarloDistribution(rows){
- const values=(rows||[]).map(r=>Number(r.sla)).filter(Number.isFinite);
+ const values=(rows||[]).filter(r=>r.feasible!==false&&r.sla!==null&&r.sla!==undefined).map(r=>Number(r.sla)).filter(Number.isFinite);
  if(!values.length)return '';
  const lo=0,hi=100,bins=10,count=Array(10).fill(0);
  for(const v of values)count[Math.min(9,Math.floor(Math.max(0,Math.min(99.999,v))/10))]++;
@@ -1202,7 +1207,7 @@ function renderAdvanced(result){
   rows=result.stations||[];
  } else if(result.mode==='uncertainty'){
   const m=result.summary||{};
-  head=`<div class="advanced-report"><div><span>SLA médio simulado</span><strong>${h(m.sla?.mean)}%</strong><small>${rows.length} execuções</small></div><div><span>Conclusão média</span><strong>${h(m.makespan?.mean)} h</strong><small>Variação de tempos</small></div><div><span>Gargalo mais frequente</span><strong>${esc(result.dominant_bottleneck||'—')}</strong><small>${h(result.bottleneck_share)}% dos ensaios</small></div></div>`;
+  head=`<div class="advanced-report"><div><span>SLA médio simulado</span><strong>${showVal(m.sla?.mean)}%</strong><small>${rows.length} execuções</small></div><div><span>Conclusão média</span><strong>${showVal(m.makespan?.mean)} h</strong><small>Variação de tempos</small></div><div><span>Gargalo mais frequente</span><strong>${esc(result.dominant_bottleneck||'—')}</strong><small>${showVal(result.bottleneck_share)}% dos ensaios</small></div></div>`;
  } else if(result.mode==='sensitivity'){
   head='';
  } else if(result.mode==='demand'){

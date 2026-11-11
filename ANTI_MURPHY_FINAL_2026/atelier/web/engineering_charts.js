@@ -59,7 +59,7 @@ function baseSvg(title,unit,xLabel,content,width=920,height=340){return `<svg vi
 function plot(rows,cfg,metric,result){
  const [field,title,unit,favorable=1]=metric;
  const entries=rows.map((r,i)=>({...r,__index:i,__val:valid(r[field])?N(r[field]):null})).filter(r=>r.__val!==null);
- if(!entries.length)return '<div class="eng-empty">Não há valores numéricos para este indicador.</div>';
+ if(!entries.length)return baseSvg(title,unit,'Sem amostra', '<text x="30" y="80" fill="#34545B">Sem observações viáveis para este indicador; consulte a tabela e os motivos.</text>');
  const kind=cfg.kind==='scatter'?'scatter':cfg.kind;
  if(kind==='diverging'||(cfg===configs['lab:goal']&&field==='savings'))return diverging(entries,cfg,metric);
  const W=920,H=350,L=86,R=35,T=38,B=65,iw=W-L-R,ih=H-T-B;
@@ -120,7 +120,7 @@ function selectedDetail(row,cfg,metric){
 }
 function fullTable(rows){if(!rows.length)return '<p>Sem resultados detalhados.</p>';
  const keys=Object.keys(rows[0]).filter(k=>!k.startsWith('__'));
- return `<div class="eng-table-scroll"><table class="eng-table"><thead><tr>${keys.map(k=>`<th>${safe(k)}</th>`).join('')}</tr></thead><tbody>${rows.map((r,i)=>`<tr data-eng-row="${i}">${keys.map(k=>`<td>${safe(typeof r[k]==='number'?fnum(r[k],3):r[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+ return `<div class="eng-table-scroll"><table class="eng-table"><thead><tr>${keys.map(k=>`<th>${safe(k)}</th>`).join('')}</tr></thead><tbody>${rows.map((r,i)=>`<tr data-eng-row="${i}">${keys.map(k=>`<td>${safe(r[k]===null?(r.feasible===false?'Não calculado':'—'):typeof r[k]==='number'?fnum(r[k],3):r[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function csv(rows){if(!rows.length)return '';
  const keys=Object.keys(rows[0]).filter(k=>!k.startsWith('__'));
@@ -136,7 +136,9 @@ function downloadCsv(rows,scope,key,result){
  const status=window.antiMurphyResultStatus?.(result)||{code:'desconhecido',label:'Origem não verificável'};
  const clean=value=>String(value??'').replace(/[\r\n]/g,' ');
  const hdr=origin?`# Projeto: ${clean(origin.project_name||origin.project_id)} (${clean(origin.project_id)}); Execução: ${origin.run_id}; Assinatura: ${origin.signature}; Calculado em: ${origin.calculated_at}; Estado na exportação: ${status.code}; Entradas: ${JSON.stringify(origin.inputs||{})}\r\n`:'# Estado na exportação: desconhecido\r\n';
- const metadata='"'+hdr.trimEnd().replaceAll('"','""')+'"\r\n';
+ const sample=result?.sample||(result?.summary?.viable_runs!==undefined?result.summary:null);
+ const sampling=sample?` ; Amostra: ${sample.viable_runs} viáveis de ${sample.runs}; Inviáveis: ${sample.infeasible_runs}; Estatísticas: somente viáveis`:'';
+ const metadata='"'+(hdr.trimEnd()+sampling).replaceAll('"','""')+'"\r\n';
  const blob=new Blob(['\ufeff'+metadata+csv(rows).replace(/^\ufeff/,'')],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=`anti_murphy_${scope}_${key}.csv`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500);
 }
 function downloadSvg(scope){
@@ -148,11 +150,13 @@ function downloadSvg(scope){
  const view=svg.getAttribute('viewBox')||'0 0 920 350',parts=view.split(/\s+/).map(Number),width=parts[2]||920,height=parts[3]||350;
  // Keep origin and validity visibly inside the exported figure, not only metadata.
  const plot=document.createElementNS('http://www.w3.org/2000/svg','g');
- plot.setAttribute('transform','translate(0 76)');
+ plot.setAttribute('transform','translate(0 98)');
  while(clone.firstChild)plot.appendChild(clone.firstChild);
- clone.appendChild(plot);clone.setAttribute('viewBox',`${parts[0]||0} ${parts[1]||0} ${width} ${height+76}`);
- clone.setAttribute('width',width);clone.setAttribute('height',height+76);
+ clone.appendChild(plot);clone.setAttribute('viewBox',`${parts[0]||0} ${parts[1]||0} ${width} ${height+98}`);
+ clone.setAttribute('width',width);clone.setAttribute('height',height+98);
  const lines=[`ESTADO: ${status.code.toUpperCase()} · ${status.label}`,`Projeto: ${pr.project_name||pr.project_id||'?'} (${pr.project_id||'?'}) · ${pr.calculated_at||''}`,`Entradas: ${JSON.stringify(pr.inputs||{})} · Assinatura: ${pr.signature||'?'}`];
+ const sample=item.result.sample||(item.result.summary?.viable_runs!==undefined?item.result.summary:null);
+ if(sample)lines.push(`Amostra: ${sample.viable_runs} viáveis de ${sample.runs}; ${sample.infeasible_runs} inviáveis; estatísticas somente viáveis.`);
  lines.forEach((line,i)=>{const text=document.createElementNS('http://www.w3.org/2000/svg','text');text.setAttribute('x','12');text.setAttribute('y',String(20+i*21));text.setAttribute('font-size','12');text.setAttribute('fill','#203C42');text.textContent=line.length>125?line.slice(0,122)+'…':line;clone.appendChild(text);});
  const desc=document.createElementNS('http://www.w3.org/2000/svg','desc');desc.textContent=JSON.stringify({status:status.code,provenance:pr});clone.appendChild(desc);
  const style=document.createElementNS('http://www.w3.org/2000/svg','style');
