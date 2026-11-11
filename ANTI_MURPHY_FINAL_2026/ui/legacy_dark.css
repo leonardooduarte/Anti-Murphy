@@ -1,0 +1,160 @@
+/* V30 compatibility skin. Loaded only by the preserved V29 application.
+   Scope and specificity keep older !important light skins from winning. */
+:root {
+  --bg:var(--am-bg); --paper:var(--am-panel); --paper2:var(--am-raised);
+  --ink:var(--am-text); --ink2:var(--am-text); --muted:var(--am-muted);
+  --line:var(--am-stroke); --line2:var(--am-stroke); --orange2:#FF9B66;
+  --am-surface:var(--am-panel); --am-surface2:var(--am-raised);
+  --am-ink:var(--am-text); --am-line:var(--am-stroke); --am-line-strong:var(--am-stroke);
+  --am15-bg:var(--am-bg); --am15-paper:var(--am-panel); --am15-paper-2:var(--am-raised);
+  --am15-ink:var(--am-text); --am15-ink-2:var(--am-text); --am15-ink-3:var(--am-text);
+  --am15-muted:var(--am-muted); --am15-muted-2:var(--am-muted); --am15-line:var(--am-stroke);
+  --am16-bg:var(--am-bg); --am16-panel:var(--am-panel); --am16-panel-2:var(--am-raised);
+  --am16-ink:var(--am-text); --am16-ink-2:var(--am-text); --am16-muted:var(--am-muted);
+  --am16-soft:var(--am-muted); --am16-line:var(--am-stroke); --am16-line-2:var(--am-stroke);
+  --v17-bg:var(--am-bg); --v17-surface:var(--am-panel); --v17-ink:var(--am-text);
+  --v17-muted:var(--am-muted); --v17-line:var(--am-stroke); --v17-line2:var(--am-stroke);
+  --am18-canvas:var(--am-bg); --am18-paper:var(--am-panel); --am18-paper-2:var(--am-raised);
+  --am18-ink:var(--am-text); --am18-ink-2:var(--am-text); --am18-muted:var(--am-muted);
+  --am18-muted-2:var(--am-muted); --am18-line:var(--am-stroke); --am18-line-strong:var(--am-stroke);
+  --am19-canvas:var(--am-bg); --am19-canvas-2:var(--am-bg);
+  --am19-paper:var(--am-panel); --am19-paper-2:var(--am-raised);
+  --am19-ink:var(--am-text); --am19-ink-2:var(--am-text); --am19-muted:var(--am-muted);
+  --am19-soft:var(--am-muted); --am19-line:var(--am-stroke); --am19-line-2:var(--am-stroke);
+  --am19-orange-dark:#FF9B66;
+  --am20-canvas:var(--am-bg); --am20-paper:var(--am-panel); --am20-paper-2:var(--am-raised);
+  --am20-ink:var(--am-text); --am20-ink-2:var(--am-text); --am20-muted:var(--am-muted);
+  --am20-soft:var(--am-muted); --am20-line:var(--am-stroke); --am20-line-2:var(--am-stroke);
+  --am20-orange-2:#FF9B66;
+  --v21-bg:var(--am-bg); --v21-paper:var(--am-panel); --v21-paper2:var(--am-raised);
+  --v21-ink:var(--am-text); --v21-muted:var(--am-muted); --v21-line:var(--am-stroke);
+  --v23-bg:var(--am-bg); --v23-paper:var(--am-panel); --v23-paper2:var(--am-raised);
+  --v23-ink:var(--am-text); --v23-muted:var(--am-muted); --v23-line:var(--am-stroke);
+  --v25-bg:var(--am-bg); --v25-paper:var(--am-panel); --v25-paper2:var(--am-raised);
+  --v25-ink:var(--am-text); --v25-muted:var(--am-muted); --v25-line:var(--am-stroke);
+  --am26-bg:var(--am-bg); --am26-paper:var(--am-panel); --am26-ink:var(--am-text);
+  --am26-muted:var(--am-muted); --am26-line:var(--am-stroke);
+}
+
+/* Fixed light backgrounds cannot be corrected by tokens alone. */
+[data-testid="stAppViewContainer"] :is(
+  .am-card, .am-empty, .am-empty-item, .am-chip, .flow-card, .insight,
+  .am16-metric-rail, .am16-metric, .am16-signal, .am16-review-card, .am16-delta,
+  .v17-command, .v17-verdict, .v17-inspector, .v17-model-card, .v17-quality>div, .v17-q,
+  .am15-module-hero, .v18-pulse>div, .v18-econ>div, .v18-node, .v18-lens>div,
+  .v20-workflow, .v20-stage.active, .v20-station-editor, .v20-state-banner,
+  .v20-opportunity-detail, .v20-target-warning, .v23-stat, .v23-exec-grid>div,
+  .v23-score>div, .v23-callout, .v23-ai-plan>div, .v25-shell, .v25-mode,
+  .v25-root>div, .v25-digest>div,
+  [data-testid="stMetric"], [data-testid="stRadioGroup"],
+  [data-testid="stRadio"] [role="radiogroup"],
+  [data-testid="stRadio"] [role="radiogroup"] label,
+  [data-testid="stSelectbox"]>div>div, [data-testid="stFileUploaderDropzone"],
+  [data-testid="stStatusWidget"], [data-testid="stPlotlyChart"]
+) {
+  background:var(--am-panel)!important;
+  border-color:var(--am-stroke)!important;
+  color:var(--am-text)!important;
+  box-shadow:none!important;
+}
+
+[data-testid="stAppViewContainer"] :is(.stButton,.stDownloadButton,.stFormSubmitButton)>button {
+  background:var(--am-raised)!important; color:var(--am-text)!important;
+  border-color:var(--am-stroke)!important; min-height:42px!important;
+  font-size:14px!important; transform:none!important; box-shadow:none!important;
+}
+[data-testid="stAppViewContainer"] :is(.stButton,.stDownloadButton,.stFormSubmitButton)>button p {
+  color:var(--am-text)!important; font-size:14px!important;
+}
+[data-testid="stAppViewContainer"] :is(.stButton,.stDownloadButton,.stFormSubmitButton)>button:hover {
+  background:#2B3D42!important; border-color:#FF9B66!important;
+}
+[data-testid="stAppViewContainer"] :is(.stButton,.stFormSubmitButton)>button:is([kind="primary"],[kind="primaryFormSubmit"]) {
+  background:#FF681B!important; color:#131F23!important; border-color:#FF681B!important;
+}
+[data-testid="stAppViewContainer"] :is(.stButton,.stFormSubmitButton)>button:is([kind="primary"],[kind="primaryFormSubmit"]) p {
+  color:#131F23!important;
+}
+[data-testid="stAppViewContainer"] .st-key-am16_navrail .stButton>button[kind="primary"] {
+  background:#2A3433!important; border-color:#79513B!important;
+}
+[data-testid="stAppViewContainer"] .st-key-am16_navrail .stButton>button[kind="primary"] p {
+  color:#FFAC7E!important;
+}
+[data-testid="stAppViewContainer"] :is(
+  [data-testid="stTextInput"] input, [data-testid="stNumberInput"] input,
+  [data-testid="stTextArea"] textarea, [data-baseweb="base-input"],
+  [data-baseweb="input"], [data-baseweb="input"]>div
+) {
+  background:#19292D!important; color:var(--am-text)!important;
+  border-color:var(--am-stroke)!important;
+}
+[data-testid="stAppViewContainer"] [data-testid="stMetricValue"],
+[data-testid="stAppViewContainer"] [data-testid="stMetricValue"] * {
+  color:var(--am-text)!important;
+}
+
+/* Restore legibility to legacy labels (some previous skins used 5–8 px). */
+[data-testid="stAppViewContainer"] :is(
+  .am16-signal, .am16-metric, .am16-context, .am16-review-card,
+  .v18-pulse, .v18-econ, .v18-lens, .v20-stage, .v23-stat,
+  .v23-exec-grid, .v23-score, .v23-thread-card, .v23-ai-plan,
+  .v25-root, .v25-digest, .v25-leader, .v25-agent-run
+) :is(.k, .ey, .lab, .n) {
+  color:var(--am-muted)!important; font-size:11px!important;
+  line-height:1.5!important; letter-spacing:.07em!important;
+}
+[data-testid="stAppViewContainer"] :is(
+  .am16-signal, .am16-metric, .am16-context, .am16-review-card,
+  .v18-pulse, .v18-econ, .v18-lens, .v20-stage, .v23-stat,
+  .v23-exec-grid, .v23-score, .v23-thread-card, .v23-ai-plan,
+  .v25-root, .v25-digest, .v25-leader, .v25-agent-run
+) :is(.s, .m, .sub, .meta, .delta, .copy) {
+  color:var(--am-muted)!important; font-size:13px!important; line-height:1.55!important;
+}
+[data-testid="stAppViewContainer"] :is(.am16-signal p, .v23-callout, .v25-copy) {
+  color:var(--am-muted)!important; font-size:13px!important; line-height:1.55!important;
+}
+[data-testid="stAppViewContainer"] :is(
+  .am16-signal b, .v18-pulse .big, .v18-econ .v, .v18-node .name,
+  .v18-lens .v, .v20-stage .t, .v23-ai-plan .t, .v25-root .v,
+  .am16-review-metrics b, .v23-thread-card .v
+) {
+  color:var(--am-text)!important; font-size:16px!important; line-height:1.4!important;
+}
+[data-testid="stAppViewContainer"] :is(.v23-stat .v, .v23-exec-grid .v) {
+  color:var(--am-text)!important; font-size:20px!important;
+}
+[data-testid="stAppViewContainer"] :is(.am16-metric .value, .v23-score .v) {
+  color:var(--am-text)!important;
+}
+[data-testid="stAppViewContainer"] :is(.am16-pagehead .copy, .am16-context-row p, .am16-rec p) {
+  color:var(--am-muted)!important; font-size:14px!important; line-height:1.6!important;
+}
+[data-testid="stAppViewContainer"] :is(.am16-pagehead .ey, .am16-breadcrumb, .v23-ey, .v25-ey, .v25-mode span) {
+  color:var(--am-muted)!important; font-size:11px!important;
+}
+[data-testid="stAppViewContainer"] :is(.am16-side-state .k, .am16-side-state .v, .am16-side-footer) {
+  color:var(--am-muted)!important; font-size:12px!important; opacity:1!important;
+}
+[data-testid="stAppViewContainer"] :is([data-testid="stWidgetLabel"] p, [data-testid="stExpander"] summary) {
+  color:var(--am-text)!important; font-size:14px!important;
+}
+[data-testid="stAppViewContainer"] :is(.am-card .hint, .am-card .lab) {
+  color:var(--am-muted)!important; font-size:12px!important;
+}
+[data-testid="stAppViewContainer"] .am-card .val[style*="#1D292D"] {color:var(--am-text)!important;}
+[data-testid="stAppViewContainer"] .am-card .val[style*="#2B7A5A"] {color:#AACDBD!important;}
+[data-testid="stAppViewContainer"] .am-card .val[style*="#3F8E89"] {color:#93D2CC!important;}
+[data-testid="stAppViewContainer"] .v18-pulse .big em {color:#FF9B66!important;}
+
+@media(max-width:1100px) {
+  [data-testid="stAppViewContainer"] :is(.v18-pulse, .v18-econ, .am16-signals) {
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+@media(max-width:700px) {
+  [data-testid="stAppViewContainer"] :is(.v18-pulse, .v18-econ, .am16-signals) {
+    grid-template-columns:1fr!important;
+  }
+}

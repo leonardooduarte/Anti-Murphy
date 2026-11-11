@@ -1,0 +1,24 @@
+V30.0.3 — verificação da interface em 20/10/2026
+Ambiente: Python 3.12/Linux, Streamlit 1.66.0, pandas 3.0.6, Chromium 153 headless.
+
+Fluxo NEXUS: demonstração CNC, replay durante a parada, fila não nula (74 peças no instante examinado), antes/depois, reprodução/pausa, modo local/generativo, orçamento autorizado, comparação, oito sementes, pitch/reinício e retorno das ferramentas anteriores.
+Modo local: campos de API ocultos; aparecem ao selecionar OpenAI. Troca de modo exercitada no navegador; retenção das configurações de sessão verificada separadamente por AppTest com valores fictícios e sem chamada externa.
+
+Componentes preservados examinados no navegador em 1440 px:
+- Visão operacional: 19 cartões e 26 rótulos.
+- Sala executiva: 11 cartões e 20 rótulos.
+- Murphy AI anterior: 10 cartões e 9 rótulos.
+- 40 cartões: nenhuma superfície clara inesperada.
+- 55 rótulos selecionados: contraste calculado >= 4,5:1 e fonte >= 11 px.
+A asserção é restrita aos seletores do script, não uma certificação de acessibilidade integral.
+
+NEXUS inspecionado em 1440, 1050 e 600 px. 12 capturas temporárias para QA; não incluídas na entrega.
+Erros JavaScript: zero.
+Marcador: BROWSER_QA_PASS.
+
+Regressões:
+- pandas 2.2.3: 98 passed in 10.80s.
+- pandas 3.0.6: 98 passed in 10.80s.
+- DES, dados, backup original e 17 arquivos oficiais de marca sem mudança frente à V30.0.2.
+
+Evidência externa: a gravação 5.mp4 do usuário mostra a aplicação aberta no Windows. Este QA automatizado foi executado em Linux. A API real não foi chamada.

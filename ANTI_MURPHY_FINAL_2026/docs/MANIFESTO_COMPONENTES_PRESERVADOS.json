@@ -1,0 +1,71 @@
+{
+  "source_zip": "ANTI_MURPHY_GRAFICOS_ENGENHARIA_BANCA_2026 (1)(1).zip",
+  "components": [
+    {
+      "path": "simulation/engine.py",
+      "original_sha256": "170ab3136d04c064436e84be5050858356a2fc16f74d6fe6faaa561d47c052c2",
+      "candidate_sha256": "170ab3136d04c064436e84be5050858356a2fc16f74d6fe6faaa561d47c052c2",
+      "byte_identical": true
+    },
+    {
+      "path": "simulation/nexus.py",
+      "original_sha256": "1a8a822e11a49448eb98a9a028fd5dd90b7c67001e7f39afc99dd9979e3f4d83",
+      "candidate_sha256": "1a8a822e11a49448eb98a9a028fd5dd90b7c67001e7f39afc99dd9979e3f4d83",
+      "byte_identical": true
+    },
+    {
+      "path": "simulation/advanced.py",
+      "original_sha256": "6b7600f0f25ebb4df51ffede0bbf5b8c843950418dbd6d8efa9bb1f8c529de44",
+      "candidate_sha256": "6b7600f0f25ebb4df51ffede0bbf5b8c843950418dbd6d8efa9bb1f8c529de44",
+      "byte_identical": true
+    },
+    {
+      "path": "atelier/service.py",
+      "original_sha256": "202906a7d0c68ae6c2d10aa6fd32de9f7adf07100c405d77895572aaa001eb42",
+      "candidate_sha256": "202906a7d0c68ae6c2d10aa6fd32de9f7adf07100c405d77895572aaa001eb42",
+      "byte_identical": true
+    },
+    {
+      "path": "atelier/server.py",
+      "original_sha256": "1d216239fa2cc2dc2f5e6e8abdb1bf7169c18e7a968046fd667cbf06680440d4",
+      "candidate_sha256": "1d216239fa2cc2dc2f5e6e8abdb1bf7169c18e7a968046fd667cbf06680440d4",
+      "byte_identical": true
+    },
+    {
+      "path": "atelier/technical_audit.py",
+      "original_sha256": "b275075a51583c810e77240f12733e509e2c81afdfe0445035bdd98eb3556b3c",
+      "candidate_sha256": "b275075a51583c810e77240f12733e509e2c81afdfe0445035bdd98eb3556b3c",
+      "byte_identical": true
+    },
+    {
+      "path": "INICIAR_ANTI_MURPHY.bat",
+      "original_sha256": "f99291fe578a91671ebc013f422cc386cd41b774ccf9c77e72c76eea8a3a8811",
+      "candidate_sha256": "f99291fe578a91671ebc013f422cc386cd41b774ccf9c77e72c76eea8a3a8811",
+      "byte_identical": true
+    },
+    {
+      "path": "assets/brand/logo-dark.svg",
+      "original_sha256": "2a1f3ca1fc75954c9ae63653a217c8bdbb2e4018ca52bb53c69db803a49535c0",
+      "candidate_sha256": "2a1f3ca1fc75954c9ae63653a217c8bdbb2e4018ca52bb53c69db803a49535c0",
+      "byte_identical": true
+    },
+    {
+      "path": "assets/brand/icon-dark.svg",
+      "original_sha256": "c24b00d844977317371d25e1663f1baf7e5a83071807be2645780ed5d51aba77",
+      "candidate_sha256": "c24b00d844977317371d25e1663f1baf7e5a83071807be2645780ed5d51aba77",
+      "byte_identical": true
+    },
+    {
+      "path": "atelier/web/engineering_charts.js",
+      "original_sha256": "5a27066275d16afe0a1c4fe7985d8e9f7b4743af1658e52464957ccdca402152",
+      "candidate_sha256": "5a27066275d16afe0a1c4fe7985d8e9f7b4743af1658e52464957ccdca402152",
+      "byte_identical": true
+    },
+    {
+      "path": "atelier/web/engineering_charts.css",
+      "original_sha256": "d139e6598407ec851fcabef704f8378e48738093bf9e166f2d1169c7294d5c38",
+      "candidate_sha256": "d139e6598407ec851fcabef704f8378e48738093bf9e166f2d1169c7294d5c38",
+      "byte_identical": true
+    }
+  ]
+}

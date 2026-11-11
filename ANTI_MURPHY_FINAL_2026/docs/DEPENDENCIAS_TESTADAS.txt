@@ -1,0 +1,10 @@
+Ambiente de verificação: Linux, Python 3.12.14
+Não é um lock completo de dependências transitivas.
+
+streamlit==1.66.0
+numpy==2.3.5
+pandas==2.2.3
+plotly==7.1.0
+openpyxl==3.1.5
+pytest==9.1.1
+openai: não instalado; integração testada por mock

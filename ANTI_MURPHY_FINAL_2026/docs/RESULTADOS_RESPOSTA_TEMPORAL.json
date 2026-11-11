@@ -1,0 +1,140 @@
+{
+  "case": "CNC sintética / resposta solicitada 2 h após a falha",
+  "normal": {
+    "total_cost": 8076.37,
+    "sla_pct": 100.0,
+    "makespan_h": 16.9
+  },
+  "incident": {
+    "total_cost": 16216.67,
+    "sla_pct": 40.0,
+    "makespan_h": 24.58,
+    "late_orders": 3
+  },
+  "leader": {
+    "action": "Manutenção expressa · CNC",
+    "investment": 1800.0,
+    "decision_cost": 12113.0,
+    "savings": 4103.67,
+    "sla_pct": 100.0,
+    "makespan_h": 21.58,
+    "requested_h": 6.0,
+    "effective_h": 6.0
+  },
+  "timing": [
+    {
+      "delay_h": 0.0,
+      "requested_h": 4.0,
+      "effective_h": 4.0,
+      "net_saving": 4581.67,
+      "sla_pct": 100.0,
+      "makespan_h": 20.58,
+      "late_orders": 0
+    },
+    {
+      "delay_h": 1.0,
+      "requested_h": 5.0,
+      "effective_h": 5.0,
+      "net_saving": 4342.67,
+      "sla_pct": 100.0,
+      "makespan_h": 21.08,
+      "late_orders": 0
+    },
+    {
+      "delay_h": 2.0,
+      "requested_h": 6.0,
+      "effective_h": 6.0,
+      "net_saving": 4103.67,
+      "sla_pct": 100.0,
+      "makespan_h": 21.58,
+      "late_orders": 0
+    },
+    {
+      "delay_h": 4.0,
+      "requested_h": 8.0,
+      "effective_h": 8.0,
+      "net_saving": 2828.16,
+      "sla_pct": 60.0,
+      "makespan_h": 22.58,
+      "late_orders": 2
+    },
+    {
+      "delay_h": 8.0,
+      "requested_h": 12.0,
+      "effective_h": 12.0,
+      "net_saving": -1800.0,
+      "sla_pct": 40.0,
+      "makespan_h": 24.58,
+      "late_orders": 3
+    }
+  ],
+  "sensitivity": {
+    "pairs": [
+      {
+        "seed": 700,
+        "cost_saving": 6016.77,
+        "net_saving": 4216.77,
+        "sla_gain_pp": 40.0,
+        "makespan_gain_h": 3.0
+      },
+      {
+        "seed": 701,
+        "cost_saving": 5970.74,
+        "net_saving": 4170.74,
+        "sla_gain_pp": 40.0,
+        "makespan_gain_h": 3.0
+      },
+      {
+        "seed": 702,
+        "cost_saving": 5994.74,
+        "net_saving": 4194.74,
+        "sla_gain_pp": 40.0,
+        "makespan_gain_h": 3.0
+      },
+      {
+        "seed": 703,
+        "cost_saving": 6029.35,
+        "net_saving": 4229.35,
+        "sla_gain_pp": 40.0,
+        "makespan_gain_h": 3.0
+      },
+      {
+        "seed": 704,
+        "cost_saving": 5998.94,
+        "net_saving": 4198.94,
+        "sla_gain_pp": 40.0,
+        "makespan_gain_h": 3.0
+      },
+      {
+        "seed": 705,
+        "cost_saving": 5984.86,
+        "net_saving": 4184.86,
+        "sla_gain_pp": 40.0,
+        "makespan_gain_h": 3.0
+      },
+      {
+        "seed": 706,
+        "cost_saving": 5968.6,
+        "net_saving": 4168.6,
+        "sla_gain_pp": 40.0,
+        "makespan_gain_h": 3.0
+      },
+      {
+        "seed": 707,
+        "cost_saving": 6034.44,
+        "net_saving": 4234.44,
+        "sla_gain_pp": 40.0,
+        "makespan_gain_h": 3.0
+      }
+    ],
+    "mean_net_saving": 4199.805,
+    "min_net_saving": 4168.6,
+    "max_net_saving": 4234.44,
+    "run_id": "c794cc935ed0",
+    "action": "Manutenção expressa · CNC",
+    "feasible": true,
+    "investment": 1800.0
+  },
+  "run_id": "c794cc935ed0",
+  "alternatives": 18
+}

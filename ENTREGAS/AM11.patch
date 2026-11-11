@@ -1,0 +1,2365 @@
+--- /dev/null
++++ b/CONTINUIDADE_AM11_2026.md
+@@ -0,0 +1,9 @@
++# Continuidade — AM11-2026.1
++
++Base exata: reconstrução AM01-AM06 leve. AM11 implementado e verificado conforme RELATORIO_AM11_2026.md. Não recomeçar do ZIP antigo. Não afirmar que AM01-AM06 estão integralmente encerrados: AM05 ainda parcial e fronteira visual com empate pendente.
++
++Próxima etapa recomendada, ainda NÃO autorizada: concluir exclusivamente AM05, com dependências específicas por ferramenta, origem e exportações consistentes, preservação de históricos e sem recálculo automático. Depois AM12 para evitar sobrescrita entre instâncias e demais prioridades da auditoria.
++
++Testes atuais352pass/5falhas históricas/10subtestes.81novosAM11 aprovados. Três experimentos passaram. Economia manutenção agora4103,68 por precisão, não4103,67. Mantidas limitações Windows/projetor. Não atualizar testes antigos só para aparentar aprovação.
++
++A entrega requer ZIP íntegro baixado pelo usuário e guardado fora do chat. Sem confirmação de link real, não considerar a entrega concluída. O pacote foi preparado em ambiente com impedimento de exportação/anexação; consulte o status na resposta final. Não há promessa de permanência dos arquivos do ambiente.
+--- /dev/null
++++ b/LEIA_AM11_2026.md
+@@ -0,0 +1,8 @@
++# Anti-Murphy AM11-2026.1
++
++1. Guarde o ZIP anterior. Extraia este ZIP em pasta NOVA; não sobrescreva sua única instalação.
++2. Na pasta ANTI_MURPHY_FINAL_2026, abra INICIAR_ANTI_MURPHY.bat no Windows com Python3.10+.
++3. Confira o projeto e as decisões antes de migrar dados locais. Este pacote contém o workspace arquivado da base, não seus dados de outra instalação.
++4. Leia RELATORIO_AM11_2026.md, CONTINUIDADE_AM11_2026.md e docs/AM11/evidencias.
++
++AM11 corrigido; demais achados não encerrados. Nenhuma homologação nativa de Windows/projetor. Valores precisos e campos de apresentação coexistem; não confundir arredondamento de exibição com cálculo de elegibilidade.
+--- a/LEIA_PRIMEIRO_VERSAO_FINAL.md
++++ b/LEIA_PRIMEIRO_VERSAO_FINAL.md
+@@ -24,7 +24,7 @@
+ 
+ - Plano: 100% de pedidos no prazo, 16,90 h de makespan.
+ - Falha na CNC às 4 h por 8 h: 40% no prazo, 3 atrasados, custo de cenário R$ 16.216,67.
+-- Manutenção expressa: 100% no prazo, 21,58 h; custo de decisão (incluindo investimento) R$ 12.113,00; diferença estimada R$ 4.103,67 frente à falha sem resposta.
++- Manutenção expressa: 100% no prazo, 21,58 h; custo de decisão (incluindo investimento) R$ 12.113,00; diferença estimada R$ 4.103,68 frente à falha sem resposta.
+ 
+ Esses resultados **não representam dados medidos em uma fábrica**. Eles dependem das premissas adotadas para recursos, tempos, custos e programação; não certificam viabilidade de manutenção real nem economias de caixa.
+ 
+@@ -44,3 +44,6 @@
+ A pasta `FERRAMENTAS_HISTORICAS` foi mantida. Os módulos de versões antigas ATLAS/NEXUS **não estão todos unificados** ao frontend atual; seu funcionamento depende do ambiente Streamlit/legado, não validado nesta rodada. O inicializador principal `INICIAR_ANTI_MURPHY.bat` e os arquivos originais do motor de simulação permanecem sem alteração.
+ 
+ **Sugestão:** faça a última verificação no próprio PC da apresentação e, se possível, no projetor: iniciar, ativar modo banca, mostrar a falha, comparar A/B, abrir os gráficos, registrar a justificativa, gerar o relatório e encerrar/reabrir o programa.
++
++
++Nota AM-11: diferença econômica calculada com valores não arredondados; o resultado final é arredondado para apresentação. A diferença de R$ 0,01 frente à edição AM-06 é esperada.
+--- /dev/null
++++ b/RELATORIO_AM11_2026.md
+@@ -0,0 +1,109 @@
++# Anti-Murphy — correção exclusiva AM-11
++
++Base: ANTI_MURPHY_AM01_AM06_RECONSTRUIDO_LEVE_2026.zip  
++SHA-256 da base: b2e0b234a275432523698836bda0f596d7110ff4d264ae6ed6fb197a96a81419  
++Versão desta etapa: AM11-2026.1. Não é o pacote perdido do Codex.
++
++## Resultado
++
++Corrigidos pisos artificiais do motor atual, denominadores físicos e precisão intermediária. Foram preservados os campos legados e adicionados valores precisos para filtros/comparações. Operações que não podem ser representadas com float finito e progresso temporal são rejeitadas explicitamente, sem inventar tempo mínimo. Não houve reescrita do DES.
++
++## Reprodução antes/depois com referências independentes
++
++Ruído fixado em 1 apenas no processo de teste; fontes não são alteradas para reproduzir. Há também testes com ruído real.
++
++| Caso | Antes | Depois / referência |
++|---|---|---|
++| Uma operação de 0,06 min = 0,001 h | makespan publicado 0; utilização 10%; TP 100 un/h | 0,001 h; utilização 100%; TP 1.000 un/h |
++| Ciclo de 60 min, eficiência 0,001 | 100 h, pois fator virava 0,01 | 1.000 h, mantendo fator original |
++| Mesmo caso, prazo 100 h, multa 100/h, custo 30/h | SLA 100%; custo R$ 3.000 | SLA 0%; operação R$ 30.000 + multa R$ 90.000 = R$ 120.000 |
++| Dois de três pedidos no prazo; meta 66,68% | 66,7% arredondado podia aprovar | 66,666…% preciso: reprova |
++| TP real 1,0004; meta 1,0002 | 1,000 arredondado podia reprovar | Aprova pelo valor preciso |
++
++## Contrato de precisão
++
++- `simulation.numeric.metric(result, key)` usa `result.precise`; resultados antigos sem esse campo ou com null continuam aceitos por fallback.
++- `precise` guarda makespan, throughput, SLA, custos e balanceamento sem arredondamento de apresentação.
++- Campos legados continuam disponíveis. Makespan/throughput positivos que arredondariam a zero preservam o valor positivo.
++- Pedidos recebem `completion_h`, `lateness_h`, `penalty`; postos recebem `precise` com utilização, espera e custo.
++- Filtros de SLA/throughput, comparação, ranking econômico, instantes críticos e consumidores avançados usam valores precisos. Tolerâncias explícitas de decisão (.005 h/centavos/epsilons) permanecem políticas existentes.
++- Zeros físicos: custos/setup podem ser zero; operador zero em posto automatizado continua válido; 0/0 só é definido como zero na utilização de recurso não empregado. Throughput/custo por horizonte exigem denominador positivo.
++- Entradas nulas, negativas incompatíveis com domínio e não finitas continuam rejeitadas. Eficiência/disponibilidade/tempo de ciclo exigem valor positivo; ciclo zero não é operação suportada.
++- `product_ratio` utiliza Decimal somente quando produtos intermediários perdem faixa normal (overflow/underflow/subnormal), recuperando respostas representáveis; resultados fora da faixa são rejeitados.
++- Custos, multas e eventos não podem publicar infinito/NaN. Se a duração positiva não faz avançar o relógio no instante atual, a entrada é rejeitada com erro de precisão temporal.
++- Formatação JS mantém o padrão normal, mas usa precisão adaptativa para não exibir como zero valores pequenos não nulos.
++
++## Pisos encontrados e classificação
++
++Removidos do motor ativo: fatores de eficiência/disponibilidade0,01, horas de capacidade0,01, makespan0,01. Removido horizonte0,01 da análise financeira e pisos de referências positivas nos percentuais/radar. A normalização por série do radar não foi redesenhada (AM-21 continua pendente).
++
++Preservados por terem outra semântica: mínimos inteiros de quantidade e capacidade do domínio; arredondamento monetário de apresentação e registro em centavos; epsilons/tolerâncias de decisão; pisos de escalas gráficas; saturação do índice heurístico de fragilidade. O motor antigo `engine_v26_legacy.py` e os limites do editor histórico não foram reescritos. AM-09, AM-10 e AM-05 não foram corrigidos disfarçadamente.
++
++## Três experimentos oficiais
++
++| Cenário | Makespan exibido | SLA | Custo cenário exibido |
++|---|---:|---:|---:|
++| Nominal | 16,90 h | 100% | R$ 8.076,37 |
++| Falha CNC | 24,58 h | 40% | R$ 16.216,67 |
++| Manutenção expressa | 21,58 h | 100% | R$ 10.313,00 |
++
++Investimento da manutenção R$1.800; custo de decisão exibido R$12.113,00. Economia agora **R$4.103,68**, antes R$4.103,67. Valores precisos: incidente16216.673139707087; resposta10312.996353944778; decisão12112.996353944778; diferença4103.676785762309. Subtrair valores já arredondados explica o centavo anterior. Não se ajustou o motor para forçar os números antigos.
++
++Sensibilidade CNC: TP preciso5.681763308299117 un/h, antes publicado5.682; continua sem ganho ao adicionar máquinas isoladamente. Custos/unidade precisos84.12881249414335,96.09692807908425,108.06504366402514,120.033159248966; as diferenças de exibição vêm da retenção de precisão e não de um modelo novo. Recuperação +operador6h continua19,97h/SLA60%.
++
++## Verificação executada
++
++- Suíte completa nas pastas `tests`, `contract_tests`, `atelier/tests`: **352 aprovados, 5 falhas preexistentes, 10 subtestes aprovados**. Base auditada:271 aprovados e as mesmas5 falhas. **81 testes novos**, todos aprovados.
++- Não houve alteração dos testes preexistentes para mascarar falhas.
++- Três experimentos oficiais aprovados; módulo existente e resultados regenerados incluídos.
++- Modo Banca completo, registro/relatório e fallback de download, via HTTP real em1280x720,1366x768,1920x1080: passou, sem erros JS capturados nos fluxos.
++- Script de acabamento/gráficos/exportações: passou nas3 resoluções.
++- Caso curto no navegador real: `0,001 h` visível, sem erro JS.
++- HTTP charts smoke passou. Sintaxe JavaScript passou; Python foi importado e executado pelos testes.
++
++Falhas preexistentes: `tests/test_operation_ui.py::test_evidence_exports_the_current_timed_experiment`; dois testes de `test_restauracao_acesso.py`; `test_v31_editorial.py::test_only_one_root_launcher`; `test_v31_editorial.py::test_preview_has_no_external_script_dependency`. São divergências históricas já discriminadas na auditoria, incluindo PREVIEW_OPERACAO.html ausente. A suíte não é declarada100% verde.
++
++Ambiente: Linux/Python3.12.14,pytest9.2.0,pytest-subtests0.15.0,Streamlit1.67.0,pandas2.2.3,numpy2.3.5,Plotly7.1.0,pydantic2.13.4,Playwright1.62.0,Chromium. Node24.22.1 para sintaxe/formatadores. Windows/bat e projetor físico não homologados. Aplicativo principal continua sem dependências adicionais.
++
++## Preservação e limites
++
++Fonte e workspace da base recebida são preservados na cópia original. O pacote desta etapa usa exatamente os arquivos locais de projeto arquivados no ZIP-base, não recupera dados do Codex perdido e não importa seus projetos de outra instalação. Identidade, CSS, imagens, abertura e inicializador não mudaram. Somente formatação numérica JS e componentes relacionados ao AM-11 foram ajustados.
++
++AM-05 continua incompleto. Fronteira em empate, investimentos arquivados, inviáveis nas estatísticas, busca de capacidade e demais achados continuam pendentes. Dados permanecem sintéticos; sem calibração industrial ou garantia de ótimo global.
++
++Documentos históricos foram preservados; podem conter centavos e limites da edição anterior. Use os experimentos regenerados e esta nota para a apresentação desta versão.
++
++## Arquivos modificados
++
++- `LEIA_PRIMEIRO_VERSAO_FINAL.md`
++- `atelier/decision_quality.py`
++- `atelier/service.py`
++- `atelier/web/app.js`
++- `atelier/web/engineering_charts.js`
++- `docs/EXPERIMENTOS_VALIDACAO_ENGENHARIA.md`
++- `docs/PITCH_5_MIN_E_SABATINA.md`
++- `docs/RELATORIO_FINAL_BANCA_2026.md`
++- `docs/RELATORIO_MODO_BANCA_PREMIUM.md`
++- `docs/RESULTADOS_TRES_EXPERIMENTOS_BANCA.json`
++- `simulation/advanced.py`
++- `simulation/atlas.py`
++- `simulation/decision_council.py`
++- `simulation/decision_lab.py`
++- `simulation/engine.py`
++- `simulation/innovation.py`
++- `simulation/metrics.py`
++- `simulation/numeric.py`
++- `simulation/response.py`
++- `tests/test_am11_consumers.py`
++- `tests/test_am11_display.py`
++- `tests/test_am11_numeric_precision.py`
++- `tests/test_am11_review_regressions.py`
++
++## Comandos de reprodução
++
++```bash
++python -m pytest tests contract_tests atelier/tests -q
++python -m atelier.tests.validacao_experimentos_banca
++python -m atelier.tests.browser_acabamento_final
++```
++Os scripts de navegador exigem Playwright/Chromium. O teste HTTP real adicional utilizado está nas evidências desta etapa. Executar sempre em cópia nova, pois scripts antigos podem regenerar documentos.
+--- /dev/null
++++ b/VERSAO_AM11.json
+@@ -0,0 +1,13 @@
++{
++  "version": "AM11-2026.1",
++  "base_archive": "ANTI_MURPHY_AM01_AM06_RECONSTRUIDO_LEVE_2026.zip",
++  "base_sha256": "b2e0b234a275432523698836bda0f596d7110ff4d264ae6ed6fb197a96a81419",
++  "scope": "AM-11 only",
++  "tests": {
++    "passed": 352,
++    "failed_preexisting": 5,
++    "new_passed": 81,
++    "subtests_passed": 10
++  },
++  "next": "AM-05 pending authorization"
++}
+--- a/atelier/decision_quality.py
++++ b/atelier/decision_quality.py
+@@ -7,6 +7,7 @@
+ from __future__ import annotations
+ from math import isfinite
+ from typing import Any
++from simulation.numeric import metric
+ 
+ EPS_COST = 0.01      # reais
+ EPS_H = 0.005        # simulation hours
+@@ -15,7 +16,7 @@
+ 
+ def _numbers(item: dict[str, Any]):
+     try:
+-        values = (float(item['decision_cost']), float(item['makespan_h']), float(item['sla_pct']))
++        values = (metric(item,'decision_cost'), metric(item,'makespan_h'), metric(item,'sla_pct'))
+     except (KeyError, TypeError, ValueError, OverflowError):
+         return None
+     return values if all(map(isfinite, values)) else None
+--- a/atelier/service.py
++++ b/atelier/service.py
+@@ -14,6 +14,7 @@
+ from simulation.nexus import (initialize, execute, ExperimentSpec, current_analysis,
+     selected_action, invalidate_model, nominal, base_config, audit)
+ from simulation.engine import run_simulation
++from simulation.numeric import metric
+ from simulation.factory import TimedAction
+ from simulation.atlas import scenario_from_incident
+ from simulation.replay import replay_payload
+@@ -60,14 +61,14 @@
+ def _summary(result):
+     if not result: return None
+     return {k: result.get(k) for k in ('name','feasible','makespan_h','sla_pct','late_orders',
+-        'total_cost','operating_cost','penalty_total','throughput_h','bottleneck','planned_units','total_units','warnings')}
++        'total_cost','operating_cost','penalty_total','throughput_h','bottleneck','planned_units','total_units','warnings','precise')}
+ 
+ 
+ def _candidate(row):
+     return {k: row.get(k) for k in ('action','signature','verdict','verdict_reason','rationale',
+         'investment','decision_cost','savings','sla_pct','makespan_h','late_orders','total_lateness_h',
+         'feasible','within_budget','meets_sla','requested_h','effective_h',
+-        'restriction_reasons','recovered_orders','order_impacts','pareto')}
++        'restriction_reasons','recovered_orders','order_impacts','pareto','precise')}
+ 
+ 
+ def _atomic_json(path: Path, payload):
+@@ -317,7 +318,7 @@
+             b=two['metrics']['response'] or two['metrics']['incident'] or {}
+             return _json_safe({'first':one,'second':two,
+                 'same_model':one['model_hash']==two['model_hash'],
+-                'delta':{x:(b[x]-a[x]) if isinstance(a.get(x),(int,float)) and isinstance(b.get(x),(int,float)) else None for x in k},
++                'delta':{x:(metric(b,x)-metric(a,x)) if isinstance(a.get(x),(int,float)) and isinstance(b.get(x),(int,float)) else None for x in k},
+                 'note':'Comparação retrospectiva. Custos de ações somente quando modelados; modelos distintos não isolam o efeito da intervenção.'})
+ 
+     @staticmethod
+--- a/atelier/web/app.js
++++ b/atelier/web/app.js
+@@ -6,7 +6,13 @@
+ const $ = id => document.getElementById(id);
+ const $$ = s => [...document.querySelectorAll(s)];
+ const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+-const h = v => Number.isFinite(Number(v)) ? Number(v).toLocaleString('pt-BR',{maximumFractionDigits:2,minimumFractionDigits:2}) : '—';
++// AM-11: ordinary figures retain their format; small nonzero values stay visible.
++const numericText = (v,digits=2) => {
++ const n=Number(v);if(!Number.isFinite(n))return '—';
++ if(n!==0 && Math.abs(n)<.5*10**(-digits))return Math.abs(n)<1e-6?n.toExponential(3).replace('.',','):n.toLocaleString('pt-BR',{maximumSignificantDigits:4});
++ return n.toLocaleString('pt-BR',{maximumFractionDigits:digits,minimumFractionDigits:digits});
++};
++const h = v => numericText(v,2);
+ const integer = v => Number.isFinite(Number(v)) ? Number(v).toLocaleString('pt-BR',{maximumFractionDigits:0}) : '—';
+ const brl = v => Number.isFinite(Number(v)) ? new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(Math.abs(Number(v))<.5?0:Number(v)) : '—';
+ const brlExact = v => Number.isFinite(Number(v)) ? new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(v)) : '—';
+@@ -672,7 +678,7 @@
+ /* Analytical dashboards — read-only views of the same DES experiment.
+    No forecast, utilization, risk or cost is calculated from visual animation. */
+ const dashUI = {tab:'operacao',scenario:'incident',data:null,robustness:null,audit:null,riskMinutes:30,loading:false};
+-const dashVal = (value,digits=1)=>Number.isFinite(Number(value))&&value!==null&&value!==undefined?Number(value).toLocaleString('pt-BR',{minimumFractionDigits:digits,maximumFractionDigits:digits}):'—';
++const dashVal = (value,digits=1)=>Number.isFinite(Number(value))&&value!==null&&value!==undefined?numericText(value,digits):'—';
+ const dashMoney = value=>value===null||value===undefined?'—':brl(value);
+ const dashH = value=>value===null||value===undefined?'—':`${dashVal(value,2)} h`;
+ const dashPct = value=>value===null||value===undefined?'—':`${dashVal(value,1)}%`;
+--- a/atelier/web/engineering_charts.js
++++ b/atelier/web/engineering_charts.js
+@@ -7,7 +7,11 @@
+ const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const valid=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v));
+ const N=(v)=>Number(v);
+-const fnum=(v,d=2)=>valid(v)?N(v).toLocaleString('pt-BR',{maximumFractionDigits:d,minimumFractionDigits:d}):'—';
++const fnum=(v,d=2)=>{
++ if(!valid(v))return '—';const n=N(v);
++ if(n!==0 && Math.abs(n)<.5*10**(-d))return Math.abs(n)<1e-6?n.toExponential(3).replace('.',','):n.toLocaleString('pt-BR',{maximumSignificantDigits:4});
++ return n.toLocaleString('pt-BR',{maximumFractionDigits:d,minimumFractionDigits:d});
++};
+ const fc=(v)=>valid(v)?new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:2}).format(N(v)):'—';
+ function fmt(v,unit){if(!valid(v))return '—';if(unit==='R$')return fc(v);if(unit==='%')return fnum(v,1)+'%';if(unit==='p.p.')return fnum(v,1)+' p.p.';if(unit==='h')return fnum(v,2)+' h';if(unit==='un/h')return fnum(v,3)+' un/h';if(unit==='un')return fnum(v,0)+' un';if(unit==='R$/un')return fc(v)+'/un';if(unit==='×')return fnum(v,2)+'×';return fnum(v,2);}
+ const configs={
+--- /dev/null
++++ b/docs/AM11/evidencias/actual_http_browser.py
+@@ -0,0 +1,131 @@
++from pathlib import Path
++import sys
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++from tempfile import TemporaryDirectory
++from threading import Thread
++from http.server import ThreadingHTTPServer
++from playwright.sync_api import sync_playwright
++from atelier.service import Studio
++from atelier import server
++OUT=Path(__file__).resolve().parent/'capturas_http';OUT.mkdir(exist_ok=True)
++with sync_playwright() as p:
++ browser=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
++ for width,height in [(1280,720),(1366,768),(1920,1080)]:
++  with TemporaryDirectory() as tmp:
++   studio=Studio(Path(tmp));server.STUDIO=studio;errors=[]
++   httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler)
++   Thread(target=httpd.serve_forever,daemon=True).start()
++   page=browser.new_page(viewport={'width':width,'height':height},device_scale_factor=1,accept_downloads=True)
++   page.on('pageerror',lambda e:errors.append(str(e)))
++   page.goto(f'http://127.0.0.1:{httpd.server_port}/',wait_until='networkidle')
++   page.wait_for_selector('#factory-a .station-group',timeout=18000)
++   page.evaluate('document.querySelector("#splash")?.remove()')
++   page.locator('#presentation-toggle').click()
++   assert '01 / 06' in page.locator('#presentation-title').inner_text()
++   evidence=page.locator('#presentation-evidence')
++   assert 'CONCLUSÃO NOMINAL' in evidence.inner_text()
++   assert 'SEM INTERVENÇÃO' not in evidence.inner_text() and 'R$' not in evidence.inner_text(),evidence.inner_text()
++   page.screenshot(path=str(OUT/f'01_plano_{width}.png'))
++   page.locator('#presentation-next').click()
++   assert '02 / 06' in page.locator('#presentation-title').inner_text()
++   assert 'INCIDENTE' in evidence.inner_text() and 'DIFERENÇA' not in evidence.inner_text()
++   assert page.locator('#factory-a .station-group.down').count()==1
++   page.screenshot(path=str(OUT/f'02_falha_{width}.png'))
++   page.locator('#presentation-next').click()
++   assert '03 / 06' in page.locator('#presentation-title').inner_text()
++   assert 'PEDIDOS ATRASADOS' in evidence.inner_text()
++   page.screenshot(path=str(OUT/f'03_pedidos_{width}.png'))
++   page.locator('#presentation-next').click()
++   assert '04 / 06' in page.locator('#presentation-title').inner_text()
++   assert 'INVESTIMENTO MODELADO' in evidence.inner_text()
++   page.screenshot(path=str(OUT/f'04_intervencao_{width}.png'))
++   page.locator('#presentation-next').click()
++   assert '05 / 06' in page.locator('#presentation-title').inner_text()
++   assert page.locator('#factory-viewport').get_attribute('data-presentation-compare')=='true'
++   assert page.locator('#presentation-compare-insights').is_visible()
++   assert page.locator('#presentation-compare-view').is_visible()
++   assert page.locator('#split-divider').is_hidden()
++   assert page.locator('#factory-a').get_attribute('viewBox')!='0 0 1200 600'
++   assert page.locator('#scene-b').bounding_box()['x']>=page.locator('#scene-a').bounding_box()['x']+page.locator('#scene-a').bounding_box()['width']-4
++   assert page.locator('#presentation-compare-insights').inner_text().count('CNC')>=2
++   page.screenshot(path=str(OUT/f'05_comparacao_foco_{width}.png'))
++   page.locator('#presentation-compare-view').click()
++   assert page.locator('#factory-a').get_attribute('viewBox')=='0 0 1200 600'
++   page.screenshot(path=str(OUT/f'05b_comparacao_layout_{width}.png'))
++   page.locator('#presentation-compare-view').click()
++   page.locator('#presentation-next').click()
++   assert '06 / 06' in page.locator('#presentation-title').inner_text()
++   assert 'ESTADO DO REGISTRO' in evidence.inner_text()
++   assert page.locator('#view-decisoes').is_visible()
++   page.screenshot(path=str(OUT/f'06_decisao_{width}.png'))
++   # Free-text reasoning: no artificial 65-character, 8-term or risk quota.
++   page.locator('#decision-note').fill('Escolha pela menor multa.')
++   page.locator('#decision-risks').fill('')
++   page.locator('#decision-ack').check()
++   assert page.locator('#register-decision').is_enabled()
++   assert 'Texto livre' in page.locator('#decision-validation').inner_text() or 'Registro disponível' in page.locator('#decision-validation').inner_text()
++   # An outdated R$ value triggers a transparent warning, not forced rewriting.
++   page.locator('#decision-note').fill('A manutenção expressa foi escolhida por reduzir atrasos. A economia modelada neste experimento é R$ 4.223,17. A decisão depende de conferência dos prazos e custos efetivos.')
++   page.locator('#decision-risks').fill('')
++   assert 'R$ 4.223,17' in page.locator('#decision-money-audit').inner_text()
++   assert 'Confira uma quantia' in page.locator('#decision-money-audit').inner_text()
++   assert page.locator('#register-decision').is_disabled()
++   assert page.locator('#decision-external-ack-wrap').is_visible()
++   page.locator('#decision-external-ack').check()
++   assert page.locator('#register-decision').is_enabled()
++   page.locator('#decision-external-ack').uncheck()
++   assert len(studio.history())==0
++   page.screenshot(path=str(OUT/f'06a_valor_anterior_alerta_{width}.png'))
++   # Repeated reasoning/risk text is an editorial suggestion, not a forced form.
++   repeated='Decidimos validar a resposta com os resultados calculados e verificar restrições antes da aplicação, pois o modelo é sintético e requer verificação em campo.'
++   page.locator('#decision-note').fill(repeated)
++   page.locator('#decision-risks').fill(repeated)
++   assert page.locator('#register-decision').is_enabled()
++   assert 'Dica' in page.locator('#decision-validation').inner_text()
++   page.locator('#decision-note').fill('')
++   page.locator('#decision-risks').fill('')
++   page.locator('#decision-draft').click()
++   assert 'cenário sintético' in page.locator('#decision-note').input_value()
++   assert 'disponibilidade' in page.locator('#decision-risks').input_value()
++   assert page.locator('#register-decision').is_enabled()
++   assert 'Quantias reconhecidas' in page.locator('#decision-money-audit').inner_text()
++   page.locator('#decision-owner').fill('Equipe de apresentação')
++   page.screenshot(path=str(OUT/f'06b_justificativa_{width}.png'))
++   page.locator('#register-decision').click()
++   page.wait_for_selector('#record-see-report',timeout=18000)
++   assert len(studio.history())==1
++   assert 'Registrado' in evidence.inner_text()
++   assert 'Abrir relatório final' in page.locator('#presentation-next').inner_text()
++   page.screenshot(path=str(OUT/f'07_registro_{width}.png'))
++   with page.expect_popup() as popup_event:page.locator('#presentation-next').click()
++   popup=popup_event.value
++   assert 'Decisão efetivamente registrada' in popup.locator('body').inner_text()
++   assert 'cenário sintético' in popup.locator('body').inner_text()
++   assert 'Valores com R$ conferidos' not in popup.locator('body').inner_text()
++   assert 'conferidas numericamente' in popup.locator('body').inner_text()
++   assert 'RESULTADO DO EXPERIMENTO' in popup.locator('body').inner_text()
++   assert 'verificações' in popup.locator('body').inner_text().lower()
++   popup.close()
++   # Pop-up blockers should not make the report disappear: fall back to HTML download.
++   page.evaluate('window.open = () => null')
++   with page.expect_download() as download_event:
++    page.locator('#record-see-report').click()
++   saved_report=download_event.value
++   assert saved_report.suggested_filename.endswith('.html')
++   assert 'anti-murphy-relatorio-' in saved_report.suggested_filename
++   assert 'Decisão efetivamente registrada' in Path(saved_report.path()).read_text('utf8')
++   assert page.locator('#presentation-restart').is_visible()
++   page.locator('#presentation-restart').click()
++   assert '01 / 06' in page.locator('#presentation-title').inner_text()
++   assert 'SEM INTERVENÇÃO' not in evidence.inner_text()
++   page.locator('#presentation-toggle').click()
++   assert page.locator('#presentation-guide').is_hidden()
++   assert page.locator('#sim-metrics').is_visible()
++   page.locator('[data-nav="analise"]').click()
++   assert page.locator('#view-analise').is_visible()
++   assert not errors,errors
++   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 3')
++   print(f'Modo Banca premium OK {width}x{height} · progressive / dual panels / justification / record / report',flush=True)
++   page.close()
++   httpd.shutdown();httpd.server_close()
++ browser.close()
+--- /dev/null
++++ b/docs/AM11/evidencias/after.jsonl
+@@ -0,0 +1,2 @@
++{"case": "short", "end_h": 0.001, "makespan_h": 0.001, "throughput_h": 1000.0, "utilization": 100.0, "sla_pct": 100.0, "total_cost": 0.03}
++{"case": "efficiency", "end_h": 1000.0, "makespan_h": 1000.0, "throughput_h": 0.001, "utilization": 100.0, "sla_pct": 0.0, "total_cost": 120000.0}
+--- /dev/null
++++ b/docs/AM11/evidencias/banca-final.log
+@@ -0,0 +1,4 @@
++3 EXPERIMENTOS APROVADOS
++A: 100.0 40.0 100.0 custos 16216.67 12113.0 4103.68
++B: [(0, 5.681763308299117, 84.12881249414335), (1, 5.681763308299117, 96.09692807908425), (2, 5.681763308299117, 108.06504366402514), (3, 5.681763308299117, 120.033159248966)]
++C: Manutenção expressa · CNC 21.57530617980079 +1 operador · CNC 19.973006391870044
+--- /dev/null
++++ b/docs/AM11/evidencias/before.jsonl
+@@ -0,0 +1,2 @@
++{"case": "short", "end_h": 0.001, "makespan_h": 0.0, "throughput_h": 100.0, "utilization": 10.0, "sla_pct": 100.0, "total_cost": 0.03}
++{"case": "efficiency", "end_h": 100.0, "makespan_h": 100.0, "throughput_h": 0.01, "utilization": 100.0, "sla_pct": 100.0, "total_cost": 3000.0}
+--- /dev/null
++++ b/docs/AM11/evidencias/browser-charts.log
+@@ -0,0 +1,3 @@
++ACABAMENTO OK 1280 720 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1366 768 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1920 1080 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
+--- /dev/null
++++ b/docs/AM11/evidencias/browser-http.log
+@@ -0,0 +1,75 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1280x720 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1366x768 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1920x1080 · progressive / dual panels / justification / record / report
+--- /dev/null
++++ b/docs/AM11/evidencias/ciclo_curto_browser.json
+@@ -0,0 +1,57 @@
++{
++  "metrics": {
++    "normal": {
++      "name": "Operação nominal",
++      "feasible": true,
++      "makespan_h": 0.001,
++      "sla_pct": 100.0,
++      "late_orders": 0,
++      "total_cost": 0.03,
++      "operating_cost": 0.03,
++      "penalty_total": 0.0,
++      "throughput_h": 1000.0,
++      "bottleneck": "P",
++      "planned_units": 1,
++      "total_units": 1,
++      "warnings": [],
++      "precise": {
++        "makespan_h": 0.001,
++        "throughput_h": 1000.0,
++        "sla_pct": 100.0,
++        "penalty_total": 0.0,
++        "operating_cost": 0.03,
++        "total_cost": 0.03,
++        "unit_cost": 0.03,
++        "balance_loss_pp": 0.0
++      }
++    },
++    "incident": {
++      "name": "Incidente sob análise",
++      "feasible": true,
++      "makespan_h": 0.001,
++      "sla_pct": 100.0,
++      "late_orders": 0,
++      "total_cost": 0.03,
++      "operating_cost": 0.03,
++      "penalty_total": 0.0,
++      "throughput_h": 1000.0,
++      "bottleneck": "P",
++      "planned_units": 1,
++      "total_units": 1,
++      "warnings": [],
++      "precise": {
++        "makespan_h": 0.001,
++        "throughput_h": 1000.0,
++        "sla_pct": 100.0,
++        "penalty_total": 0.0,
++        "operating_cost": 0.03,
++        "total_cost": 0.03,
++        "unit_cost": 0.03,
++        "balance_loss_pp": 0.0
++      }
++    },
++    "response": null
++  },
++  "page_errors": [],
++  "short_time_visible": true
++}
+# Arquivo binário incluído no overlay: docs/AM11/evidencias/ciclo_curto_browser.png
+--- /dev/null
++++ b/docs/AM11/evidencias/http-smoke.log
+@@ -0,0 +1 @@
++HTTP OK · 6 rotas estáticas/dados · 12 análises reais · modelo/seleção preservados
+--- /dev/null
++++ b/docs/AM11/evidencias/regression-final.log
+@@ -0,0 +1,153 @@
++........................................................................ [ 20%]
++........................................................................ [ 40%]
++.....................F.......FF......................................... [ 60%]
++...............................F.F...................................... [ 80%]
++.............................................................. [ 98%]
++.......                                                                  [100%]
++=================================== FAILURES ===================================
++______________ test_evidence_exports_the_current_timed_experiment ______________
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-4/test_evidence_exports_the_curr0')
++
++    def test_evidence_exports_the_current_timed_experiment(tmp_path):
++        a=app();state={};initialize_operation(state)
++        # AppTest cannot operate an iframe; execute the same serialized user command
++        # tested in Chromium, then verify the native export view.
++        handle_command(state,{'id':'ui-demo','token':state['op_token'],'kind':'demo','body':{}})
++        for key,value in state.items():a.session_state[key]=value
++        a.session_state['op_store_dir']=str(tmp_path)
++        a.session_state['op_page']='Registros';a.run()
++        assert not list(a.exception)
++>       assert len(a.get('download_button'))==3
++E       AssertionError: assert 0 == 3
++E        +  where 0 = len([])
++E        +    where [] = get('download_button')
++E        +      where get = AppTest(\n    _script_path='/workspace/work/am11/app/app.py',\n    default_timeout=30,\n    _session_state={base_result_s...             19: Caption()\n            }\n        ),\n        2: SpecialBlock(\n            type='event'\n        )\n    }\n).get
++
++tests/test_operation_ui.py:35: AssertionError
++----------------------------- Captured stderr call -----------------------------
++2026-11-11 01:12:19.699 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.383 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-11 01:12:20.384 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++------------------------------ Captured log call -------------------------------
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++____________ test_inicio_prioriza_o_workspace_original_e_nao_o_mapa ____________
++
++    def test_inicio_prioriza_o_workspace_original_e_nao_o_mapa():
++        src=(ROOT/'app.py').read_text(encoding='utf-8')
++>       assert 'CORE = "Operação e decisões"' in src
++E       assert 'CORE = "Operação e decisões"' in '"""Single workspace for the complete Anti-Murphy. No information-only landing page."""\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'</style>\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'
++
++tests/test_restauracao_acesso.py:13: AssertionError
++_______________ test_modulos_importantes_tem_atendimento_direto ________________
++
++    def test_modulos_importantes_tem_atendimento_direto():
++        src=(ROOT/'app.py').read_text(encoding='utf-8')
++        for page in ['War Room','Murphy AI','Decision Evidence','Murphy Lab',
++                     'Optimization Hub','Stress Lab','Opportunity Engine',
++                     'Scenario Portfolio','Operations Studio','Trust Center']:
++>           assert '"'+page+'"' in src
++E           assert (('"' + 'War Room') + '"') in '"""Single workspace for the complete Anti-Murphy. No information-only landing page."""\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'</style>\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'
++
++tests/test_restauracao_acesso.py:26: AssertionError
++_________________________ test_only_one_root_launcher __________________________
++
++    def test_only_one_root_launcher():
++        assert [x.name for x in ROOT.glob('*.bat')]==['INICIAR_ANTI_MURPHY.bat']
++>       assert 'tools\\start_nexus.py' in (ROOT/'INICIAR_ANTI_MURPHY.bat').read_text()
++E       assert 'tools\\start_nexus.py' in '@echo off\nsetlocal\ncd /d "%~dp0"\nset "PYTHONUTF8=1"\nwhere py >nul 2>&1\nif not errorlevel 1 (\n  py -3 start.py\n...xit /b 1\n  )\n)\nif errorlevel 1 (\n  echo O programa foi encerrado com erro. Confira a mensagem acima.\n  pause\n)\n'
++E        +  where '@echo off\nsetlocal\ncd /d "%~dp0"\nset "PYTHONUTF8=1"\nwhere py >nul 2>&1\nif not errorlevel 1 (\n  py -3 start.py\n...xit /b 1\n  )\n)\nif errorlevel 1 (\n  echo O programa foi encerrado com erro. Confira a mensagem acima.\n  pause\n)\n' = read_text()
++E        +    where read_text = (PosixPath('/workspace/work/am11/app') / 'INICIAR_ANTI_MURPHY.bat').read_text
++
++tests/test_v31_editorial.py:25: AssertionError
++________________ test_preview_has_no_external_script_dependency ________________
++
++    def test_preview_has_no_external_script_dependency():
++>       html=(ROOT/'PREVIEW_OPERACAO.html').read_text(encoding='utf8')
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++
++tests/test_v31_editorial.py:36: 
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py:1027: in read_text
++    with self.open(mode='r', encoding=encoding, errors=errors) as f:
++         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++
++self = PosixPath('/workspace/work/am11/app/PREVIEW_OPERACAO.html'), mode = 'r'
++buffering = -1, encoding = 'utf8', errors = None, newline = None
++
++    def open(self, mode='r', buffering=-1, encoding=None,
++             errors=None, newline=None):
++        """
++        Open the file pointed to by this path and return a file object, as
++        the built-in open() function does.
++        """
++        if "b" not in mode:
++            encoding = io.text_encoding(encoding)
++>       return io.open(self, mode, buffering, encoding, errors, newline)
++               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       FileNotFoundError: [Errno 2] No such file or directory: '/workspace/work/am11/app/PREVIEW_OPERACAO.html'
++
++/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py:1013: FileNotFoundError
++=============================== warnings summary ===============================
++../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++=========================== short test summary info ============================
++FAILED tests/test_operation_ui.py::test_evidence_exports_the_current_timed_experiment
++FAILED tests/test_restauracao_acesso.py::test_inicio_prioriza_o_workspace_original_e_nao_o_mapa
++FAILED tests/test_restauracao_acesso.py::test_modulos_importantes_tem_atendimento_direto
++FAILED tests/test_v31_editorial.py::test_only_one_root_launcher - assert 'too...
++FAILED tests/test_v31_editorial.py::test_preview_has_no_external_script_dependency
++5 failed, 352 passed, 1 warning, 10 subtests passed in 57.08s
+--- /dev/null
++++ b/docs/AM11/evidencias/regression-final.xml
+@@ -0,0 +1,64 @@
++<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="367" time="57.080" timestamp="2026-11-11T01:11:56.232020+00:00" hostname="2828689a3565"><testcase classname="tests.test_am11_consumers" name="test_percent_change_preserves_nonzero_small_reference" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_percentage_zero_reference_keeps_legacy_neutral_convention" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_uses_cost_rate_over_actual_short_horizon" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_horizon_without_finite_positive_rate[0.0]" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_horizon_without_finite_positive_rate[-1.0]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_horizon_without_finite_positive_rate[inf]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_horizon_without_finite_positive_rate[nan]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_nonfinite_input[contribution_margin_per_unit]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_nonfinite_input[hours_per_day]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_nonfinite_input[one_time_investment]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_goal_sla_threshold_does_not_approve_rounded_up_fraction" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_goal_throughput_threshold_does_not_reject_rounded_down_value" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_sensitivity_keeps_true_small_marginal_gain" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_demand_breakpoint_compares_exact_sla" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_monte_carlo_statistics_use_unrounded_values" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_recovery_ranks_before_rounding_heuristic_score" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_fingerprint_preserves_small_positive_scale_ratios" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_fingerprint_zero_reference_has_explicit_meaning" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_murphy_score_uses_precise_station_utilization" time="0.001" /><testcase classname="tests.test_am11_display" name="test_nonzero_small_value_visible_without_changing_ordinary_format[False]" time="0.096" /><testcase classname="tests.test_am11_display" name="test_nonzero_small_value_visible_without_changing_ordinary_format[True]" time="0.056" /><testcase classname="tests.test_am11_numeric_precision" name="test_one_thousandth_hour_reference_has_positive_horizon_and_full_utilization" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[1-1]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[1-2]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[1-4]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[3-1]" time="0.010" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[3-2]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[3-4]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.001-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.001-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.009-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.009-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.01-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.01-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.1-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.1-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[1.0-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[1.0-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[None-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[None-disponibilidade]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[0-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[0-disponibilidade]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[-0.001-eficiencia_operador]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[-0.001-disponibilidade]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[nan-eficiencia_operador]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[nan-disponibilidade]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[inf-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[inf-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[-inf-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[-inf-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[None]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[0]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[-0.001]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[nan]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[inf]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[-inf]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_actual_seeded_noise_still_obeys_dimensional_metrics" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_releases_and_multiple_orders_include_idle_time_in_plan_horizon" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_automated_station_with_no_workers_has_defined_zero_labor_utilization" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_timed_worker_addition_integrates_capacity_and_keeps_in_flight_operations" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_precise_values_are_not_rounded_before_ratio_or_cost_calculation" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_unrepresentable_overflow_underflow_or_clock_progress_is_explicitly_rejected[&lt;lambda&gt;0]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_unrepresentable_overflow_underflow_or_clock_progress_is_explicitly_rejected[&lt;lambda&gt;1]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_unrepresentable_overflow_underflow_or_clock_progress_is_explicitly_rejected[&lt;lambda&gt;2]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_metric_helper_keeps_legacy_result_dictionary_compatibility" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_order_reference_keeps_completion_and_lateness_before_display_rounding" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_temporal_response_sla_eligibility_uses_two_thirds_before_display_rounding[66.66-True]" time="0.003" /><testcase classname="tests.test_am11_numeric_precision" name="test_temporal_response_sla_eligibility_uses_two_thirds_before_display_rounding[66.68-False]" time="0.002" /><testcase classname="tests.test_am11_numeric_precision" name="test_structural_decisions_sla_eligibility_uses_unrounded_two_thirds[66.66-True]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_structural_decisions_sla_eligibility_uses_unrounded_two_thirds[66.68-False]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_capacity_goal_threshold_reads_precise_throughput[1.0002-Sim]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_capacity_goal_threshold_reads_precise_throughput[1.0005-N\xe3o]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_precise_metrics_survive_plain_json_archive_roundtrip" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_representable_duration_is_recovered_when_naive_intermediate_division_underflows" time="0.001" /><testcase classname="tests.test_am11_review_regressions" name="test_nonzero_subnormal_intermediate_product_uses_representable_reference" time="0.000" /><testcase classname="tests.test_am11_review_regressions" name="test_recovery_percentage_avoids_intermediate_overflow[1]" time="0.000" /><testcase classname="tests.test_am11_review_regressions" name="test_recovery_percentage_avoids_intermediate_overflow[-1]" time="0.001" /><testcase classname="tests.test_am11_review_regressions" name="test_unrepresentable_percentage_is_explicit_error" time="0.000" /><testcase classname="tests.test_am11_review_regressions" name="test_null_precise_legacy_summary_falls_back_to_rounded_metric" time="0.000" /><testcase classname="tests.test_am11_review_regressions" name="test_cost_component_underflow_is_explicit_not_free_production" time="0.001" /><testcase classname="tests.test_am11_review_regressions" name="test_zero_cost_and_automated_zero_labor_remain_valid" time="0.001" /><testcase classname="tests.test_atlas_agent" name="test_cnc_recovery" time="0.347" /><testcase classname="tests.test_atlas_agent" name="test_outage_after_end_is_not_sold_as_recovery" time="0.371" /><testcase classname="tests.test_atlas_agent" name="test_blocked_model_no_economic_recommendation" time="0.039" /><testcase classname="tests.test_atlas_agent" name="test_too_high_sla_excludes_recommendation" time="0.303" /><testcase classname="tests.test_atlas_agent" name="test_sha_export_reproducible_format_and_no_config_object" time="0.629" /><testcase classname="tests.test_atlas_agent" name="test_agent_proposals[Simule uma parada de 3 horas na CNC-True]" time="0.002" /><testcase classname="tests.test_atlas_agent" name="test_agent_proposals[simule uma falha de 5h na Usinagem CNC, in\xedcio em 2 horas-True]" time="0.001" /><testcase classname="tests.test_atlas_agent" name="test_agent_proposals[qual \xe9 o gargalo?-False]" time="0.001" /><testcase classname="tests.test_atlas_agent" name="test_agent_proposals[simule uma falha na m\xe1quina inexistente-False]" time="0.001" /><testcase classname="tests.test_atlas_agent" name="test_reject_tool_proposal_unknown_station" time="0.000" /><testcase classname="tests.test_atlas_agent" name="test_bad_policy_rejected" time="0.001" /><testcase classname="tests.test_decision_priorities" name="test_priorities_choose_different_simulated_outcomes_for_the_same_incident" time="1.100" /><testcase classname="tests.test_decision_priorities" name="test_zero_budget_is_a_real_limit_in_the_new_workflow" time="0.667" /><testcase classname="tests.test_decision_priorities" name="test_invalid_critical_order_does_not_publish_half_an_experiment" time="0.231" /><testcase classname="tests.test_decision_priorities" name="test_delaying_an_examined_action_keeps_it_even_when_it_becomes_unprofitable" time="0.768" /><testcase classname="tests.test_decision_priorities" name="test_priority_change_invalidates_a_prepared_authorization" time="0.500" /><testcase classname="tests.test_decision_priorities" name="test_no_critical_improvement_is_reported_without_a_recommendation" time="0.327" /><testcase classname="tests.test_decision_priorities" name="test_murphy_explains_the_examined_response_instead_of_another_recommendation" time="0.221" /><testcase classname="tests.test_decision_priorities" name="test_budget_question_prepares_zero_limit_without_running_it" time="0.352" /><testcase classname="tests.test_decision_priorities" name="test_report_preserves_recorded_and_examined_choices_and_escapes_notes" time="0.240" /><testcase classname="tests.test_decision_priorities" name="test_request_for_unlimited_budget_keeps_it_distinct_from_zero_investment" time="0.403" /><testcase classname="tests.test_decision_priorities" name="test_export_without_an_examined_response_does_not_invent_zero_results" time="0.368" /><testcase classname="tests.test_decision_store" name="test_record_survives_a_new_session_without_changing_its_model" time="0.300" /><testcase classname="tests.test_decision_store" name="test_modified_archive_is_rejected_and_not_listed" time="0.234" /><testcase classname="tests.test_factory_command_trace" name="test_instrumentation_preserves_all_engine_metrics_and_outputs" time="0.026" /><testcase classname="tests.test_factory_command_trace" name="test_comparison_roundtrips_replay_and_fork" time="0.015" /><testcase classname="tests.test_factory_command_trace" name="test_export_json_is_engine_derived" time="0.017" /><testcase classname="tests.test_factory_command_trace" name="test_sequential_events_with_same_timestamp" time="0.011" /><testcase classname="tests.test_factory_command_trace" name="test_four_parallel_slots_and_machine_reinforcement" time="0.020" /><testcase classname="tests.test_factory_command_trace" name="test_no_false_skill_or_buffer_verification" time="0.035" /><testcase classname="tests.test_factory_command_trace" name="test_invalid_comparisons_rejected" time="0.001" /><testcase classname="tests.test_frontend_replay" name="test_real_bundle_valid" time="0.003" /><testcase classname="tests.test_frontend_replay" name="test_two_futures_share_prefix" time="0.001" /><testcase classname="tests.test_frontend_replay" name="test_exact_event_timing" time="0.005" /><testcase classname="tests.test_frontend_replay" name="test_branches_differ_after_intervention" time="0.001" /><testcase classname="tests.test_frontend_replay" name="test_real_frontend_is_no_longer_mock" time="0.005" /><testcase classname="tests.test_frontend_replay" name="test_ts_client_replays_real_json" time="0.040" /><testcase classname="tests.test_integrated_shell" name="test_only_one_streamlit_page_config" time="0.087" /><testcase classname="tests.test_integrated_shell" name="test_full_function_inventory_visible_in_shell" time="0.001" /><testcase classname="tests.test_integrated_shell" name="test_original_logo_is_used_for_restored_splash" time="0.001" /><testcase classname="tests.test_integrated_shell" name="test_legacy_navigation_is_managed_by_shared_shell" time="0.001" /><testcase classname="tests.test_integrated_shell" name="test_animation_only_uses_engine_station_state" time="0.001" /><testcase classname="tests.test_integrated_shell" name="test_core_engine_is_bitwise_preserved" time="0.001" /><testcase classname="tests.test_integrated_shell" name="test_windows_launcher_no_npm_build_and_browser_auto_open" time="0.004" /><testcase classname="tests.test_integrated_shell" name="test_no_font_files_distributed" time="0.004" /><testcase classname="tests.test_model_optional_fields" name="test_excel_round_trip_preserves_automation_and_order_release" time="0.273" /><testcase classname="tests.test_model_optional_fields" name="test_csv_locale_decimal_and_boolean_false_are_not_lost" time="0.008" /><testcase classname="tests.test_nexus_ui" name="test_primary_pages_and_shared_run_after_demo" time="2.620" /><testcase classname="tests.test_nexus_ui" name="test_ai_budget_authorization_then_evidence_and_review" time="1.410" /><testcase classname="tests.test_nexus_ui" name="test_sensitivity_authorization_in_review_and_no_rerun_on_navigation" time="1.937" /><testcase classname="tests.test_nexus_ui" name="test_original_tools_open_and_return_to_new_workspace" time="1.289" /><testcase classname="tests.test_nexus_v30" name="test_reference_and_noop_are_never_recommended" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_all_views_share_authoritative_leader" time="0.413" /><testcase classname="tests.test_nexus_v30" name="test_policy_and_model_changes_hide_old_decisions" time="0.998" /><testcase classname="tests.test_nexus_v30" name="test_plan_cannot_execute_against_changed_context[model]" time="0.010" /><testcase classname="tests.test_nexus_v30" name="test_plan_cannot_execute_against_changed_context[policy]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_plan_tampering_and_repeat_execution_rejected" time="0.588" /><testcase classname="tests.test_nexus_v30" name="test_interpreting_ai_request_never_runs_engine" time="0.010" /><testcase classname="tests.test_nexus_v30" name="test_portuguese_budgets[Tenho apenas R$ 3.000-3000]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_portuguese_budgets[Or\xe7amento de 3 mil-3000]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_portuguese_budgets[tenho R$ 2.500,50-2500.5]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_portuguese_budgets[orcamento: 3000-3000]" time="0.000" /><testcase classname="tests.test_nexus_v30" name="test_portuguese_budgets[Qual o gargalo?-None]" time="0.000" /><testcase classname="tests.test_nexus_v30" name="test_unknown_broken_station_is_not_silently_assigned" time="0.008" /><testcase classname="tests.test_nexus_v30" name="test_constraints_really_apply_to_ai_authorized_result" time="0.463" /><testcase classname="tests.test_nexus_v30" name="test_demo_is_reproducible_and_restores_original_model" time="0.616" /><testcase classname="tests.test_nexus_v30" name="test_replay_mass_balance_outage_and_exact_completion" time="0.525" /><testcase classname="tests.test_nexus_v30" name="test_no_machine_lane_overlaps" time="0.046" /><testcase classname="tests.test_nexus_v30" name="test_browser_counter_core_matches_python_at_boundaries" time="0.338" /><testcase classname="tests.test_nexus_v30" name="test_html_cannot_break_script_with_uploaded_names" time="0.085" /><testcase classname="tests.test_nexus_v30" name="test_sensitivity_reports_net_savings_and_consumes_authorization" time="0.378" /><testcase classname="tests.test_nexus_v30" name="test_non_finite_policy_rejected[nan]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_non_finite_policy_rejected[inf]" time="0.000" /><testcase classname="tests.test_nexus_v30" name="test_generative_tool_only_prepares_plan" time="0.011" /><testcase classname="tests.test_nexus_v30" name="test_budget_followup_preserves_pending_incident_not_defaults" time="0.010" /><testcase classname="tests.test_nexus_v30" name="test_comparing_calculated_alternatives_does_not_propose_redundant_run" time="0.348" /><testcase classname="tests.test_nexus_v30" name="test_new_explicit_test_can_repeat_same_parameters" time="0.403" /><testcase classname="tests.test_nexus_v30" name="test_examined_export_keeps_recommendation_and_manual_selection_distinct" time="0.314" /><testcase classname="tests.test_nexus_v30" name="test_model_editor_rejects_fractional_or_negative_resources" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_json_automation_flag_cannot_turn_string_false_into_unmanned_capacity" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_ai_does_not_offer_delay_reduction_when_no_orders_are_late" time="0.222" /><testcase classname="tests.test_nexus_v30" name="test_economic_recovery_ratio_is_undefined_when_crisis_adds_no_cost" time="0.001" /><testcase classname="tests.test_operation_ui" name="test_current_primary_views_render_without_exceptions" time="0.488" /><testcase classname="tests.test_operation_ui" name="test_blocked_resources_show_an_error_instead_of_a_production_forecast" time="0.315" /><testcase classname="tests.test_operation_ui" name="test_evidence_exports_the_current_timed_experiment" time="1.286"><failure message="AssertionError: assert 0 == 3&#10; +  where 0 = len([])&#10; +    where [] = get('download_button')&#10; +      where get = AppTest(\n    _script_path='/workspace/work/am11/app/app.py',\n    default_timeout=30,\n    _session_state={base_result_s...             19: Caption()\n            }\n        ),\n        2: SpecialBlock(\n            type='event'\n        )\n    }\n).get">tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-4/test_evidence_exports_the_curr0')
++
++    def test_evidence_exports_the_current_timed_experiment(tmp_path):
++        a=app();state={};initialize_operation(state)
++        # AppTest cannot operate an iframe; execute the same serialized user command
++        # tested in Chromium, then verify the native export view.
++        handle_command(state,{'id':'ui-demo','token':state['op_token'],'kind':'demo','body':{}})
++        for key,value in state.items():a.session_state[key]=value
++        a.session_state['op_store_dir']=str(tmp_path)
++        a.session_state['op_page']='Registros';a.run()
++        assert not list(a.exception)
++&gt;       assert len(a.get('download_button'))==3
++E       AssertionError: assert 0 == 3
++E        +  where 0 = len([])
++E        +    where [] = get('download_button')
++E        +      where get = AppTest(\n    _script_path='/workspace/work/am11/app/app.py',\n    default_timeout=30,\n    _session_state={base_result_s...             19: Caption()\n            }\n        ),\n        2: SpecialBlock(\n            type='event'\n        )\n    }\n).get
++
++tests/test_operation_ui.py:35: AssertionError</failure></testcase><testcase classname="tests.test_operation_workspace" name="test_complete_response_workflow_and_export" time="0.382" /><testcase classname="tests.test_operation_workspace" name="test_duplicate_and_stale_commands_cannot_execute_again" time="0.148" /><testcase classname="tests.test_operation_workspace" name="test_invalid_experiment_does_not_half_commit_parameters" time="0.269" /><testcase classname="tests.test_operation_workspace" name="test_question_only_prepares_a_budget_experiment_then_authorization_runs_it" time="0.380" /><testcase classname="tests.test_operation_workspace" name="test_authorization_is_bound_to_response_time" time="0.189" /><testcase classname="tests.test_operation_workspace" name="test_examining_a_different_row_preserves_recommendation" time="0.270" /><testcase classname="tests.test_operation_workspace" name="test_recalculation_and_model_changes_clear_old_decision_records" time="0.301" /><testcase classname="tests.test_restauracao_acesso" name="test_inicio_prioriza_o_workspace_original_e_nao_o_mapa" time="0.001"><failure message="assert 'CORE = &quot;Operação e decisões&quot;' in '&quot;&quot;&quot;Single workspace for the complete Anti-Murphy. No information-only landing page.&quot;&quot;&quot;\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'&lt;/style&gt;\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'">def test_inicio_prioriza_o_workspace_original_e_nao_o_mapa():
++        src=(ROOT/'app.py').read_text(encoding='utf-8')
++&gt;       assert 'CORE = "Operação e decisões"' in src
++E       assert 'CORE = "Operação e decisões"' in '"""Single workspace for the complete Anti-Murphy. No information-only landing page."""\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'&lt;/style&gt;\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'
++
++tests/test_restauracao_acesso.py:13: AssertionError</failure></testcase><testcase classname="tests.test_restauracao_acesso" name="test_modulos_importantes_tem_atendimento_direto" time="0.001"><failure message="assert (('&quot;' + 'War Room') + '&quot;') in '&quot;&quot;&quot;Single workspace for the complete Anti-Murphy. No information-only landing page.&quot;&quot;&quot;\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'&lt;/style&gt;\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'">def test_modulos_importantes_tem_atendimento_direto():
++        src=(ROOT/'app.py').read_text(encoding='utf-8')
++        for page in ['War Room','Murphy AI','Decision Evidence','Murphy Lab',
++                     'Optimization Hub','Stress Lab','Opportunity Engine',
++                     'Scenario Portfolio','Operations Studio','Trust Center']:
++&gt;           assert '"'+page+'"' in src
++E           assert (('"' + 'War Room') + '"') in '"""Single workspace for the complete Anti-Murphy. No information-only landing page."""\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'&lt;/style&gt;\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'
++
++tests/test_restauracao_acesso.py:26: AssertionError</failure></testcase><testcase classname="tests.test_restauracao_acesso" name="test_caminho_de_recarregamento_infinito_foi_retirado" time="0.000" /><testcase classname="tests.test_restauracao_acesso" name="test_app_define_configuracao_uma_unica_vez" time="0.052" /><testcase classname="tests.test_restauracao_acesso" name="test_retorno_de_legacy_nao_reentra_em_legacy" time="0.001" /><testcase classname="tests.test_restauracao_acesso" name="test_engine_inalterado_no_pacote_de_restauracao" time="0.001" /><testcase classname="tests.test_restauracao_acesso" name="test_launcher_abre_navegador_sem_npm" time="0.001" /><testcase classname="tests.test_restauracao_acesso" name="test_choose_port_skips_porta_ocupada" time="0.001" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version0-False]" time="0.001" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version1-True]" time="0.000" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version2-True]" time="0.000" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version3-True]" time="0.000" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version4-True]" time="0.000" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version5-True]" time="0.000" /><testcase classname="tests.test_startup" name="test_existing_environment_is_reused_without_global_python_or_reinstallation" time="0.001" /><testcase classname="tests.test_startup" name="test_broken_venv_is_preserved_and_new_one_is_verified" time="0.002" /><testcase classname="tests.test_startup" name="test_pip_failure_keeps_original_error_and_stops_before_launch" time="0.001" /><testcase classname="tests.test_startup" name="test_launch_argument_array_preserves_spaces_without_shell_interpolation" time="0.001" /><testcase classname="tests.test_startup" name="test_diagnostics_checks_project_without_installing_or_starting" time="0.001" /><testcase classname="tests.test_startup" name="test_invalid_or_missing_interpreter_is_reported_cleanly" time="0.019" /><testcase classname="tests.test_startup" name="test_incomplete_project_returns_actionable_error" time="0.001" /><testcase classname="tests.test_startup" name="test_python315_requirements_select_binary_compatible_pandas_profile" time="0.008" /><testcase classname="tests.test_startup" name="test_dependency_installer_forbids_source_builds" time="0.001" /><testcase classname="tests.test_startup" name="test_user_repair_instruction_keeps_requirements_file_valid" time="0.001" /><testcase classname="tests.test_timed_response" name="test_responses_preserve_the_past_and_all_units[action0]" time="0.015" /><testcase classname="tests.test_timed_response" name="test_responses_preserve_the_past_and_all_units[action1]" time="0.016" /><testcase classname="tests.test_timed_response" name="test_responses_preserve_the_past_and_all_units[action2]" time="0.015" /><testcase classname="tests.test_timed_response" name="test_responses_preserve_the_past_and_all_units[action3]" time="0.014" /><testcase classname="tests.test_timed_response" name="test_responses_preserve_the_past_and_all_units[action4]" time="0.015" /><testcase classname="tests.test_timed_response" name="test_express_repair_only_changes_remaining_downtime" time="0.104" /><testcase classname="tests.test_timed_response" name="test_transfer_waits_for_a_free_operator_and_never_double_books" time="0.010" /><testcase classname="tests.test_timed_response" name="test_busy_donor_releases_the_worker_only_after_finishing_work" time="0.001" /><testcase classname="tests.test_timed_response" name="test_cost_integrates_capacity_before_and_after_effective_transfer" time="0.008" /><testcase classname="tests.test_timed_response" name="test_action_after_completion_does_not_extend_the_horizon" time="0.015" /><testcase classname="tests.test_timed_response" name="test_invalid_responses_fail_before_simulation[action0]" time="0.001" /><testcase classname="tests.test_timed_response" name="test_invalid_responses_fail_before_simulation[action1]" time="0.001" /><testcase classname="tests.test_timed_response" name="test_invalid_responses_fail_before_simulation[action2]" time="0.001" /><testcase classname="tests.test_timed_response" name="test_invalid_responses_fail_before_simulation[action3]" time="0.001" /><testcase classname="tests.test_timed_response" name="test_invalid_responses_fail_before_simulation[action4]" time="0.001" /><testcase classname="tests.test_timed_response" name="test_timing_and_paired_sensitivity_use_the_same_response" time="0.418" /><testcase classname="tests.test_v27.TestV27" name="test_absenteeism_total_blocks" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_baseline_completo" time="0.008" /><testcase classname="tests.test_v27.TestV27" name="test_budget_and_infeasible_excluded" time="0.002" /><testcase classname="tests.test_v27.TestV27" name="test_capacity_affects_completion" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_incident_before_release_waits" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_incident_equal_across_options" time="0.003" /><testcase classname="tests.test_v27.TestV27" name="test_incident_lowers_performance_and_busy_time_excludes_pause" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_model_score_not_perfect_with_invalid_route" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_outage_after_finishing_does_not_change_makespan" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_paired_runs" time="0.002" /><testcase classname="tests.test_v27.TestV27" name="test_pareto_dominance" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_resilience_decreases_if_penalty_rises" time="0.000" /><testcase classname="tests.test_v27.TestV27" name="test_same_seed_reproducible_and_scenario_name_neutral" time="0.002" /><testcase classname="tests.test_v27.TestV27" name="test_signature_and_exports" time="0.002" /><testcase classname="tests.test_v27.TestV27" name="test_staffing_ratio_limits_parallel_resources" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_validation_rejects_missing_station_and_negative_cost" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_worker_is_required" time="0.001" /><testcase classname="tests.test_v28_decision_and_ai" name="test_decision_evidence_exposes_verdicts_and_recommendation" time="0.195" /><testcase classname="tests.test_v28_decision_and_ai" name="test_ai_context_has_brief_and_local_answer_uses_it" time="0.302" /><testcase classname="tests.test_v28_decision_and_ai" name="test_blocked_station_fixes_detect_zero_operators" time="0.000" /><testcase classname="tests.test_v291_regressions" name="test_no_chat_background_conflict_from_v22" time="0.001" /><testcase classname="tests.test_v291_regressions" name="test_css_is_injected_last" time="0.001" /><testcase classname="tests.test_v291_regressions" name="test_trust_does_not_render_aggregate_score" time="0.001" /><testcase classname="tests.test_v291_regressions" name="test_stale_ai_data_uses_only_signed_analysis" time="0.001" /><testcase classname="tests.test_v291_regressions" name="test_recovery_not_invented_when_deadline_impossible" time="0.183" /><testcase classname="tests.test_v291_regressions" name="test_normal_baseline_is_reproducible_and_no_stale_signature" time="0.016" /><testcase classname="tests.test_v291_regressions" name="test_local_ai_cannot_claim_performance_without_scenario" time="0.008" /><testcase classname="tests.test_v291_regressions" name="test_explicit_confirmation_for_simulation_proposal" time="0.000" /><testcase classname="tests.test_v291_regressions" name="test_economic_cost_decomposes_capacity_and_penalty" time="0.009" /><testcase classname="tests.test_v291_regressions" name="test_no_blanket_claim_of_100_percent_model_validation" time="0.001" /><testcase classname="tests.test_v291_regressions" name="test_local_ai_creates_real_brief_without_decision_run" time="0.007" /><testcase classname="tests.test_v291_regressions" name="test_local_ai_reads_atlas_leader_instead_of_legacy_field" time="0.191" /><testcase classname="tests.test_v291_regressions" name="test_no_recommendation_when_atlas_rejects_all" time="0.287" /><testcase classname="tests.test_v31_editorial" name="test_editorial_copy_without_promo_headlines" time="0.001" /><testcase classname="tests.test_v31_editorial" name="test_only_one_root_launcher" time="0.001"><failure message="assert 'tools\\start_nexus.py' in '@echo off\nsetlocal\ncd /d &quot;%~dp0&quot;\nset &quot;PYTHONUTF8=1&quot;\nwhere py &gt;nul 2&gt;&amp;1\nif not errorlevel 1 (\n  py -3 start.py\n...xit /b 1\n  )\n)\nif errorlevel 1 (\n  echo O programa foi encerrado com erro. Confira a mensagem acima.\n  pause\n)\n'&#10;[+2 more lines; full report in element text]">def test_only_one_root_launcher():
++        assert [x.name for x in ROOT.glob('*.bat')]==['INICIAR_ANTI_MURPHY.bat']
++&gt;       assert 'tools\\start_nexus.py' in (ROOT/'INICIAR_ANTI_MURPHY.bat').read_text()
++E       assert 'tools\\start_nexus.py' in '@echo off\nsetlocal\ncd /d "%~dp0"\nset "PYTHONUTF8=1"\nwhere py &gt;nul 2&gt;&amp;1\nif not errorlevel 1 (\n  py -3 start.py\n...xit /b 1\n  )\n)\nif errorlevel 1 (\n  echo O programa foi encerrado com erro. Confira a mensagem acima.\n  pause\n)\n'
++E        +  where '@echo off\nsetlocal\ncd /d "%~dp0"\nset "PYTHONUTF8=1"\nwhere py &gt;nul 2&gt;&amp;1\nif not errorlevel 1 (\n  py -3 start.py\n...xit /b 1\n  )\n)\nif errorlevel 1 (\n  echo O programa foi encerrado com erro. Confira a mensagem acima.\n  pause\n)\n' = read_text()
++E        +    where read_text = (PosixPath('/workspace/work/am11/app') / 'INICIAR_ANTI_MURPHY.bat').read_text
++
++tests/test_v31_editorial.py:25: AssertionError</failure></testcase><testcase classname="tests.test_v31_editorial" name="test_offline_demo_uses_exact_contract_and_has_separated_futures" time="0.018" /><testcase classname="tests.test_v31_editorial" name="test_preview_has_no_external_script_dependency" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/workspace/work/am11/app/PREVIEW_OPERACAO.html'">def test_preview_has_no_external_script_dependency():
++&gt;       html=(ROOT/'PREVIEW_OPERACAO.html').read_text(encoding='utf8')
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++
++tests/test_v31_editorial.py:36: 
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py:1027: in read_text
++    with self.open(mode='r', encoding=encoding, errors=errors) as f:
++         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++
++self = PosixPath('/workspace/work/am11/app/PREVIEW_OPERACAO.html'), mode = 'r'
++buffering = -1, encoding = 'utf8', errors = None, newline = None
++
++    def open(self, mode='r', buffering=-1, encoding=None,
++             errors=None, newline=None):
++        """
++        Open the file pointed to by this path and return a file object, as
++        the built-in open() function does.
++        """
++        if "b" not in mode:
++            encoding = io.text_encoding(encoding)
++&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
++               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       FileNotFoundError: [Errno 2] No such file or directory: '/workspace/work/am11/app/PREVIEW_OPERACAO.html'
++
++/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py:1013: FileNotFoundError</failure></testcase><testcase classname="tests.test_v31_editorial" name="test_application_files_parse" time="0.003" /><testcase classname="tests.test_war_room_smoke" name="test_war_room_initial_ui_renders_without_typeerror" time="0.050" /><testcase classname="tests.test_war_room_smoke" name="test_war_room_after_simulation_ui_renders" time="0.224" /><testcase classname="tests.test_war_room_smoke" name="test_model_signature_changed_invalidates_old_view" time="0.352" /><testcase classname="tests.test_workspace_bridge" name="test_current_workspace_generates_a_real_bundle" time="1.727" /><testcase classname="tests.test_workspace_bridge" name="test_model_changes_affect_trace" time="3.279" /><testcase classname="contract_tests.test_observer" name="test_observer_emits_absolute_patches_and_terminal_keyframe" time="0.001" /><testcase classname="contract_tests.test_observer" name="test_observer_branch_starts_after_shared_seq" time="0.001" /><testcase classname="contract_tests.test_observer" name="test_observer_rejects_decreasing_time" time="0.001" /><testcase classname="contract_tests.test_observer" name="test_observer_can_verify_engine_state" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_roundtrip_v110" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_bundle_has_single_shared_prefix" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_no_redundant_prefork_on_branches" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_topology_root_and_coordinates" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_topology_missing_route_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_topology_dangling_edge_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_topology_repeated_edges_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_keyframe_requires_queue_ids" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_queues_have_individual_units_and_order" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_cannot_duplicate_same_unit_in_two_queues" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_seek_identical_until_fork" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_seek_event_at_fork_is_applied_to_b_only" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_seek_diverges_only_after_action" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_fork_without_synthetic_event" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_shared_history_sequence_hole_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_branch_sequence_hole_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_branch_event_before_fork_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_branch_keyframe_must_not_copy_common" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_fork_must_match_common_last_seq" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_seed_difference_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_unknown_constraints_not_feasible" time="0.000" /><testcase classname="contract_tests.test_simulation_contract" name="test_corrupted_common_keyframe_detected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_corrupted_branch_keyframe_detected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_invalid_upsert_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_export_outputs_aliases_and_parses" time="0.002" /><testcase classname="contract_tests.test_simulation_contract" name="test_schema_regenerated_matches_file" time="0.010" /><testcase classname="contract_tests.test_simulation_contract" name="test_quantization_is_deterministic" time="0.000" /><testcase classname="contract_tests.test_simulation_contract" name="test_snapshot_down_does_not_allow_processing" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_no_branch_action_before_fork" time="0.001" /><testcase classname="atelier.tests.test_advanced_product.SpecialistWorkflowTests" name="test_evidence_requires_a_written_reason" time="0.418" /><testcase classname="atelier.tests.test_advanced_product.SpecialistWorkflowTests" name="test_no_unverified_zero_cost_assumptions_in_recovery_notes" time="0.191" /><testcase classname="atelier.tests.test_advanced_product.SpecialistWorkflowTests" name="test_six_specialist_modes_stay_in_same_experiment" time="0.755" /><testcase classname="atelier.tests.test_advanced_product.SpecialistWorkflowTests" name="test_unknown_tool_and_invalid_station_are_rejected" time="0.270" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_nominal_and_banca_reference" time="0.161" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am01_reject_invalid_priority_input_without_state_change" time="0.243" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am01_renamed_critical_order_does_not_leave_dangling_id" time="0.967" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am01_reject_missing_operators_and_keep_project" time="0.543" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am01_bad_dispatch_in_existing_storage_recovers_startup" time="0.329" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am01_transaction_rollback_preserves_files_and_memory" time="0.679" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am03_record_is_not_published_when_disk_write_fails" time="0.376" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am03_prior_record_survives_subsequent_failure" time="0.476" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am02_simultaneous_order_permutation_uses_priority[True-EDD]" time="0.001" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am02_simultaneous_order_permutation_uses_priority[True-SPT]" time="0.001" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am02_simultaneous_order_permutation_uses_priority[False-EDD]" time="0.001" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am02_simultaneous_order_permutation_uses_priority[False-SPT]" time="0.001" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am02_fifo_maintains_id_tie_breaker" time="0.001" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am04_modelled_eligibility_is_independent_of_pareto" time="0.171" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am05_stamps_change_with_scenario" time="0.627" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am05_stamps_change_with_selected_action" time="0.288" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am05_stamps_change_with_lab_inputs" time="0.858" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am06_operator_recovery_only_after_action" time="0.195" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am06_recovery_does_not_mutate_initial_capacity" time="0.192" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am06_advanced_includes_effective_time_and_cost_basis" time="0.279" /><testcase classname="atelier.tests.test_dashboards" name="test_dashboards_are_live_and_read_only" time="0.183" /><testcase classname="atelier.tests.test_dashboards" name="test_dashboard_updates_on_new_decision" time="0.203" /><testcase classname="atelier.tests.test_dashboards" name="test_dashboard_after_switching_model_changes_reference" time="0.514" /><testcase classname="atelier.tests.test_decision_quality" name="test_dominance_detected_across_three_objectives" time="0.001" /><testcase classname="atelier.tests.test_decision_quality" name="test_tradeoff_does_not_claim_dominance" time="0.000" /><testcase classname="atelier.tests.test_decision_quality" name="test_unverified_or_outside_criteria_rival_not_used" time="0.000" /><testcase classname="atelier.tests.test_decision_quality" name="test_missing_or_nonfinite_data_safe" time="0.000" /><testcase classname="atelier.tests.test_decision_quality" name="test_service_model_integration_and_record_snapshot" time="0.358" /><testcase classname="atelier.tests.test_final_quality" name="test_cost_components_reconcile_with_selected_decision" time="0.229" /><testcase classname="atelier.tests.test_final_quality" name="test_assistant_cost_detail_uses_current_engine_data_and_does_not_modify_selection" time="0.180" /><testcase classname="atelier.tests.test_final_quality" name="test_unmodeled_constraints_not_certified_by_assistant" time="0.269" /><testcase classname="atelier.tests.test_final_quality" name="test_order_specific_answer_does_not_invent_missing_order" time="0.173" /><testcase classname="atelier.tests.test_final_quality" name="test_dashboard_costs_are_read_only_and_consistent" time="0.186" /><testcase classname="atelier.tests.test_prefinal_gate" name="test_murphy_separates_bottleneck_from_longest_wait_and_reports_orders" time="0.277" /><testcase classname="atelier.tests.test_prefinal_gate" name="test_murphy_answer_for_capacity_is_not_an_unexecuted_simulation" time="0.161" /><testcase classname="atelier.tests.test_prefinal_gate" name="test_costs_and_operator_intervention_only_claim_modeled_feasibility" time="0.166" /><testcase classname="atelier.tests.test_prefinal_gate" name="test_decision_validation_persistence_and_readback" time="0.567" /><testcase classname="atelier.tests.test_product_workbench" name="test_project_create_duplicate_reopen_and_persist" time="1.267" /><testcase classname="atelier.tests.test_product_workbench" name="test_project_new_example_is_isolated" time="0.511" /><testcase classname="atelier.tests.test_product_workbench" name="test_project_rejects_invalid_names_ids_and_limit_escape" time="0.287" /><testcase classname="atelier.tests.test_product_workbench" name="test_experiment_archival_compare_reproducible_and_no_state_mutation" time="0.706" /><testcase classname="atelier.tests.test_product_workbench" name="test_experiments_are_scoped_to_project" time="0.758" /><testcase classname="atelier.tests.test_product_workbench" name="test_experiment_comparison_marks_different_models" time="0.532" /><testcase classname="atelier.tests.test_record_integrity" name="test_parse_brazilian_currency_not_plain_numbers" time="0.001" /><testcase classname="atelier.tests.test_record_integrity" name="test_current_result_reference_and_old_run_rejected" time="0.234" /><testcase classname="atelier.tests.test_record_integrity" name="test_unmatched_amount_requires_ack_but_not_prescribed_risks" time="0.328" /><testcase classname="atelier.tests.test_release_studio" name="test_structured_route_change_recalculates_and_persists" time="0.700" /><testcase classname="atelier.tests.test_release_studio" name="test_invalid_route_does_not_replace_model" time="0.187" /><testcase classname="atelier.tests.test_release_studio" name="test_dashboard_is_read_only_and_matches_motor_after_route_edit" time="0.525" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_action_selection_updates_response" time="0.293" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_all_lab_modes" time="0.792" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_assistant_local_without_api" time="0.171" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_bad_model_cannot_overwrite" time="0.187" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_edit_persist_model_and_recalculate" time="0.759" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_existing_motor_and_alternatives" time="0.257" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_record_verifiable_and_persisted" time="0.243" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_reject_invalid_action" time="0.252" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_replay_states_and_same_timeline" time="0.166" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_reset_keeps_original_examples" time="0.548" /><testcase classname="atelier.tests.test_technical_audit" name="test_evidence_is_derived_from_active_des_not_guessed" time="0.168" /><testcase classname="atelier.tests.test_technical_audit" name="test_cost_anomalies_fail_closed" time="0.165" /><testcase classname="atelier.tests.test_technical_audit" name="test_technical_audit_does_not_change_state_or_persist_files" time="0.292" /><testcase classname="atelier.tests.test_technical_audit" name="test_audit_tracks_selected_response_and_project" time="0.424" /><testcase classname="atelier.tests.test_technical_audit" name="test_structured_decision_requires_ack_when_explicitly_declined" time="0.339" /></testsuite></testsuites>
+--- /dev/null
++++ b/docs/AM11/evidencias/reproduce_before.py
+@@ -0,0 +1,16 @@
++import json
++from pathlib import Path
++import sys
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++from unittest.mock import patch
++from simulation.factory import build_scenario
++from simulation.engine import run_simulation
++
++def cfg(eff=1,minutes=.06):
++ s={'P':{'nome':'Posto','maquinas':1,'operadores':1,'operadores_por_maquina':1,'eficiencia_operador':eff,'disponibilidade':1,'custo_maquina_h':10,'custo_operador_h':20,'setup_min':0}}
++ o=[{'id':'A','cliente':'C','produto':'X','quantidade':1,'prazo_h':100,'multa_hora':100,'route':[('P',minutes)]}]
++ return build_scenario('Referência independente',s,o)
++with patch('simulation.engine._noise',return_value=1):
++ for name,c in [('short',cfg()),('efficiency',cfg(.001,60))]:
++  r=run_simulation(c)
++  print(json.dumps({'case':name,'end_h':r['operations'][0]['end_h'],'makespan_h':r['makespan_h'],'throughput_h':r['throughput_h'],'utilization':r['stations'][0]['Utilização máquina (%)'],'sla_pct':r['sla_pct'],'total_cost':r['total_cost']},ensure_ascii=False))
+--- /dev/null
++++ b/docs/AM11/evidencias/small-browser.log
+@@ -0,0 +1,23 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++CICLO CURTO HTTP BROWSER OK: 0,001 h visível, sem erro JS
+--- /dev/null
++++ b/docs/AM11/evidencias/small_browser.py
+@@ -0,0 +1,35 @@
++from pathlib import Path
++import sys
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++from tempfile import TemporaryDirectory
++from threading import Thread
++from http.server import ThreadingHTTPServer
++from unittest.mock import patch
++import json
++from playwright.sync_api import sync_playwright
++from atelier.service import Studio
++from atelier import server
++out=Path(__file__).resolve().parent
++with TemporaryDirectory() as tmp, patch('simulation.engine._noise',return_value=1):
++ s=Studio(Path(tmp))
++ v=s.set_model({'stations':{'P':{'nome':'Posto','maquinas':1,'operadores':1,'operadores_por_maquina':1,'eficiencia_operador':1,'disponibilidade':1,'custo_maquina_h':10,'custo_operador_h':20,'setup_min':0}},'orders':[{'id':'A','cliente':'C','produto':'X','quantidade':1,'prazo_h':1,'multa_hora':100,'route':[['P',.06]]}]})
++ server.STUDIO=s
++ httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler)
++ Thread(target=httpd.serve_forever,daemon=True).start()
++ try:
++  with sync_playwright() as p:
++   b=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
++   page=b.new_page(viewport={'width':1366,'height':768});errors=[]
++   page.on('pageerror',lambda e:errors.append(str(e)))
++   page.goto(f'http://127.0.0.1:{httpd.server_port}/',wait_until='networkidle')
++   page.wait_for_selector('#factory-a .station-group')
++   page.evaluate('document.querySelector("#splash")?.remove()')
++   page.locator('[data-nav=analise]').click()
++   text=page.locator('#view-analise').inner_text()
++   assert '0,001' in text, text
++   assert not errors,errors
++   page.screenshot(path=str(out/'ciclo_curto_browser.png'),full_page=True)
++   (out/'ciclo_curto_browser.json').write_text(json.dumps({'metrics':v['metrics'],'page_errors':errors,'short_time_visible':True},ensure_ascii=False,indent=2))
++   print('CICLO CURTO HTTP BROWSER OK: 0,001 h visível, sem erro JS')
++   b.close()
++ finally:httpd.shutdown();httpd.server_close()
+--- a/docs/EXPERIMENTOS_VALIDACAO_ENGENHARIA.md
++++ b/docs/EXPERIMENTOS_VALIDACAO_ENGENHARIA.md
+@@ -13,7 +13,7 @@
+ | Falha com intervenção | 21,58 | 4,45 | 100,00% | 0 | R$ 10.313,00 |
+ 
+ - **Custo da decisão**, incluindo investimento: R$ 12.113,00.
+-- **Diferença estimada** frente à falha sem resposta: R$ 4.103,67.
++- **Diferença estimada** frente à falha sem resposta: R$ 4.103,68.
+ - **Conferências independentes:** recontagem de pedidos atrasados comparando conclusão e prazo; SLA a partir de cinco pedidos; somatório de multas; cronologia das operações e subintervalos de processamento; throughput por 96 unidades dividido pelo makespan; identidade dos custos com tolerância de R$ 0,02 devido ao arredondamento por componente.
+ - **Limite:** custo por hora do modelo não equivale a saída real de caixa ou viabilidade de reparo acelerado.
+ 
+--- a/docs/PITCH_5_MIN_E_SABATINA.md
++++ b/docs/PITCH_5_MIN_E_SABATINA.md
+@@ -10,7 +10,7 @@
+ | 0:40–1:20 | **Falha** | No exemplo sintético, a CNC para às 4 h por 8 h. O simulador recalcula filas, programação, capacidade e entregas. |
+ | 1:20–2:00 | **Pedidos** | O SLA cai de 100% para 40%; três pedidos atrasam. Isso é uma consequência do cenário, não um evento observado em fábrica. |
+ | 2:00–3:00 | **Intervenção** e **Comparação** | Avaliamos respostas enumeradas. Neste caso, a manutenção expressa recupera o SLA para 100%, com custo de decisão modelado de R$ 12.113,00, incluindo R$ 1.800 de investimento. |
+-| 3:00–3:50 | **Evidências / Análise de impacto** | A diferença frente à falha sem resposta é de R$ 4.103,67 nas premissas do modelo. Os efeitos por pedido e a composição de custos podem ser conferidos. |
++| 3:00–3:50 | **Evidências / Análise de impacto** | A diferença frente à falha sem resposta é de R$ 4.103,68 nas premissas do modelo. Os efeitos por pedido e a composição de custos podem ser conferidos. |
+ | 3:50–4:30 | **Ferramentas → Sensibilidade** ou **Painéis → Auditoria** | A sensibilidade mostra que adicionar máquinas CNC isoladamente não melhorou throughput neste cenário. O sistema também distingue criticidade heurística de prova de gargalo. |
+ | 4:30–5:00 | Retomar comparação / conclusão | O valor está na rastreabilidade da decisão. Reconhecemos limites: custos modelados, recursos não validados em planta e alternativas enumeradas. |
+ 
+@@ -24,7 +24,7 @@
+ **Professor de Pesquisa Operacional — Vocês resolveram um problema de otimização?**  
+ O motor é uma simulação de eventos discretos; calcula alternativas enumeradas para condições dadas. Não demonstramos ótimo global nem fronteira contínua ótima. Confrontamos o trade-off de makespan, SLA e custo.
+ 
+-**Professor de custos — R$ 4.103,67 é economia comprovada?**  
++**Professor de custos — R$ 4.103,68 é economia comprovada?**  
+ Não. É diferença econômica projetada pela função de custos do cenário. Ela depende do horizonte simulado, dos custos de capacidade e das penalidades por atraso. Uma análise de custos evitáveis seria necessária em fábrica real.
+ 
+ **Professor de manutenção — Como garantir manutenção expressa em três horas?**  
+@@ -42,3 +42,6 @@
+ ## Risco durante a apresentação
+ 
+ Se um botão falhar ou a rede do projetor não estiver disponível, o software principal é local. Tenha capturas da apresentação e um resultado impresso como contingência; não simule um teste que não foi realmente executado.
++
++
++Nota AM-11: diferença econômica calculada com valores não arredondados; o resultado final é arredondado para apresentação. A diferença de R$ 0,01 frente à edição AM-06 é esperada.
+--- a/docs/RELATORIO_FINAL_BANCA_2026.md
++++ b/docs/RELATORIO_FINAL_BANCA_2026.md
+@@ -32,7 +32,7 @@
+ 
+ ### A — Parada de máquina
+ 
+-Com cinco pedidos e 96 unidades, a CNC interrompida às 4 h por 8 h altera SLA de 100% para 40%. A manutenção expressa selecionada leva de volta a 100%; no modelo, custo de decisão R$ 12.113,00 e diferença frente à falha sem resposta de R$ 4.103,67. Isso não é uma economia de caixa validada.
++Com cinco pedidos e 96 unidades, a CNC interrompida às 4 h por 8 h altera SLA de 100% para 40%. A manutenção expressa selecionada leva de volta a 100%; no modelo, custo de decisão R$ 12.113,00 e diferença frente à falha sem resposta de R$ 4.103,68. Isso não é uma economia de caixa validada.
+ 
+ ### B — Capacidade adicional
+ 
+@@ -59,3 +59,6 @@
+ Esta edição não adiciona dependência de IA generativa, não altera os indicadores para melhorar resultados aparentes e não promete precisão que a base sintética não pode demonstrar. Seu diferencial para a banca é a narrativa de evento real do motor, a documentação das escolhas e a rastreabilidade dos indicadores.
+ 
+ **Status:** **candidata à banca**, condicionada à verificação prática no Windows e no projetor da apresentação.
++
++
++Nota AM-11: diferença econômica calculada com valores não arredondados; o resultado final é arredondado para apresentação. A diferença de R$ 0,01 frente à edição AM-06 é esperada.
+--- a/docs/RELATORIO_MODO_BANCA_PREMIUM.md
++++ b/docs/RELATORIO_MODO_BANCA_PREMIUM.md
+@@ -24,7 +24,7 @@
+ 
+ ## Resultado de engenharia preservado (cenário padrão, dados sintéticos)
+ 
+-O teste repetido em Python confirma operação nominal com **100% de SLA**, falha sem resposta com **40% de SLA** e manutenção expressa com **100% de SLA**, dentro dos parâmetros padrão. Custo total estimado da falha sem resposta **R$ 16.216,67** e custo de decisão da manutenção expressa **R$ 12.113,00**, incluindo investimento modelado; diferença **R$ 4.103,67**. São resultados **do modelo**, não valores de caixa medidos numa fábrica.
++O teste repetido em Python confirma operação nominal com **100% de SLA**, falha sem resposta com **40% de SLA** e manutenção expressa com **100% de SLA**, dentro dos parâmetros padrão. Custo total estimado da falha sem resposta **R$ 16.216,67** e custo de decisão da manutenção expressa **R$ 12.113,00**, incluindo investimento modelado; diferença **R$ 4.103,68**. São resultados **do modelo**, não valores de caixa medidos numa fábrica.
+ 
+ No ensaio de capacidade, acrescentar máquinas CNC sem corrigir a restrição correspondente não aumenta o throughput (permanece em aproximadamente **5,682 unidades/h**, nas condições testadas). Isso não significa que capacidade nunca melhora a operação; é válido apenas para o modelo e os parâmetros deste ensaio.
+ 
+@@ -38,3 +38,6 @@
+ 6. **O texto de justificativa é um rascunho:** deve ser revisado, personalizado e aprovado pelo responsável antes do registro.
+ 
+ **Conclusão:** o refinamento melhora a transmissão do resultado técnico, especialmente para uma apresentação de até cinco minutos, sem ampliar alegações de capacidade industrial.
++
++
++Nota AM-11: diferença econômica calculada com valores não arredondados; o resultado final é arredondado para apresentação. A diferença de R$ 0,01 frente à edição AM-06 é esperada.
+--- a/docs/RESULTADOS_TRES_EXPERIMENTOS_BANCA.json
++++ b/docs/RESULTADOS_TRES_EXPERIMENTOS_BANCA.json
+@@ -39,7 +39,7 @@
+       "total_cost": 10313.0
+     },
+     "response_decision_cost_brl": 12113.0,
+-    "difference_vs_incident_brl": 4103.67,
++    "difference_vs_incident_brl": 4103.68,
+     "independent_order_checks": {
+       "normal": {
+         "orders": 5,
+@@ -82,40 +82,40 @@
+     "rows": [
+       {
+         "Adição": 0,
+-        "Throughput": 5.682,
++        "Throughput": 5.681763308299117,
+         "SLA": 100.0,
+-        "Custo/un": 84.13,
+-        "Makespan": 16.9,
++        "Custo/un": 84.12881249414335,
++        "Makespan": 16.896163178740085,
+         "Ganho marginal TP": 0.0,
+         "Throughput Δ (%)": 0.0,
+         "Gargalo": "CORTE"
+       },
+       {
+         "Adição": 1,
+-        "Throughput": 5.682,
++        "Throughput": 5.681763308299117,
+         "SLA": 100.0,
+-        "Custo/un": 96.1,
+-        "Makespan": 16.9,
++        "Custo/un": 96.09692807908425,
++        "Makespan": 16.896163178740085,
+         "Ganho marginal TP": 0.0,
+         "Throughput Δ (%)": 0.0,
+         "Gargalo": "CORTE"
+       },
+       {
+         "Adição": 2,
+-        "Throughput": 5.682,
++        "Throughput": 5.681763308299117,
+         "SLA": 100.0,
+-        "Custo/un": 108.07,
+-        "Makespan": 16.9,
++        "Custo/un": 108.06504366402514,
++        "Makespan": 16.896163178740085,
+         "Ganho marginal TP": 0.0,
+         "Throughput Δ (%)": 0.0,
+         "Gargalo": "CORTE"
+       },
+       {
+         "Adição": 3,
+-        "Throughput": 5.682,
++        "Throughput": 5.681763308299117,
+         "SLA": 100.0,
+-        "Custo/un": 120.03,
+-        "Makespan": 16.9,
++        "Custo/un": 120.033159248966,
++        "Makespan": 16.896163178740085,
+         "Ganho marginal TP": 0.0,
+         "Throughput Δ (%)": 0.0,
+         "Gargalo": "CORTE"
+@@ -127,13 +127,13 @@
+     "compared": {
+       "express_maintenance": {
+         "action": "Manutenção expressa · CNC",
+-        "makespan_h": 21.58,
++        "makespan_h": 21.57530617980079,
+         "sla_pct": 100.0,
+         "decision_cost_brl": 12113.0
+       },
+       "extra_cnc_operator": {
+         "action": "+1 operador · CNC",
+-        "makespan_h": 19.97,
++        "makespan_h": 19.973006391870044,
+         "sla_pct": 60.0,
+         "decision_cost_brl": 12712.94
+       }
+--- a/simulation/advanced.py
++++ b/simulation/advanced.py
+@@ -4,8 +4,14 @@
+ from typing import Any, Dict, List
+ 
+ from simulation.engine import run_simulation
++from simulation.numeric import metric
+ from simulation.metrics import compare_results
+ from simulation.factory import ScenarioConfig, TimedAction
++
++
++def _metric_or_zero(result, key):
++    # Preserve optional legacy packets; live engine results also carry `precise`.
++    return metric(result, key) if key in result else 0.0
+ 
+ 
+ def operating_alerts(result: Dict[str, Any]) -> List[Dict[str, Any]]:
+@@ -24,15 +30,15 @@
+             alerts.append({"level":"ATENÇÃO","station":sid,"title":f"Capacidade tensionada em {sid}","detail":f"Utilização {util:.0f}%, fila {queue}, espera {wait:.1f} min.","score":60 + queue + util/10})
+         elif util <= 35 and queue == 0:
+             alerts.append({"level":"OPORTUNIDADE","station":sid,"title":f"Folga operacional em {sid}","detail":f"Utilização de {util:.0f}% sem fila relevante; avalie realocação antes de contratar.","score":20 + (35-util)})
+-    if float(result.get("sla_pct", 0)) < 80:
+-        alerts.append({"level":"CRÍTICO","station":"SLA","title":"Risco de prazo elevado","detail":f"SLA atual em {float(result.get('sla_pct',0)):.0f}%; priorize experimentos de prazo e gargalo.","score":150-float(result.get('sla_pct',0))})
++    if float(_metric_or_zero(result, 'sla_pct')) < 80:
++        alerts.append({"level":"CRÍTICO","station":"SLA","title":"Risco de prazo elevado","detail":f"SLA atual em {float(_metric_or_zero(result, 'sla_pct')):.0f}%; priorize experimentos de prazo e gargalo.","score":150-float(_metric_or_zero(result, 'sla_pct'))})
+     return sorted(alerts, key=lambda x: x["score"], reverse=True)[:8]
+ 
+ 
+ def sensitivity_analysis(base_config: ScenarioConfig, base_result: Dict[str, Any], station_id: str, resource: str = "operadores", max_add: int = 4) -> List[Dict[str, Any]]:
+     """Curva de ganho marginal ao adicionar recursos a um posto."""
+     rows: List[Dict[str, Any]] = []
+-    prev_tp = float(base_result.get("throughput_h", 0))
++    prev_tp = float(_metric_or_zero(base_result, 'throughput_h'))
+     for add in range(0, max(0, int(max_add)) + 1):
+         if add == 0:
+             r = base_result
+@@ -43,15 +49,15 @@
+             else:
+                 cfg.stations[station_id]["operadores"] = max(0, int(cfg.stations[station_id].get("operadores", 0)) + add)
+             r = run_simulation(cfg)
+-        tp = float(r.get("throughput_h", 0))
++        tp = float(_metric_or_zero(r, 'throughput_h'))
+         d = compare_results(base_result, r)
+         marginal = 0.0 if add == 0 else (tp - prev_tp)
+         rows.append({
+             "Adição": add,
+             "Throughput": tp,
+-            "SLA": float(r.get("sla_pct", 0)),
+-            "Custo/un": float(r.get("unit_cost", 0)),
+-            "Makespan": float(r.get("makespan_h", 0)),
++            "SLA": float(_metric_or_zero(r, 'sla_pct')),
++            "Custo/un": float(_metric_or_zero(r, 'unit_cost')),
++            "Makespan": float(_metric_or_zero(r, 'makespan_h')),
+             "Ganho marginal TP": marginal,
+             "Throughput Δ (%)": float(d.get("throughput_pct", 0)),
+             "Gargalo": str(r.get("bottleneck", "-")),
+@@ -70,7 +76,7 @@
+         cfg = base_config.clone(name=f"Ruptura demanda {x:.2f}x")
+         cfg.demand_multiplier = round(x, 2)
+         r = run_simulation(cfg)
+-        row = {"Demanda x":round(x,2),"SLA":float(r.get("sla_pct",0)),"Throughput":float(r.get("throughput_h",0)),"Makespan":float(r.get("makespan_h",0)),"Gargalo":str(r.get("bottleneck","-")),"result":r}
++        row = {"Demanda x":round(x,2),"SLA":float(_metric_or_zero(r, 'sla_pct')),"Throughput":float(_metric_or_zero(r, 'throughput_h')),"Makespan":float(_metric_or_zero(r, 'makespan_h')),"Gargalo":str(r.get("bottleneck","-")),"result":r}
+         points.append(row)
+         if first_break is None and row["SLA"] < sla_floor:
+             first_break = row
+@@ -92,7 +98,7 @@
+         cfg=base_config.clone(name=f"Ausência {n} em {station_id}")
+         cfg.absent_workers={station_id:n} if n else {}
+         r=run_simulation(cfg)
+-        row={"Ausências":n,"SLA":float(r.get("sla_pct",0)),"Throughput":float(r.get("throughput_h",0)),"Makespan":float(r.get("makespan_h",0)),"Gargalo":str(r.get("bottleneck","-")),"result":r}
++        row={"Ausências":n,"SLA":float(_metric_or_zero(r, 'sla_pct')),"Throughput":float(_metric_or_zero(r, 'throughput_h')),"Makespan":float(_metric_or_zero(r, 'makespan_h')),"Gargalo":str(r.get("bottleneck","-")),"result":r}
+         points.append(row)
+         if first_break is None and row["SLA"] < sla_floor:
+             first_break=row
+@@ -143,23 +149,25 @@
+                - float(d.get('makespan_pct',0))*.7 - max(0,float(d.get('unit_cost_pct',0)))*.35)
+         rows.append({
+             'Ação':action.label,
+-            'SLA':float(result.get('sla_pct',0)),
++            'SLA':float(_metric_or_zero(result, 'sla_pct')),
+             'SLA Δ (p.p.)':round(float(d.get('sla_pp',0)),1),
+-            'Throughput':float(result.get('throughput_h',0)),
++            'Throughput':float(_metric_or_zero(result, 'throughput_h')),
+             'Throughput Δ (%)':round(float(d.get('throughput_pct',0)),1),
+-            'Makespan':float(result.get('makespan_h',0)),
+-            'Custo/un':float(result.get('unit_cost',0)),
+-            'Custo cenário (R$)':float(result.get('total_cost',0)),
++            'Makespan':float(result.get('makespan_h',0)),  # legacy table presentation
++            'Custo/un':float(_metric_or_zero(result, 'unit_cost')),
++            'Custo cenário (R$)':float(_metric_or_zero(result, 'total_cost')),
+             'Investimento adicional (R$)':None,  # No calibration available.
+             'Solicitação (h)':instant,
+             'Efetivação (h)':result.get('intervention',{}).get('effective_h'),
+-            'Recovery score':round(score,1),
++            'Recovery score':score,
+             'Gargalo':str(result.get('bottleneck','-')),
+             'result':result,
+             'config':crisis_config,
+             'action':action,
+         })
+     rows.sort(key=lambda x:(-x['Recovery score'],-x['SLA'],x['Custo/un']))
++    for row in rows:
++        row['Recovery score']=round(row['Recovery score'],1)
+     return rows[:max_results]
+ 
+ 
+@@ -181,10 +189,10 @@
+         rows.append({
+             "run": i + 1,
+             "seed": cfg.seed,
+-            "throughput": float(r.get("throughput_h", 0)),
+-            "sla": float(r.get("sla_pct", 0)),
+-            "makespan": float(r.get("makespan_h", 0)),
+-            "unit_cost": float(r.get("unit_cost", 0)),
++            "throughput": float(_metric_or_zero(r, 'throughput_h')),
++            "sla": float(_metric_or_zero(r, 'sla_pct')),
++            "makespan": float(_metric_or_zero(r, 'makespan_h')),
++            "unit_cost": float(_metric_or_zero(r, 'unit_cost')),
+             "bottleneck": str(r.get("bottleneck", "-")),
+         })
+ 
+@@ -228,12 +236,12 @@
+                 "station": station_id,
+                 "demand": round(float(d), 2),
+                 "absent": int(a),
+-                "sla": float(r.get("sla_pct", 0)),
+-                "throughput": float(r.get("throughput_h", 0)),
+-                "makespan": float(r.get("makespan_h", 0)),
+-                "unit_cost": float(r.get("unit_cost", 0)),
++                "sla": float(_metric_or_zero(r, 'sla_pct')),
++                "throughput": float(_metric_or_zero(r, 'throughput_h')),
++                "makespan": float(_metric_or_zero(r, 'makespan_h')),
++                "unit_cost": float(_metric_or_zero(r, 'unit_cost')),
+                 "bottleneck": str(r.get("bottleneck", "-")),
+-                "safe": float(r.get("sla_pct", 0)) >= float(sla_floor),
++                "safe": float(_metric_or_zero(r, 'sla_pct')) >= float(sla_floor),
+             })
+     safe = [p for p in points if p["safe"]]
+     return {"points": points, "safe_count": len(safe), "total": len(points), "sla_floor": float(sla_floor), "station": station_id}
+--- a/simulation/atlas.py
++++ b/simulation/atlas.py
+@@ -10,6 +10,7 @@
+ import math
+ from typing import Any
+ 
++from simulation.numeric import metric
+ from simulation.decision_lab import evaluate_decisions, config_signature
+ from simulation.factory import ScenarioConfig
+ 
+@@ -48,9 +49,9 @@
+         return 'MODELO BLOQUEADO', 'A operação com o incidente não é simulável. Corrija recursos antes de comparar ganhos.'
+     if not rows:
+         return 'SEM ALTERNATIVAS', 'Nenhuma alternativa foi gerada pelo mecanismo atual.'
+-    if (float(incident['total_cost']) == float(normal['total_cost'])
+-            and float(incident['sla_pct']) == float(normal['sla_pct'])
+-            and float(incident['makespan_h']) == float(normal['makespan_h'])):
++    if (metric(incident,'total_cost') == metric(normal,'total_cost')
++            and metric(incident,'sla_pct') == metric(normal,'sla_pct')
++            and metric(incident,'makespan_h') == metric(normal,'makespan_h')):
+         return 'SEM IMPACTO MENSURÁVEL', 'O incidente configurado não alterou custo, prazo ou SLA desta carteira; pode ocorrer fora do horizonte efetivo.'
+     valid = [r for r in rows if r.get('feasible') and r.get('within_budget') and r.get('meets_sla')]
+     if not valid:
+@@ -59,8 +60,8 @@
+     if not candidates:
+         return 'SEM MELHORIA VIÁVEL', 'Nenhuma intervenção testada atende às restrições; mantenha o incidente como referência e reveja o modelo.'
+     improved = [r for r in candidates if (float(r.get('savings') or 0) > 0.005
+-            and r['sla_pct'] >= incident['sla_pct'] - 1e-8
+-            and r['makespan_h'] <= incident['makespan_h'] + 1e-8)]
++            and r['sla_pct'] >= metric(incident,'sla_pct') - 1e-8
++            and r['makespan_h'] <= metric(incident,'makespan_h') + 1e-8)]
+     if improved:
+         return 'RESPOSTA PROMISSORA', 'Há ao menos uma intervenção simulada que reduz o custo sem deteriorar SLA ou makespan frente à crise.'
+     return 'TRADE-OFF NECESSÁRIO', 'Há opções admissíveis, mas nenhuma demonstra melhoria simultânea de custo, serviço e tempo.'
+@@ -84,17 +85,17 @@
+     # Prefer a material, non-worsening alternative. Otherwise do not imply a unique best action.
+     improvement = [r for r in candidates if (
+         float(r.get('savings') or 0) > 0.005
+-        and float(r['sla_pct']) >= float(result['incident']['sla_pct']) - 1e-8
+-        and float(r['makespan_h']) <= float(result['incident']['makespan_h']) + 1e-8
++        and float(r['sla_pct']) >= metric(result['incident'],'sla_pct') - 1e-8
++        and float(r['makespan_h']) <= metric(result['incident'],'makespan_h') + 1e-8
+     )]
+-    leader = min(improvement, key=lambda x:(x['decision_cost'],-x['sla_pct'],x['makespan_h'])) if improvement else None
++    leader = min(improvement, key=lambda x:(metric(x,'decision_cost'),-metric(x,'sla_pct'),metric(x,'makespan_h'))) if improvement else None
+     if leader is None and candidates and status == 'TRADE-OFF NECESSÁRIO':
+         # Only surface an option if it offers some measurable improvement.
+         # A cheaper option that worsens every operational metric is not a leader.
+         conditional=[r for r in candidates if r.get('verdict') in {'RECOMENDADA','PROMISSORA','CONDICIONAL'} and (float(r.get('savings') or 0)>0.005
+-                     or float(r['sla_pct'])>float(result['incident']['sla_pct'])+1e-8
+-                     or float(r['makespan_h'])<float(result['incident']['makespan_h'])-1e-8)]
+-        leader = min(conditional, key=lambda x:(x['decision_cost'],-x['sla_pct'],x['makespan_h'])) if conditional else None
++                     or float(r['sla_pct'])>metric(result['incident'],'sla_pct')+1e-8
++                     or float(r['makespan_h'])<metric(result['incident'],'makespan_h')-1e-8)]
++        leader = min(conditional, key=lambda x:(metric(x,'decision_cost'),-metric(x,'sla_pct'),metric(x,'makespan_h'))) if conditional else None
+     if status in ('MODELO BLOQUEADO','SEM IMPACTO MENSURÁVEL','RESTRIÇÕES NÃO ATENDIDAS','SEM MELHORIA VIÁVEL'):
+         leader = None
+     if leader is None and status == 'TRADE-OFF NECESSÁRIO':
+--- a/simulation/decision_council.py
++++ b/simulation/decision_council.py
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
+ 
+ from typing import Any, Dict, List, Optional
++from simulation.numeric import metric, product_ratio
+ 
+ 
+ def _round_or_none(value: Optional[float], digits: int = 2):
+@@ -10,9 +11,10 @@
+ 
+ 
+ def _safe_pct(numer: float, denom: float) -> float:
+-    if abs(denom) < 1e-9:
++    if denom == 0:
+         return 0.0
+-    return 100.0 * numer / denom
++    magnitude = product_ratio((abs(numer), 100), (abs(denom),), 'Percentual de recuperação')
++    return -magnitude if (numer < 0) != (denom < 0) else magnitude
+ 
+ 
+ def classify_decision(row: Dict[str, Any], incident: Dict[str, Any], normal: Dict[str, Any], *, sla_floor: float = 0.0) -> Dict[str, Any]:
+@@ -29,13 +31,13 @@
+     if not row.get("meets_sla", True):
+         reasons.append(f"não atende ao SLA mínimo ({sla_floor:.0f}%)")
+ 
+-    decision_cost = row.get("decision_cost")
+-    incident_cost = float(incident.get("total_cost", 0.0))
+-    normal_cost = float(normal.get("total_cost", 0.0))
+-    incident_sla = float(incident.get("sla_pct", 0.0))
+-    normal_sla = float(normal.get("sla_pct", 0.0))
+-    incident_makespan = float(incident.get("makespan_h", 0.0))
+-    normal_makespan = float(normal.get("makespan_h", 0.0))
++    decision_cost = metric(row, "decision_cost") if row.get("decision_cost") is not None else None
++    incident_cost = metric(incident, "total_cost", 0.0)
++    normal_cost = metric(normal, "total_cost", 0.0)
++    incident_sla = metric(incident, "sla_pct", 0.0)
++    normal_sla = metric(normal, "sla_pct", 0.0)
++    incident_makespan = metric(incident, "makespan_h", 0.0)
++    normal_makespan = metric(normal, "makespan_h", 0.0)
+ 
+     if decision_cost is not None:
+         savings_vs_incident = incident_cost - float(decision_cost)
+@@ -44,8 +46,8 @@
+         savings_vs_incident = None
+         gap_vs_normal = None
+ 
+-    service_gain = float(row.get("sla_pct", 0.0)) - incident_sla
+-    makespan_gain = incident_makespan - float(row.get("makespan_h", 0.0))
++    service_gain = metric(row, "sla_pct", 0.0) - incident_sla
++    makespan_gain = incident_makespan - metric(row, "makespan_h", 0.0)
+ 
+     is_reference = row.get('action') == 'Não intervir'
+     material_gain = ((savings_vs_incident is not None and savings_vs_incident > .005)
+@@ -78,9 +80,9 @@
+     else:
+         economic_recovery_pct = _safe_pct(savings_vs_incident, recovery_den)
+ 
+-    service_recovery_den = max(1e-9, normal_sla - incident_sla)
++    service_recovery_den = normal_sla - incident_sla
+     service_recovery_pct = _safe_pct(service_gain, service_recovery_den) if normal_sla > incident_sla else 0.0
+-    time_recovery_den = max(1e-9, incident_makespan - normal_makespan)
++    time_recovery_den = incident_makespan - normal_makespan
+     time_recovery_pct = _safe_pct(makespan_gain, time_recovery_den) if incident_makespan > normal_makespan else 0.0
+ 
+     tradeoff = []
+@@ -141,7 +143,7 @@
+         rows,
+         key=lambda r: (
+             order.get(str(r.get("verdict", "RESTRITA")), 9),
+-            999999999 if r.get("decision_cost") is None else float(r.get("decision_cost", 0.0)),
++            999999999 if r.get("decision_cost") is None else metric(r,"decision_cost"),
+             -float(r.get("sla_pct", 0.0)),
+             float(r.get("makespan_h", 0.0)),
+         ),
+--- a/simulation/decision_lab.py
++++ b/simulation/decision_lab.py
+@@ -14,6 +14,7 @@
+ from typing import Any
+ 
+ from simulation.engine import run_simulation
++from simulation.numeric import metric, finite
+ from simulation.factory import ScenarioConfig
+ from simulation.decision_council import enrich_decision_rows, select_recommended_action
+ 
+@@ -83,8 +84,8 @@
+         for b in rows:
+             if a is b or not b['feasible'] or not b['within_budget'] or not b.get('meets_sla',True):
+                 continue
+-            akey=(a['decision_cost'], -a['sla_pct'], a['makespan_h'])
+-            bkey=(b['decision_cost'], -b['sla_pct'], b['makespan_h'])
++            akey=(metric(a,'decision_cost'), -metric(a,'sla_pct'), metric(a,'makespan_h'))
++            bkey=(metric(b,'decision_cost'), -metric(b,'sla_pct'), metric(b,'makespan_h'))
+             if all(y<=x+1e-8 for x,y in zip(akey,bkey)) and any(y<x-1e-8 for x,y in zip(akey,bkey)):
+                 dominated=True
+                 break
+@@ -117,17 +118,18 @@
+         r=baseline if item['name']=='Não intervir' else run_simulation(cfg)
+         feasible=bool(r.get('feasible', True))
+         valid_cost=feasible and bool(baseline.get('feasible',True))
+-        cost=float(r['total_cost']) if feasible else 0
++        cost=metric(r,'total_cost') if feasible else 0
+         decision_cost=cost+item['investment'] if feasible else 0
+-        savings=float(baseline['total_cost'])-decision_cost if valid_cost else None
++        savings=metric(baseline,'total_cost')-decision_cost if valid_cost else None
+         row={'action':item['name'],'rationale':item['why'],
+             'investment':item['investment'],'feasible':feasible,
+             'within_budget':budget<=0 or item['investment']<=budget,
+-            'meets_sla':feasible and r['sla_pct']>=sla_floor,
++            'meets_sla':feasible and metric(r,'sla_pct')>=sla_floor,
+             'decision_cost':round(decision_cost,2) if feasible else None,
+             'savings':round(savings,2) if savings is not None else None,
+-            'sla_pct':float(r['sla_pct']),'makespan_h':float(r['makespan_h']),
+-            'throughput_h':float(r['throughput_h']),
++            'precise': {**r.get('precise',{}), 'decision_cost':finite(decision_cost) if feasible else None, 'savings':savings},
++            'sla_pct':metric(r,'sla_pct'),'makespan_h':metric(r,'makespan_h'),
++            'throughput_h':metric(r,'throughput_h'),
+             'late_orders':int(r['late_orders']),
+             'penalty_total':float(r['penalty_total']),
+             'feasibility_note':'Viável no modelo' if feasible else '; '.join(r.get('warnings',[])),
+@@ -143,7 +145,7 @@
+     rows.sort(key=lambda r:(verdict_order.get(str(r.get('verdict','RESTRITA')),9),
+                               not(r['feasible'] and r['within_budget'] and r['meets_sla']),
+                               not r['feasible'],not r['within_budget'],
+-                              float('inf') if r['decision_cost'] is None else r['decision_cost'],
++                              float('inf') if r['decision_cost'] is None else metric(r,'decision_cost'),
+                               -r['sla_pct'],r['makespan_h']))
+     recommended=select_recommended_action(rows)
+     return {'model_signature':config_signature(incident), 'normal':normal,
+--- a/simulation/engine.py
++++ b/simulation/engine.py
+@@ -22,6 +22,7 @@
+ 
+ from simulation.factory import ScenarioConfig, TimedAction
+ from simulation.validation import validate_model
++from simulation.numeric import finite, present, product_ratio
+ 
+ 
+ class SimulationResult(dict):
+@@ -88,6 +89,9 @@
+         raise ValueError('Modelo inválido: ' + ' | '.join(errors[:12]))
+     if config.dispatch_rule not in {'EDD', 'SPT', 'FIFO'}:
+         raise ValueError('Regra de despacho deve ser EDD, SPT ou FIFO.')
++    finite(config.chaos_duration_h, 'Duração da parada')
++    finite(config.chaos_start_h, 'Início da parada')
++    finite(config.chaos_start_h + config.chaos_duration_h, 'Fim da parada')
+     if config.chaos_duration_h < 0 or config.chaos_start_h < 0:
+         raise ValueError('Início e duração de parada devem ser não negativos.')
+     stations = deepcopy(config.stations)
+@@ -120,10 +124,11 @@
+                 if field=='available_workers' and not stations[sid].get('automatizada',False) and sid in {a for o in orders for a,_ in o['route']} and stations[sid][field]+delta<float(stations[sid].get('operadores_por_maquina',1)):
+                     raise ValueError('A resposta não pode deixar um posto usado sem equipe mínima.')
+     for o in orders:
+-        o['quantidade_sim'] = max(1, int(round(int(o['quantidade']) * float(config.demand_multiplier))))
++        quantity = finite(int(o['quantidade']) * float(config.demand_multiplier), 'Quantidade escalada')
++        o['quantidade_sim'] = max(1, int(round(quantity)))
+     used = {sid for o in orders for sid, _ in o['route']}
+     blocked = [sid for sid in stations if sid in used and not stations[sid].get('automatizada', False)
+-               and int(stations[sid]['available_workers']/float(stations[sid].get('operadores_por_maquina',1))) <= 0]
++               and stations[sid]['available_workers'] < float(stations[sid].get('operadores_por_maquina',1))]
+     if blocked:
+         return _infeasible(config, stations, orders, blocked)
+ 
+@@ -176,7 +181,7 @@
+             )
+ 
+     def add_event(t, kind, payload):
+-        heapq.heappush(event_heap, (float(t), next(counter), kind, payload))
++        heapq.heappush(event_heap, (finite(t, 'Instante do evento'), next(counter), kind, payload))
+ 
+     for order in orders:
+         for unit in range(order['quantidade_sim']):
+@@ -206,7 +211,11 @@
+             return
+         s=stations[sid]
+         workers_per_machine=float(s.get('operadores_por_maquina',1))
+-        cap=int(s['maquinas']) if s.get('automatizada',False) else min(int(s['maquinas']), int(max(0,int(s['available_workers'])-reserved_workers[sid])/workers_per_machine))
++        available_workers = max(0, int(s['available_workers']) - reserved_workers[sid])
++        machines = int(s['maquinas'])
++        cap = (machines if s.get('automatizada', False) or
++               available_workers >= machines * workers_per_machine else
++               int(available_workers / workers_per_machine))
+         while queue[sid] and active[sid] < cap:
+             _p,_counter, arrival, oid, unit, step = heapq.heappop(queue[sid])
+             active[sid] += 1
+@@ -222,15 +231,20 @@
+             _,base_cycle = order_by_id[oid]['route'][step]
+             # Explicit one operator + one machine; staffing shortage constrains parallel capacity
+             # instead of also multiplying the processing time (double penalty).
+-            eff=max(.01,float(s.get('eficiencia_operador',1)))
+-            availability=max(.01,float(s.get('disponibilidade',1)))
++            eff=float(s.get('eficiencia_operador',1))
++            availability=float(s.get('disponibilidade',1))
+             setup_h=float(s.get('setup_min',0))/60 if unit==0 else 0.0
+-            process_h=float(base_cycle)/60/eff/availability * _noise(config.seed,oid,unit,step) + setup_h
++            process_h = product_ratio(
++                (base_cycle, _noise(config.seed,oid,unit,step)),
++                (60, eff, availability), 'Tempo de processamento') + setup_h
++            finite(process_h, 'Tempo de processamento')
+             down_h=0.0
+             end=now+process_h
+             if disrupted and sid==config.chaos_station and now < outage_start < end:
+                 down_h=outage_end-outage_start
+                 end+=down_h
++            if not math.isfinite(end) or end <= now:
++                raise ValueError('Fim da operação fora da precisão temporal representável.')
+             busy[sid]+=process_h
+             held_down[sid]+=down_h
+             performed[sid]+=1
+@@ -368,14 +382,16 @@
+     for o in orders:
+         finish=float(order_completion[o['id']])
+         lateness=max(0.0,finish-float(o['prazo_h']))
+-        penalty=lateness*float(o['multa_hora'])
++        penalty=product_ratio((lateness, o['multa_hora']), (), 'Multa por atraso')
+         late_orders+=int(lateness>1e-9)
+         penalty_total+=penalty
+         rows.append({'OP':o['id'],'Cliente':o.get('cliente',''),'Produto':o.get('produto',''),
+             'Quantidade':o['quantidade_sim'],'Prazo (h)':float(o['prazo_h']),
+             'Conclusão (h)':round(finish,2),'Atraso (h)':round(lateness,2),
+-            'Multa (R$)':round(penalty,2),'Status':'Atrasada' if lateness>1e-9 else 'No prazo'})
++            'Multa (R$)':round(penalty,2),'Status':'Atrasada' if lateness>1e-9 else 'No prazo',
++            'completion_h':finish, 'lateness_h':lateness, 'penalty':penalty})
+     station_rows=[]; operating_cost=0.0; bn='-'; top_score=-1
++    precise_utils=[]
+     for sid,s in stations.items():
+         machines=int(s['maquinas']); workers=int(s['available_workers'])
+         original_machines,original_workers=initial_resources[sid]
+@@ -383,12 +399,16 @@
+         after_h=max(0,makespan-before_h)
+         machine_hours=before_h*original_machines+after_h*machines
+         worker_hours=before_h*original_workers+after_h*workers
+-        machine_util=min(100.0,100*busy[sid]/max(.01,machine_hours))
++        machine_util=min(100.0, 100 * product_ratio(
++            (busy[sid],), (machine_hours,), 'Utilização de máquinas', zero_over_zero=True))
+         labor_demand=0 if s.get('automatizada',False) else float(s.get('operadores_por_maquina',1))
+-        worker_util=min(100.0,100*busy[sid]*labor_demand/max(.01,worker_hours))
++        worker_util=min(100.0, 100 * product_ratio(
++            (busy[sid], labor_demand), (worker_hours,), 'Utilização de equipe', zero_over_zero=True))
++        precise_utils.append(machine_util)
+         avg_wait=work_wait[sid]/max(1,performed[sid])*60
+         # Fixed capacity cost across the total plan horizon; NOT activity-based cost.
+-        cost=machine_hours*float(s['custo_maquina_h'])+worker_hours*float(s['custo_operador_h'])
++        cost=(product_ratio((machine_hours, s['custo_maquina_h']), (), 'Custo de máquinas') +
++              product_ratio((worker_hours, s['custo_operador_h']), (), 'Custo de equipe'))
+         operating_cost+=cost
+         score=machine_util+min(50,avg_wait/2)+queue_max[sid]*2
+         if score>top_score:
+@@ -397,23 +417,34 @@
+             'Operadores':workers,'Utilização máquina (%)':round(machine_util,1),
+             'Utilização mão de obra (%)':round(worker_util,1),
+             'Espera média (min)':round(avg_wait,1),'Fila máx.':queue_max[sid],
+-            'Custo cenário (R$)':round(cost,2), 'Parada de operações (h)':round(held_down[sid],2)})
+-    utils=[x['Utilização máquina (%)'] for x in station_rows]
++            'Custo cenário (R$)':round(cost,2), 'Parada de operações (h)':round(held_down[sid],2),
++            'precise': {'machine_util_pct':machine_util, 'worker_util_pct':worker_util,
++                        'mean_wait_min':avg_wait, 'cost':finite(cost, 'Custo do posto')}})
+     result_config=config
+     if action and action.repair_remaining_factor is not None:
+         result_config=config.clone();result_config.chaos_duration_h=outage_end-outage_start
++    precise = {
++        'makespan_h':finite(makespan, 'Makespan'),
++        'throughput_h':product_ratio((total_units,), (makespan,), 'Throughput'),
++        'sla_pct':100*(len(orders)-late_orders)/len(orders),
++        'penalty_total':finite(penalty_total, 'Multas'),
++        'operating_cost':finite(operating_cost, 'Custo operacional'),
++        'total_cost':finite(operating_cost+penalty_total, 'Custo total'),
++        'unit_cost':product_ratio((operating_cost,), (total_units,), 'Custo unitário'),
++        'balance_loss_pp':max(precise_utils)-min(precise_utils),
++    }
+     return SimulationResult({'name':config.name,'dispatch_rule':current_rule,
+-        'feasible':True,'blocked_stations':[],'warnings':[], 'makespan_h':round(makespan,2),
++        'feasible':True,'blocked_stations':[],'warnings':[], 'makespan_h':present(makespan,2),
+         'total_units':total_units,'planned_units':total_units,
+-        'throughput_h':round(total_units/max(.01,makespan),3),
++        'throughput_h':present(precise['throughput_h'],3),
+         'sla_pct':round(100*(len(orders)-late_orders)/len(orders),1),'late_orders':late_orders,
+         'penalty_total':round(penalty_total,2),'operating_cost':round(operating_cost,2),
+         'total_cost':round(operating_cost+penalty_total,2),
+         'unit_cost':round(operating_cost/max(1,total_units),2),
+-        'bottleneck':bn,'balance_loss_pp':round(max(utils)-min(utils),1),
++        'bottleneck':bn,'balance_loss_pp':round(precise['balance_loss_pp'],1),
+         'orders':rows,'stations':station_rows,'events':sorted((event for event in event_log if event['time'] <= makespan+1e-9),key=lambda x:x['time']),
+         'operations':op_log,
+         'cost_breakdown':{'capacidade_contratada':round(operating_cost,2),
+                           'multas_atraso':round(penalty_total,2)},
+-        'config':result_config,'resource_changes':resource_changes,
++        'precise':precise, 'config':result_config,'resource_changes':resource_changes,
+         'intervention':{'requested_h':action.at_h,'effective_h':effective_h,'label':action.label} if action else None})
+--- a/simulation/innovation.py
++++ b/simulation/innovation.py
+@@ -1,10 +1,12 @@
+ from __future__ import annotations
+ 
+ from copy import deepcopy
++from math import isfinite
+ import random
+ from typing import Any, Dict, List
+ 
+ from simulation.engine import run_simulation
++from simulation.numeric import metric, product_ratio
+ from simulation.metrics import compare_results
+ from simulation.factory import ScenarioConfig
+ 
+@@ -45,10 +47,10 @@
+             "Demanda x": cfg.demand_multiplier,
+             "Parada (h)": cfg.chaos_duration_h,
+             "Ausências": absent,
+-            "Throughput": result["throughput_h"],
+-            "SLA": result["sla_pct"],
+-            "Makespan": result["makespan_h"],
+-            "Custo/un": result["unit_cost"],
++            "Throughput": metric(result, "throughput_h"),
++            "SLA": metric(result, "sla_pct"),
++            "Makespan": metric(result, "makespan_h"),
++            "Custo/un": metric(result, "unit_cost"),
+             "Gargalo": result["bottleneck"],
+             "result": result,
+             "config": cfg,
+@@ -161,42 +163,65 @@
+             max(0, cfg.stations[s]["maquinas"] - base_config.stations[s]["maquinas"])
+             for s in station_ids
+         )
+-        feasible = r["throughput_h"] >= target_throughput and r["sla_pct"] >= target_sla
++        feasible = metric(r, "throughput_h") >= target_throughput and metric(r, "sla_pct") >= target_sla
+         # Penaliza complexidade e custo, valoriza proximidade da meta quando inviável.
+-        gap = max(0.0, target_throughput - r["throughput_h"]) * 22 + max(0.0, target_sla - r["sla_pct"]) * 0.8
++        gap = max(0.0, target_throughput - metric(r, "throughput_h")) * 22 + max(0.0, target_sla - metric(r, "sla_pct")) * 0.8
+         complexity = workers_added * 2.0 + machines_added * 4.5
+         score = (0 if feasible else 1000) + gap + complexity + max(0, d["unit_cost_pct"]) * 0.7
+         rows.append({
+             "Cenário": cfg.name,
+             "Atinge meta": "Sim" if feasible else "Não",
+-            "Throughput": r["throughput_h"],
+-            "SLA": r["sla_pct"],
+-            "Custo/un": r["unit_cost"],
+-            "Makespan": r["makespan_h"],
++            "Throughput": metric(r, "throughput_h"),
++            "SLA": metric(r, "sla_pct"),
++            "Custo/un": metric(r, "unit_cost"),
++            "Makespan": metric(r, "makespan_h"),
+             "Operadores +": workers_added,
+             "Máquinas +": machines_added,
+             "Throughput Δ (%)": round(d["throughput_pct"], 1),
+             "SLA Δ (p.p.)": round(d["sla_pp"], 1),
+             "Custo/un Δ (%)": round(d["unit_cost_pct"], 1),
+-            "score": round(score, 2),
++            "score": score,
+             "result": r,
+             "config": cfg,
+         })
+     rows.sort(key=lambda x: (x["score"], x["Custo/un"], x["Máquinas +"], x["Operadores +"]))
++    for row in rows:
++        row["score"] = round(row["score"], 2)
+     return rows[:max_results]
+ 
+ 
+ def finance_lens(base_result: Dict[str, Any], alt_result: Dict[str, Any], contribution_margin_per_unit: float, hours_per_day: float = 8.0, one_time_investment: float = 0.0) -> Dict[str, Any]:
+-    delta_tp = float(alt_result["throughput_h"]) - float(base_result["throughput_h"])
++    # Cost rates require an actual positive simulated horizon. An infeasible
++    # zero-horizon result has no economic rate; do not invent one with a floor.
++    if not all(isfinite(float(v)) for v in (contribution_margin_per_unit, hours_per_day, one_time_investment)):
++        raise ValueError('Parâmetros financeiros devem ser finitos.')
++    if hours_per_day < 0:
++        raise ValueError('As horas por dia devem ser não negativas.')
++
++    def daily_cost(result):
++        horizon = metric(result, "makespan_h")
++        if horizon <= 0:
++            raise ValueError('O custo diário exige horizonte de simulação positivo.')
++        cost = product_ratio([metric(result, "operating_cost"), hours_per_day],
++                             [horizon], 'Custo diário')
++        if not isfinite(cost):
++            raise ValueError('Custo diário fora do intervalo numérico representável.')
++        return cost
++
++    delta_tp = metric(alt_result, "throughput_h") - metric(base_result, "throughput_h")
+     extra_units_day = delta_tp * max(0.0, hours_per_day)
+     extra_contribution_day = extra_units_day * max(0.0, contribution_margin_per_unit)
+-    base_daily_cost = float(base_result["operating_cost"]) / max(float(base_result["makespan_h"]), 0.01) * hours_per_day
+-    alt_daily_cost = float(alt_result["operating_cost"]) / max(float(alt_result["makespan_h"]), 0.01) * hours_per_day
++    base_daily_cost = daily_cost(base_result)
++    alt_daily_cost = daily_cost(alt_result)
+     incremental_cost_day = alt_daily_cost - base_daily_cost
+     net_day = extra_contribution_day - incremental_cost_day
++    if not all(isfinite(v) for v in (delta_tp, extra_units_day, extra_contribution_day, incremental_cost_day, net_day)):
++        raise ValueError('Resultado financeiro fora do intervalo numérico representável.')
+     payback_days = None
+     if one_time_investment > 0 and net_day > 0:
+         payback_days = one_time_investment / net_day
++        if not isfinite(payback_days):
++            raise ValueError('Payback fora do intervalo numérico representável.')
+     return {
+         "extra_units_day": round(extra_units_day, 2),
+         "extra_contribution_day": round(extra_contribution_day, 2),
+--- a/simulation/metrics.py
++++ b/simulation/metrics.py
+@@ -1,28 +1,38 @@
+ from __future__ import annotations
+ 
+ from typing import Dict, Any, List
++from math import isfinite
++
++from simulation.numeric import finite, metric, product_ratio
+ 
+ 
+ def compare_results(base: Dict[str, Any], alt: Dict[str, Any]) -> Dict[str, float]:
+     def pct(new, old):
+-        return 0.0 if abs(old) < 1e-9 else ((new - old) / old) * 100.0
++        # A zero reference has no defined percentage change; retain the existing
++        # neutral convention. Every nonzero reference uses its actual value.
++        change = 0.0 if old == 0 else ((new - old) / old) * 100.0
++        if not isfinite(change):
++            raise ValueError('Variação percentual fora do intervalo numérico representável.')
++        return change
+ 
+     return {
+-        "throughput_pct": pct(alt["throughput_h"], base["throughput_h"]),
+-        "makespan_pct": pct(alt["makespan_h"], base["makespan_h"]),
+-        "total_cost_pct": pct(alt["total_cost"], base["total_cost"]),
+-        "unit_cost_pct": pct(alt["unit_cost"], base["unit_cost"]),
+-        "sla_pp": alt["sla_pct"] - base["sla_pct"],
+-        "penalty_delta": alt["penalty_total"] - base["penalty_total"],
++        "throughput_pct": pct(metric(alt, "throughput_h"), metric(base, "throughput_h")),
++        "makespan_pct": pct(metric(alt, "makespan_h"), metric(base, "makespan_h")),
++        "total_cost_pct": pct(metric(alt, "total_cost"), metric(base, "total_cost")),
++        "unit_cost_pct": pct(metric(alt, "unit_cost"), metric(base, "unit_cost")),
++        "sla_pp": metric(alt, "sla_pct") - metric(base, "sla_pct"),
++        "penalty_delta": metric(alt, "penalty_total") - metric(base, "penalty_total"),
+     }
+ 
+ 
+ def murphy_score(result: Dict[str, Any]) -> float:
+     """Índice próprio de resiliência operacional (0–100), sem pretensão normativa."""
+-    sla = float(result["sla_pct"])
+-    balance = max(0.0, 100.0 - float(result["balance_loss_pp"]))
+-    penalty_factor = max(0.0, 100.0 - min(100.0, result["penalty_total"] / 80.0))
+-    util_map = {r["Posto"]: r["Utilização máquina (%)"] for r in result["stations"]}
++    sla = float(metric(result, "sla_pct"))
++    balance = max(0.0, 100.0 - float(metric(result, "balance_loss_pp")))
++    penalty_factor = max(0.0, 100.0 - min(100.0, metric(result, "penalty_total") / 80.0))
++    util_map = {r["Posto"]: finite(r.get('precise', {}).get('machine_util_pct',
++                                                    r["Utilização máquina (%)"]), 'Utilização máquina')
++                for r in result["stations"]}
+     avg_util = sum(util_map.values()) / max(1, len(util_map))
+     utilization_quality = max(0.0, 100.0 - abs(78.0 - avg_util) * 1.4)
+     score = 0.40 * sla + 0.25 * balance + 0.20 * penalty_factor + 0.15 * utilization_quality
+@@ -31,11 +41,19 @@
+ 
+ def fingerprint(result: Dict[str, Any], base: Dict[str, Any] | None = None) -> Dict[str, float]:
+     base = base or result
+-    max_tp = max(base["throughput_h"], result["throughput_h"], 0.01)
+-    tp = min(100.0, 100 * result["throughput_h"] / max_tp)
+-    sla = float(result["sla_pct"])
+-    balance = max(0.0, 100.0 - float(result["balance_loss_pp"]))
+-    cost_eff = max(0.0, 100.0 - min(100.0, (result["unit_cost"] / max(base["unit_cost"], 0.01) - 0.65) * 120))
++    max_tp = max(metric(base, "throughput_h"), metric(result, "throughput_h"))
++    tp = 0.0 if max_tp == 0 else min(100.0, product_ratio(
++        [100.0, metric(result, "throughput_h")], [max_tp], 'Fluxo normalizado'))
++    sla = float(metric(result, "sla_pct"))
++    balance = max(0.0, 100.0 - float(metric(result, "balance_loss_pp")))
++    base_cost, actual_cost = metric(base, "unit_cost"), metric(result, "unit_cost")
++    if base_cost == 0:
++        # With no reference cost, distinguish another zero from a new expense;
++        # no finite percentage ratio exists for a positive cost over zero.
++        cost_eff = 100.0 if actual_cost == 0 else 0.0
++    else:
++        ratio = product_ratio([actual_cost], [base_cost], 'Custo unitário relativo')
++        cost_eff = max(0.0, 100.0 - min(100.0, (ratio - 0.65) * 120))
+     resilience = murphy_score(result)
+     return {
+         "Fluxo": round(tp, 1),
+--- /dev/null
++++ b/simulation/numeric.py
+@@ -0,0 +1,70 @@
++"""AM-11: finite arithmetic and precise metrics, with legacy-result fallback.
++
++Rounded result keys remain presentation-compatible. Numerical consumers use
++``metric``; positive values never become zero solely through display rounding.
++No physical time/capacity denominator is replaced by an arbitrary minimum.
++"""
++from decimal import Decimal, localcontext
++import math
++import sys
++
++
++def finite(value, label='valor'):
++    try:
++        number = float(value)
++    except (TypeError, ValueError, OverflowError) as exc:
++        raise ValueError(f'{label}: informe um número finito.') from exc
++    if not math.isfinite(number):
++        raise ValueError(f'{label}: informe um número finito.')
++    return number
++
++
++def metric(result, key, default=None):
++    """Read unrounded metrics, including plain JSON and older saved results."""
++    return finite((result.get('precise') or {}).get(key, result.get(key, default)), key)
++
++
++def present(value, digits):
++    """Retain established rounding, but do not publish a false physical zero."""
++    value = finite(value)
++    rounded = round(value, digits)
++    return value if rounded == 0 and value != 0 else rounded
++
++
++def product_ratio(numerators, denominators, label, *, zero_over_zero=False):
++    """Nonnegative physical products/ratios; Decimal only for extreme floats.
++
++    Recover representable answers after an intermediate overflow/underflow.
++    Reject final answers outside float representation rather than inventing a
++    duration, rate or capacity. 0/0 is defined only for unused capacity metrics.
++    """
++    nums = [finite(x, label) for x in numerators]
++    dens = [finite(x, label) for x in denominators]
++    if any(x < 0 for x in nums + dens):
++        raise ValueError(f'{label}: valores negativos não são permitidos.')
++    if any(x == 0 for x in dens):
++        if zero_over_zero and any(x == 0 for x in nums):
++            return 0.0
++        raise ValueError(f'{label}: denominador nulo.')
++    if any(x == 0 for x in nums):
++        return 0.0
++    numerator = math.prod(nums)
++    denominator = math.prod(dens)
++    intermediate_loss = any(not math.isfinite(x) or x < sys.float_info.min
++                            for x in (numerator, denominator))
++    try:
++        answer = numerator / denominator
++    except (ZeroDivisionError, OverflowError):
++        answer = float('nan')
++    if intermediate_loss or not math.isfinite(answer) or answer <= 0:
++        with localcontext() as context:
++            context.prec = 60
++            answer_decimal = Decimal(1)
++            for x in nums:
++                answer_decimal *= Decimal.from_float(x)
++            for x in dens:
++                answer_decimal /= Decimal.from_float(x)
++            answer = float(answer_decimal)
++    if not math.isfinite(answer) or answer <= 0:
++        raise ValueError(f'{label}: resultado fora da representação numérica finita.')
++    return answer
+--- a/simulation/response.py
++++ b/simulation/response.py
+@@ -6,6 +6,7 @@
+ import statistics
+ from simulation.factory import TimedAction
+ from simulation.engine import run_simulation
++from simulation.numeric import metric, finite
+ from simulation.atlas import DecisionPolicy, scenario_from_incident, _status
+ from simulation.decision_lab import config_signature, pareto_flags
+ from simulation.decision_council import enrich_decision_rows
+@@ -51,14 +52,17 @@
+         result=incident if action is None else run_simulation(cfg,action)
+         label=action.label if action else 'Não intervir'
+         feasible=result['feasible'] and incident['feasible']
+-        cost=round(result['total_cost']+investment,2) if feasible else None
++        raw_cost=finite(metric(result,'total_cost')+investment, 'Custo da decisão') if feasible else None
++        cost=round(raw_cost,2) if feasible else None
+         identity=json.dumps({'model':config_signature(cfg),'response':asdict(action) if action else None},sort_keys=True)
+         rows.append({'action':label,'rationale':why,'investment':float(investment),'config':cfg,'result':result,
+             'timed_action':action,'signature':sha256(identity.encode()).hexdigest()[:16],
+             'feasible':bool(feasible),'within_budget':investment<=policy.budget if strict_budget else policy.budget<=0 or investment<=policy.budget,
+-            'meets_sla':bool(feasible and result['sla_pct']>=policy.min_sla),'decision_cost':cost,
+-            'savings':round(incident['total_cost']-cost,2) if cost is not None else None,
+-            'sla_pct':result['sla_pct'],'makespan_h':result['makespan_h'],'throughput_h':result['throughput_h'],
++            'meets_sla':bool(feasible and metric(result,'sla_pct')>=policy.min_sla),'decision_cost':cost,
++            'savings':round(metric(incident,'total_cost')-raw_cost,2) if cost is not None else None,
++            'precise': {**result.get('precise',{}), 'decision_cost':raw_cost,
++                        'savings':metric(incident,'total_cost')-raw_cost if raw_cost is not None else None},
++            'sla_pct':metric(result,'sla_pct'),'makespan_h':metric(result,'makespan_h'),'throughput_h':metric(result,'throughput_h'),
+             'late_orders':result['late_orders'],'penalty_total':result['penalty_total'],
+             'requested_h':at if action else None,'effective_h':(result.get('intervention') or {}).get('effective_h'),
+             'feasibility_note':'Capacidade viável no modelo' if feasible else 'Modelo bloqueado'})
+@@ -66,10 +70,10 @@
+     rows=enrich_decision_rows(rows,incident,nominal,sla_floor=policy.min_sla)
+     reference_orders={o['OP']:o for o in incident['orders']}
+     for r in rows:
+-        r['total_lateness_h']=round(sum(float(o.get('Atraso (h)') or 0) for o in r['result']['orders']),4)
++        r['total_lateness_h']=(sum(float(o.get('lateness_h', o.get('Atraso (h)')) or 0) for o in r['result']['orders']))
+         r['order_impacts']=[{'id':o['OP'],'due_h':float(o['Prazo (h)']),
+-            'before_h':float(reference_orders[o['OP']]['Conclusão (h)']),
+-            'after_h':float(o['Conclusão (h)']),
++            'before_h':float(reference_orders[o['OP']].get('completion_h',reference_orders[o['OP']]['Conclusão (h)'])),
++            'after_h':float(o.get('completion_h',o['Conclusão (h)'])),
+             'late_before':reference_orders[o['OP']]['Status']=='Atrasada','late_after':o['Status']=='Atrasada'} for o in r['result']['orders']]
+         focus=next((o for o in r['order_impacts'] if o['id']==critical_order),None)
+         r['critical_finish_h']=focus['after_h'] if focus else None
+@@ -78,22 +82,22 @@
+         r['restriction_reasons']=(['Capacidade insuficiente'] if not r['feasible'] else [])+(['Supera o investimento disponível'] if not r['within_budget'] else [])+(['Entregas abaixo do mínimo exigido'] if not r['meets_sla'] else [])
+     valid=[r for r in rows if r['timed_action'] and r['feasible'] and r['within_budget'] and r['meets_sla']]
+     eligible=[r for r in valid if
+-        (r['savings'] or 0)>.005 and r['sla_pct']>=incident['sla_pct'] and r['makespan_h']<=incident['makespan_h']]
++        (metric(r,'savings') if r['savings'] is not None else 0)>.005 and r['sla_pct']>=metric(incident,'sla_pct') and r['makespan_h']<=metric(incident,'makespan_h')]
+     if objective=='delivery':
+-        eligible=[r for r in valid if r['sla_pct']>=incident['sla_pct'] and (r['sla_pct']>incident['sla_pct'] or r['makespan_h']<incident['makespan_h']-.005 or (r['savings'] or 0)>.005)]
+-        rank=lambda r:(-r['sla_pct'],r['total_lateness_h'],r['makespan_h'],r['decision_cost'])
++        eligible=[r for r in valid if r['sla_pct']>=metric(incident,'sla_pct') and (r['sla_pct']>metric(incident,'sla_pct') or r['makespan_h']<metric(incident,'makespan_h')-.005 or (metric(r,'savings') if r['savings'] is not None else 0)>.005)]
++        rank=lambda r:(-r['sla_pct'],r['total_lateness_h'],r['makespan_h'],metric(r,'decision_cost'))
+         reason='Prioriza mais pedidos no prazo, depois menos horas de atraso e menor conclusão da carteira; respeita orçamento e entrega mínima.'
+     elif objective=='critical':
+-        ref=reference_orders[critical_order];before=float(ref['Conclusão (h)'])
++        ref=reference_orders[critical_order];before=float(ref.get('completion_h',ref['Conclusão (h)']))
+         eligible=[r for r in valid if r['critical_finish_h']<before-.005]
+-        rank=lambda r:(r['critical_lateness_h'],r['critical_finish_h'],-r['sla_pct'],r['decision_cost'])
++        rank=lambda r:(r['critical_lateness_h'],r['critical_finish_h'],-r['sla_pct'],metric(r,'decision_cost'))
+         reason=f'Prioriza o atraso e a conclusão de {critical_order} entre as respostas simuladas; respeita orçamento e entrega mínima. Os demais pedidos podem ter perdas.'
+     else:
+-        rank=lambda r:(r['decision_cost'],-r['sla_pct'],r['makespan_h'])
++        rank=lambda r:(metric(r,'decision_cost'),-r['sla_pct'],r['makespan_h'])
+         reason='Menor custo total entre as respostas que geram economia sem piorar entregas e conclusão, dentro do orçamento e da entrega mínima.'
+     leader=min(eligible,key=rank) if eligible else None
+     rows.sort(key=lambda r:(r is not leader,not (r['feasible'] and r['within_budget'] and r['meets_sla']),
+-                            r['decision_cost'] if r['decision_cost'] is not None else float('inf')))
++                            metric(r,'decision_cost') if r['decision_cost'] is not None else float('inf')))
+     status,explanation=_status(incident,nominal,leader,rows)
+     if leader and objective!='cost':status='RESPOSTA PROMISSORA';explanation=reason
+     if not leader and status=='RESPOSTA PROMISSORA':
+@@ -121,10 +125,10 @@
+     for delay in sorted({0.,1.,2.,4.,8.,float(data['delay_h'])}):
+         cfg=row['config'];action=replace(row['timed_action'],at_h=start+delay)
+         r=run_simulation(cfg,action)
+-        cost=r['total_cost']+row['investment']
++        cost=metric(r,'total_cost')+row['investment']
+         points.append({'delay_h':delay,'requested_h':action.at_h,'effective_h':r['intervention']['effective_h'],
+-            'net_saving':round(data['incident']['total_cost']-cost,2),'sla_pct':r['sla_pct'],
+-            'makespan_h':r['makespan_h'],'late_orders':r['late_orders']})
++            'net_saving':round(metric(data['incident'],'total_cost')-cost,2),'sla_pct':metric(r,'sla_pct'),
++            'makespan_h':metric(r,'makespan_h'),'late_orders':r['late_orders']})
+     return points
+ 
+ 
+@@ -134,9 +138,9 @@
+     for seed in seeds:
+         cfg=row['config'].clone();cfg.seed=int(seed)
+         incident=run_simulation(cfg);response=run_simulation(cfg,row['timed_action'])
+-        pairs.append({'seed':seed,'cost_saving':round(incident['total_cost']-response['total_cost'],2),
+-            'net_saving':round(incident['total_cost']-response['total_cost']-row['investment'],2),
+-            'sla_gain_pp':round(response['sla_pct']-incident['sla_pct'],2),
+-            'makespan_gain_h':round(incident['makespan_h']-response['makespan_h'],2)})
++        pairs.append({'seed':seed,'cost_saving':round(metric(incident,'total_cost')-metric(response,'total_cost'),2),
++            'net_saving':round(metric(incident,'total_cost')-metric(response,'total_cost')-row['investment'],2),
++            'sla_gain_pp':round(metric(response,'sla_pct')-metric(incident,'sla_pct'),2),
++            'makespan_gain_h':round(metric(incident,'makespan_h')-metric(response,'makespan_h'),2)})
+     return {'pairs':pairs,'mean_net_saving':statistics.mean(p['net_saving'] for p in pairs),
+         'min_net_saving':min(p['net_saving'] for p in pairs),'max_net_saving':max(p['net_saving'] for p in pairs)}
+--- /dev/null
++++ b/tests/test_am11_consumers.py
+@@ -0,0 +1,144 @@
++"""Independent references for numeric consumers, without changing search scope."""
++from copy import deepcopy
++from unittest.mock import patch
++
++import pytest
++
++from simulation.advanced import (
++    demand_breakpoint, monte_carlo_analysis, recovery_plan, sensitivity_analysis,
++)
++from simulation.factory import ScenarioConfig
++from simulation.innovation import finance_lens, goal_seek
++from simulation.metrics import compare_results, fingerprint, murphy_score
++
++
++def packet(**updates):
++    raw = dict(makespan_h=1.0, throughput_h=1.0, sla_pct=100.0,
++               total_cost=10.0, unit_cost=10.0, operating_cost=10.0,
++               penalty_total=0.0, balance_loss_pp=0.0)
++    raw.update(updates)
++    return {**{k: round(v, 1 if k == 'sla_pct' else 2) for k, v in raw.items()},
++            'precise': raw, 'feasible': True, 'bottleneck': 'P',
++            'stations': [], 'intervention': {'effective_h': 2.0}}
++
++
++def config():
++    return ScenarioConfig('reference', {'P': {'maquinas': 1, 'operadores': 1}}, [],
++                          chaos_station='P', chaos_start_h=1, chaos_duration_h=2)
++
++
++def test_percent_change_preserves_nonzero_small_reference():
++    a = packet(makespan_h=1e-12, throughput_h=1e-12, total_cost=1e-12, unit_cost=1e-12)
++    b = packet(makespan_h=2e-12, throughput_h=2e-12, total_cost=2e-12, unit_cost=2e-12)
++    changes = compare_results(a, b)
++    for key in ('makespan_pct', 'throughput_pct', 'total_cost_pct', 'unit_cost_pct'):
++        assert changes[key] == pytest.approx(100)
++
++
++def test_percentage_zero_reference_keeps_legacy_neutral_convention():
++    assert compare_results(packet(throughput_h=0), packet(throughput_h=1))['throughput_pct'] == 0
++
++
++def test_finance_uses_cost_rate_over_actual_short_horizon():
++    # Base 0.01 / 0.001 = 10/h; alternative 0.04 / 0.002 = 20/h.
++    # Over eight hours the incremental capacity cost is 80, not 8.
++    a = packet(makespan_h=.001, operating_cost=.01)
++    b = packet(makespan_h=.002, operating_cost=.04)
++    lens = finance_lens(a, b, contribution_margin_per_unit=0, hours_per_day=8)
++    assert lens['incremental_cost_day'] == 80
++    assert lens['net_day'] == -80
++
++
++@pytest.mark.parametrize('horizon', [0.0, -1.0, float('inf'), float('nan')])
++def test_finance_rejects_horizon_without_finite_positive_rate(horizon):
++    with pytest.raises(ValueError):
++        finance_lens(packet(makespan_h=horizon), packet(), 1)
++
++
++@pytest.mark.parametrize('field', ['contribution_margin_per_unit', 'hours_per_day', 'one_time_investment'])
++def test_finance_rejects_nonfinite_input(field):
++    args = dict(contribution_margin_per_unit=1, hours_per_day=8, one_time_investment=0)
++    args[field] = float('nan')
++    with pytest.raises(ValueError):
++        finance_lens(packet(), packet(), **args)
++
++
++def test_goal_sla_threshold_does_not_approve_rounded_up_fraction():
++    candidate = packet(sla_pct=200 / 3)
++    assert candidate['sla_pct'] == 66.7
++    with patch('simulation.innovation.run_simulation', return_value=candidate):
++        rows = goal_seek(config(), packet(), target_throughput=0, target_sla=66.68,
++                         max_extra_workers=1, max_extra_machines=0)
++    assert rows[0]['Atinge meta'] == 'Não'
++
++
++def test_goal_throughput_threshold_does_not_reject_rounded_down_value():
++    candidate = packet(throughput_h=1.0004)
++    assert candidate['throughput_h'] == 1.0
++    with patch('simulation.innovation.run_simulation', return_value=candidate):
++        rows = goal_seek(config(), packet(), target_throughput=1.0002, target_sla=80,
++                         max_extra_workers=1, max_extra_machines=0)
++    assert rows[0]['Atinge meta'] == 'Sim'
++    assert rows[0]['Throughput'] == 1.0004
++
++
++def test_sensitivity_keeps_true_small_marginal_gain():
++    baseline = packet(throughput_h=1)
++    candidate = packet(throughput_h=1.0004)
++    with patch('simulation.advanced.run_simulation', return_value=candidate):
++        rows = sensitivity_analysis(config(), baseline, 'P', max_add=1)
++    assert rows[1]['Ganho marginal TP'] == pytest.approx(.0004)
++
++
++def test_demand_breakpoint_compares_exact_sla():
++    candidate = packet(sla_pct=200 / 3)
++    with patch('simulation.advanced.run_simulation', return_value=candidate):
++        result = demand_breakpoint(config(), sla_floor=66.68, demand_start=1, demand_stop=1)
++    assert result['first_break'] is not None
++    assert result['last_safe'] is None
++
++
++def test_monte_carlo_statistics_use_unrounded_values():
++    candidate = packet(throughput_h=1.0004, makespan_h=.00123, unit_cost=.01234, sla_pct=200 / 3)
++    with patch('simulation.advanced.run_simulation', return_value=candidate):
++        result = monte_carlo_analysis(config(), runs=4)
++    assert result['summary']['throughput']['mean'] == pytest.approx(1.0004)
++    assert result['summary']['makespan']['mean'] == pytest.approx(.00123)
++    assert result['summary']['unit_cost']['mean'] == pytest.approx(.01234)
++    assert result['summary']['sla']['mean'] == pytest.approx(200 / 3)
++
++
++def test_recovery_ranks_before_rounding_heuristic_score():
++    baseline = packet(throughput_h=100, unit_cost=100)
++    first = packet(throughput_h=100.018, unit_cost=1)
++    second = packet(throughput_h=100.02, unit_cost=2)
++    # Both displayed scores round to 0.0. The larger exact gain must win,
++    # rather than using unit cost to break an artificial rounded tie.
++    with patch('simulation.advanced.run_simulation', side_effect=[first, second]):
++        rows = recovery_plan(config(), baseline, max_results=2, action_at_h=2)
++    assert rows[0]['Ação'] == '+1 máquina em P'
++    assert rows[0]['Recovery score'] == rows[1]['Recovery score'] == 0.0
++
++
++def test_fingerprint_preserves_small_positive_scale_ratios():
++    base = packet(throughput_h=2e-6, unit_cost=5e-6)
++    result = packet(throughput_h=1e-6, unit_cost=5e-6)
++    radar = fingerprint(result, base)
++    assert radar['Fluxo'] == 50.0
++    # Same real unit cost has ratio1:100-(1-.65)*120=58.
++    assert radar['Eficiência de custo'] == 58.0
++
++
++def test_fingerprint_zero_reference_has_explicit_meaning():
++    base = packet(throughput_h=0, unit_cost=0)
++    same_zero = fingerprint(base, base)
++    assert same_zero['Fluxo'] == 0
++    assert same_zero['Eficiência de custo'] == 100
++    assert fingerprint(packet(unit_cost=1), base)['Eficiência de custo'] == 0
++
++
++def test_murphy_score_uses_precise_station_utilization():
++    result = packet()
++    result['stations'] = [{'Posto': 'P', 'Utilização máquina (%)': 0,
++                           'precise': {'machine_util_pct': 78}}]
++    assert murphy_score(result) == 100.0
+--- /dev/null
++++ b/tests/test_am11_display.py
+@@ -0,0 +1,26 @@
++"""The actual JS formatters must not turn a short positive horizon into zero."""
++import json
++from pathlib import Path
++import shutil
++import subprocess
++
++import pytest
++
++WEB = Path(__file__).resolve().parents[1] / 'atelier' / 'web'
++
++@pytest.mark.parametrize('chart', [False, True])
++def test_nonzero_small_value_visible_without_changing_ordinary_format(chart):
++    node = shutil.which('node')
++    if not node:
++        pytest.skip('Node is required for the optional JavaScript formatter test.')
++    if chart:
++        source = (WEB / 'engineering_charts.js').read_text()
++        snippet = source[source.index('const valid='):source.index('const fc=')]
++        call = 'fnum'
++    else:
++        source = (WEB / 'app.js').read_text()
++        snippet = source[source.index('const numericText ='):source.index('const h =')]
++        call = 'numericText'
++    js = snippet + f'console.log(JSON.stringify([0.001,16.9,1e-10].map(x=>{call}(x,2))))'
++    values = json.loads(subprocess.check_output([node, '-e', js], text=True))
++    assert values == ['0,001', '16,90', '1,000e-10']
+--- /dev/null
++++ b/tests/test_am11_numeric_precision.py
+@@ -0,0 +1,256 @@
++"""Independent dimensional references for AM-11, without editing the DES clock.
++
++Noise=1 gives exact classroom references. One case keeps the actual seeded noise.
++Legacy presentation keys remain available; calculation consumers use precise values.
++"""
++from copy import deepcopy
++import math
++
++import pytest
++
++from simulation.engine import run_simulation
++from simulation.factory import TimedAction, build_scenario
++from simulation.numeric import metric
++from simulation.validation import validate_model
++
++
++def scenario(*, minutes=0.06, quantity=1, machines=1, workers=1,
++             efficiency=1.0, availability=1.0, automated=False,
++             deadline=100.0, release=0.0):
++    stations = {'P': {
++        'nome': 'Posto de referência', 'maquinas': machines,
++        'operadores': workers, 'operadores_por_maquina': 1,
++        'eficiencia_operador': efficiency, 'disponibilidade': availability,
++        'custo_maquina_h': 10.0, 'custo_operador_h': 20.0,
++        'setup_min': 0.0, 'automatizada': automated,
++    }}
++    orders = [{
++        'id': 'REF', 'cliente': 'Referência', 'produto': 'Peça',
++        'quantidade': quantity, 'prazo_h': deadline, 'multa_hora': 100.0,
++        'prioridade': 1, 'release_h': release, 'route': [('P', minutes)],
++    }]
++    return build_scenario('Referência dimensional AM-11', stations, orders)
++
++
++@pytest.fixture
++def exact_noise(monkeypatch):
++    monkeypatch.setattr('simulation.engine._noise', lambda *_args: 1.0)
++
++
++def test_one_thousandth_hour_reference_has_positive_horizon_and_full_utilization(exact_noise):
++    # 0.06 min / 60 = 0.001 h; one unit / 0.001 h = 1,000 units/h.
++    cfg = scenario()
++    result = run_simulation(cfg)
++    assert result['makespan_h'] > 0, 'Presentation must never turn a positive horizon into zero.'
++    assert metric(result, 'makespan_h') == pytest.approx(0.001)
++    assert metric(result, 'throughput_h') == pytest.approx(1000.0)
++    assert result['stations'][0]['Utilização máquina (%)'] == 100.0
++    assert result['stations'][0]['Utilização mão de obra (%)'] == 100.0
++    assert metric(result, 'operating_cost') == pytest.approx(0.001 * (10 + 20))
++    assert result['precise']['makespan_h'] == pytest.approx(0.001)
++    assert cfg.stations['P']['eficiencia_operador'] == 1.0
++
++
++@pytest.mark.parametrize('capacity', [1, 2, 4])
++@pytest.mark.parametrize('batches', [1, 3])
++def test_parallel_capacity_uses_actual_machine_and_worker_hours(capacity, batches, exact_noise):
++    quantity = capacity * batches
++    result = run_simulation(scenario(quantity=quantity, machines=capacity, workers=capacity))
++    horizon = batches * 0.001
++    assert metric(result, 'makespan_h') == pytest.approx(horizon)
++    assert metric(result, 'throughput_h') == pytest.approx(quantity / horizon)
++    assert result['stations'][0]['Utilização máquina (%)'] == 100.0
++    assert result['stations'][0]['Utilização mão de obra (%)'] == 100.0
++    assert metric(result, 'operating_cost') == pytest.approx(horizon * capacity * 30)
++
++
++@pytest.mark.parametrize('field', ['eficiencia_operador', 'disponibilidade'])
++@pytest.mark.parametrize('factor', [0.001, 0.009, 0.01, 0.1, 1.0])
++def test_positive_factors_are_preserved_without_hidden_floor(field, factor, exact_noise):
++    cfg = scenario(minutes=60, deadline=100)
++    cfg.stations['P'][field] = factor
++    before = deepcopy(cfg)
++    assert validate_model(cfg.stations, cfg.orders) == []
++    result = run_simulation(cfg)
++    horizon = 1.0 / factor
++    penalty = max(0.0, horizon - 100.0) * 100.0
++    assert metric(result, 'makespan_h') == pytest.approx(horizon)
++    assert metric(result, 'throughput_h') == pytest.approx(1.0 / horizon)
++    assert metric(result, 'operating_cost') == pytest.approx(horizon * 30)
++    assert metric(result, 'penalty_total') == pytest.approx(penalty)
++    assert metric(result, 'total_cost') == pytest.approx(horizon * 30 + penalty)
++    assert result['sla_pct'] == (0.0 if horizon > 100 else 100.0)
++    assert cfg == before
++
++
++@pytest.mark.parametrize('field', ['eficiencia_operador', 'disponibilidade'])
++@pytest.mark.parametrize('value', [None, 0, -0.001, math.nan, math.inf, -math.inf])
++def test_invalid_factors_are_rejected_before_simulation(field, value):
++    cfg = scenario()
++    cfg.stations['P'][field] = value
++    with pytest.raises(ValueError):
++        run_simulation(cfg)
++
++
++@pytest.mark.parametrize('value', [None, 0, -0.001, math.nan, math.inf, -math.inf])
++def test_zero_negative_and_nonfinite_processing_durations_are_rejected(value):
++    with pytest.raises(ValueError):
++        run_simulation(scenario(minutes=value))
++
++
++def test_actual_seeded_noise_still_obeys_dimensional_metrics():
++    result = run_simulation(scenario())
++    horizon = max(op['end_h'] for op in result['operations'])
++    assert 0 < horizon < 0.01
++    assert metric(result, 'makespan_h') == pytest.approx(horizon)
++    assert metric(result, 'throughput_h') == pytest.approx(1 / horizon)
++    assert result['stations'][0]['Utilização máquina (%)'] == 100.0
++    assert result['stations'][0]['Utilização mão de obra (%)'] == 100.0
++
++
++def test_releases_and_multiple_orders_include_idle_time_in_plan_horizon(exact_noise):
++    cfg = scenario()
++    cfg.orders = [dict(cfg.orders[0], id=f'O{i}', release_h=release)
++                  for i, release in enumerate([0.0, 0.001, 0.005])]
++    result = run_simulation(cfg)
++    # Three busy intervals of 0.001 h, including 0.003 h idle between them.
++    assert metric(result, 'makespan_h') == pytest.approx(0.006)
++    assert metric(result, 'throughput_h') == pytest.approx(3 / 0.006)
++    assert result['stations'][0]['Utilização máquina (%)'] == 50.0
++    assert result['stations'][0]['Utilização mão de obra (%)'] == 50.0
++    assert metric(result, 'operating_cost') == pytest.approx(0.006 * 30)
++
++
++def test_automated_station_with_no_workers_has_defined_zero_labor_utilization(exact_noise):
++    result = run_simulation(scenario(workers=0, automated=True))
++    assert result['feasible']
++    assert result['stations'][0]['Utilização máquina (%)'] == 100.0
++    assert result['stations'][0]['Utilização mão de obra (%)'] == 0.0
++    assert metric(result, 'operating_cost') == pytest.approx(0.001 * 10)
++
++
++def test_timed_worker_addition_integrates_capacity_and_keeps_in_flight_operations(exact_noise):
++    cfg = scenario(quantity=4, machines=2, workers=1)
++    action = TimedAction(0.0015, workers_delta={'P': 1})
++    baseline = run_simulation(cfg)
++    result = run_simulation(cfg, action)
++    assert result['intervention']['effective_h'] == pytest.approx(0.0015)
++    # Intervals: [0,.001], [.001,.002], [.0015,.0025], [.002,.003].
++    assert metric(result, 'makespan_h') == pytest.approx(0.003)
++    assert metric(result, 'throughput_h') == pytest.approx(4 / 0.003)
++    machine_hours = 2 * 0.003
++    worker_hours = 0.0015 + 2 * 0.0015
++    assert result['stations'][0]['Utilização máquina (%)'] == pytest.approx(round(100 * 0.004 / machine_hours, 1))
++    assert result['stations'][0]['Utilização mão de obra (%)'] == pytest.approx(round(100 * 0.004 / worker_hours, 1))
++    assert metric(result, 'operating_cost') == pytest.approx(machine_hours * 10 + worker_hours * 20)
++    assert result['stations'][0]['precise']['machine_util_pct'] == pytest.approx(100 * 0.004 / machine_hours)
++    assert result['stations'][0]['precise']['worker_util_pct'] == pytest.approx(100 * 0.004 / worker_hours)
++    prefix = lambda r: sorted((op['Unidade'], op['start_h'], min(op['end_h'], action.at_h))
++                              for op in r['operations'] if op['start_h'] < action.at_h)
++    assert prefix(result) == prefix(baseline)
++
++
++def test_precise_values_are_not_rounded_before_ratio_or_cost_calculation(exact_noise):
++    minutes = 0.07407
++    horizon = minutes / 60
++    result = run_simulation(scenario(minutes=minutes))
++    assert metric(result, 'makespan_h') == pytest.approx(horizon, rel=1e-13)
++    assert metric(result, 'throughput_h') == pytest.approx(1 / horizon, rel=1e-13)
++    assert metric(result, 'operating_cost') == pytest.approx(horizon * 30, rel=1e-13)
++    assert metric(result, 'unit_cost') == pytest.approx(horizon * 30, rel=1e-13)
++
++
++@pytest.mark.parametrize('mutate', [
++    lambda cfg: cfg.stations['P'].update(eficiencia_operador=1e-308, disponibilidade=1e-308),
++    lambda cfg: cfg.orders[0].update(route=[('P', 1e-320)]),
++    lambda cfg: cfg.orders[0].update(release_h=1e20),
++])
++def test_unrepresentable_overflow_underflow_or_clock_progress_is_explicitly_rejected(mutate, exact_noise):
++    cfg = scenario()
++    mutate(cfg)
++    with pytest.raises(ValueError):
++        run_simulation(cfg)
++
++
++def test_metric_helper_keeps_legacy_result_dictionary_compatibility():
++    assert metric({'makespan_h': 1.25}, 'makespan_h') == 1.25
++    assert metric({'makespan_h': 1.25, 'precise': {'makespan_h': 1.254}}, 'makespan_h') == 1.254
++
++
++def test_order_reference_keeps_completion_and_lateness_before_display_rounding(exact_noise):
++    cfg = scenario(minutes=0.06, deadline=0.0012)
++    cfg.orders[0]['route'] = [('P', 0.06), ('P', 0.03)]
++    result = run_simulation(cfg)
++    row = result['orders'][0]
++    assert row['completion_h'] == pytest.approx(0.0015)
++    assert row['lateness_h'] == pytest.approx(0.0003)
++    assert row['penalty'] == pytest.approx(0.03)
++    assert result['late_orders'] == 1
++    assert metric(result, 'sla_pct') == 0.0
++    assert metric(result, 'penalty_total') == pytest.approx(0.03)
++
++
++def three_order_sla_reference():
++    cfg = scenario(minutes=60)
++    cfg.orders = [dict(cfg.orders[0], id=oid, prazo_h=due)
++                  for oid, due in [('A', 1.5), ('B', 2.5), ('C', 2.6)]]
++    return cfg
++
++
++@pytest.mark.parametrize('minimum,expected', [(66.66, True), (66.68, False)])
++def test_temporal_response_sla_eligibility_uses_two_thirds_before_display_rounding(minimum, expected, exact_noise):
++    from simulation.atlas import DecisionPolicy
++    from simulation.response import analyze_response
++    cfg = three_order_sla_reference()
++    # This incident is after completion, so the service reference stays 2/3.
++    data = analyze_response(cfg, 'P', 10.0, 1.0, DecisionPolicy(min_sla=minimum))
++    row = next(item for item in data['rows'] if item['action'] == 'Não intervir')
++    assert row['result']['sla_pct'] == 66.7  # Existing display contract stays rounded.
++    assert metric(row['result'], 'sla_pct') == pytest.approx(200 / 3)
++    assert row['meets_sla'] is expected
++
++
++@pytest.mark.parametrize('minimum,expected', [(66.66, True), (66.68, False)])
++def test_structural_decisions_sla_eligibility_uses_unrounded_two_thirds(minimum, expected, exact_noise):
++    from simulation.decision_lab import evaluate_decisions
++    data = evaluate_decisions(three_order_sla_reference(), sla_floor=minimum, max_actions=1)
++    row = next(item for item in data['rows'] if item['action'] == 'Não intervir')
++    assert row['result']['sla_pct'] == 66.7
++    assert metric(row['result'], 'sla_pct') == pytest.approx(200 / 3)
++    assert row['meets_sla'] is expected
++
++
++@pytest.mark.parametrize('target,expected', [(1.0002, 'Sim'), (1.0005, 'Não')])
++def test_capacity_goal_threshold_reads_precise_throughput(target, expected, exact_noise):
++    from simulation.innovation import goal_seek
++    cfg = scenario(minutes=60 / 1.0004)
++    baseline = run_simulation(cfg)
++    assert baseline['throughput_h'] == 1.0  # Rounded display is insufficient for this goal.
++    assert metric(baseline, 'throughput_h') == pytest.approx(1.0004)
++    rows = goal_seek(cfg, baseline, target_throughput=target, target_sla=100,
++                     max_extra_workers=1, max_extra_machines=0)
++    # Extra worker cannot change the single machine's throughput.
++    assert len(rows) == 1
++    assert rows[0]['Atinge meta'] == expected
++    assert rows[0]['Throughput'] == pytest.approx(1.0004)
++
++
++def test_precise_metrics_survive_plain_json_archive_roundtrip(exact_noise):
++    import json
++    result = run_simulation(scenario(minutes=0.07407))
++    payload = {key: value for key, value in result.items() if key != 'config'}
++    archived = json.loads(json.dumps(payload, allow_nan=False))
++    assert metric(archived, 'makespan_h') == pytest.approx(0.07407 / 60, rel=1e-13)
++    assert metric(archived, 'throughput_h') == pytest.approx(60 / 0.07407, rel=1e-13)
++    assert metric(archived, 'operating_cost') == pytest.approx(0.07407 / 60 * 30, rel=1e-13)
++
++
++def test_representable_duration_is_recovered_when_naive_intermediate_division_underflows(exact_noise):
++    # min positive float/min positive efficiency = 1 minute, still representable.
++    # Dividing minutes by 60 first would underflow before efficiency cancels it.
++    tiny = math.nextafter(0.0, 1.0)
++    result = run_simulation(scenario(minutes=tiny, efficiency=tiny))
++    assert metric(result, 'makespan_h') == pytest.approx(1 / 60)
++    assert metric(result, 'throughput_h') == pytest.approx(60.0)
++    assert metric(result, 'operating_cost') == pytest.approx(0.5)
++    assert result['stations'][0]['Utilização máquina (%)'] == 100.0
+--- /dev/null
++++ b/tests/test_am11_review_regressions.py
+@@ -0,0 +1,55 @@
++"""Independent AM-11 review references for float range and legacy JSON."""
++from decimal import Decimal, localcontext
++import pytest
++
++from simulation.numeric import metric, product_ratio
++from simulation.decision_council import _safe_pct
++
++
++def test_nonzero_subnormal_intermediate_product_uses_representable_reference():
++    a, denominator = 1e-160, 1e-320
++    with localcontext() as context:
++        context.prec = 80
++        expected = float(Decimal.from_float(a) * Decimal.from_float(a)
++                         / Decimal.from_float(denominator))
++    assert product_ratio((a, a), (denominator,), 'Referência') == pytest.approx(expected, rel=1e-14)
++
++
++@pytest.mark.parametrize('sign', [1, -1])
++def test_recovery_percentage_avoids_intermediate_overflow(sign):
++    assert _safe_pct(sign * 1e308, 1e308) == pytest.approx(sign * 100)
++
++
++def test_unrepresentable_percentage_is_explicit_error():
++    with pytest.raises(ValueError):
++        _safe_pct(1.0, float.fromhex('0x0.0000000000001p-1022'))
++
++
++def test_null_precise_legacy_summary_falls_back_to_rounded_metric():
++    assert metric({'makespan_h': 3.25, 'precise': None}, 'makespan_h') == 3.25
++
++
++def test_cost_component_underflow_is_explicit_not_free_production():
++    from unittest.mock import patch
++    from simulation.engine import run_simulation
++    from simulation.factory import ScenarioConfig
++    cfg=ScenarioConfig('underflow', {'P': {'nome':'P','maquinas':1,'operadores':1,
++        'operadores_por_maquina':1,'eficiencia_operador':1,'disponibilidade':1,
++        'custo_maquina_h':1e-320,'custo_operador_h':0,'setup_min':0}},
++        [{'id':'A','quantidade':1,'prazo_h':1,'multa_hora':0,'route':[('P',6e-9)]}])
++    with patch('simulation.engine._noise',return_value=1), pytest.raises(ValueError,match='representação'):
++        run_simulation(cfg)
++
++
++def test_zero_cost_and_automated_zero_labor_remain_valid():
++    from unittest.mock import patch
++    from simulation.engine import run_simulation
++    from simulation.factory import ScenarioConfig
++    cfg=ScenarioConfig('free', {'P': {'nome':'P','maquinas':1,'operadores':0,'automatizada':True,
++        'operadores_por_maquina':1,'eficiencia_operador':1,'disponibilidade':1,
++        'custo_maquina_h':0,'custo_operador_h':0,'setup_min':0}},
++        [{'id':'A','quantidade':1,'prazo_h':1,'multa_hora':0,'route':[('P',.06)]}])
++    with patch('simulation.engine._noise',return_value=1):
++        result=run_simulation(cfg)
++    assert result['precise']['total_cost']==0
++    assert result['stations'][0]['precise']['worker_util_pct']==0

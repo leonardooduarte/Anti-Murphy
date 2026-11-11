@@ -1,0 +1,3170 @@
+{
+  "schema_version": "1.1.0",
+  "experiment_id": "FC-V302-THREE-STATIONS",
+  "time_unit": "simulated_microsecond",
+  "time_origin": "simulation_start",
+  "definition": {
+    "stations": {
+      "CORTE": {
+        "id": "CORTE",
+        "name": "Corte",
+        "machine_ids": [
+          "CORTE:slot:0"
+        ],
+        "required_skills": [],
+        "buffer_capacity": null,
+        "x": 0.12,
+        "y": 0.42
+      },
+      "CNC": {
+        "id": "CNC",
+        "name": "CNC",
+        "machine_ids": [
+          "CNC:slot:0"
+        ],
+        "required_skills": [],
+        "buffer_capacity": null,
+        "x": 0.5,
+        "y": 0.55
+      },
+      "MONTAGEM": {
+        "id": "MONTAGEM",
+        "name": "Montagem",
+        "machine_ids": [
+          "MONTAGEM:slot:0"
+        ],
+        "required_skills": [],
+        "buffer_capacity": null,
+        "x": 0.88,
+        "y": 0.42
+      }
+    },
+    "orders": {
+      "OP-DEMO": {
+        "id": "OP-DEMO",
+        "quantity": 5,
+        "due_us": 34200000000,
+        "route_station_ids": [
+          "CORTE",
+          "CNC",
+          "MONTAGEM"
+        ]
+      }
+    }
+  },
+  "topology": {
+    "edges": [
+      {
+        "source": "CNC",
+        "target": "MONTAGEM",
+        "waypoints": []
+      },
+      {
+        "source": "CORTE",
+        "target": "CNC",
+        "waypoints": []
+      }
+    ],
+    "transport_semantics": "logical_instantaneous"
+  },
+  "incident": {
+    "incident_id": "incident-CNC",
+    "station_id": "CNC",
+    "start_us": 1800000000,
+    "planned_end_us": 9000000000
+  },
+  "fork": {
+    "seq": 20,
+    "time_us": 3600000000,
+    "reason": "intervention_requested"
+  },
+  "common_history": {
+    "provenance": "engine_native",
+    "keyframes": [
+      {
+        "branch_id": "common",
+        "seq": 0,
+        "time_us": 0,
+        "stations": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          },
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          },
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "units": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          },
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          },
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          },
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          },
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "orders": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 0,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "branch_id": "common",
+        "seq": 20,
+        "time_us": 2888502406,
+        "stations": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "paused_unit_ids": []
+          },
+          "CNC": {
+            "id": "CNC",
+            "status": "down",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": [
+              "OP-DEMO#1"
+            ]
+          },
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "units": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "paused"
+          },
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          },
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          },
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          },
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": "CORTE:slot:0",
+            "phase": "processing"
+          }
+        },
+        "orders": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 0,
+            "completion_us": null
+          }
+        }
+      }
+    ],
+    "events": [
+      {
+        "seq": 1,
+        "time_us": 0,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 2,
+        "time_us": 0,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": "CORTE:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 3,
+        "time_us": 0,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 4,
+        "time_us": 0,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 5,
+        "time_us": 0,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 6,
+        "time_us": 0,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 7,
+        "time_us": 727171086,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 8,
+        "time_us": 727171086,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 9,
+        "time_us": 727171086,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 10,
+        "time_us": 727171086,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#2"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": "CORTE:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 11,
+        "time_us": 1447189921,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 12,
+        "time_us": 1447189921,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 13,
+        "time_us": 1447189921,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#3"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": "CORTE:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 14,
+        "time_us": 1800000000,
+        "kind": "outage_start",
+        "entity_id": "CNC",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "down",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": [
+              "OP-DEMO#1"
+            ]
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "paused"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 15,
+        "time_us": 2164632355,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 16,
+        "time_us": 2164632355,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "down",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": [
+              "OP-DEMO#1"
+            ]
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 17,
+        "time_us": 2164632355,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#4"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": "CORTE:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 18,
+        "time_us": 2888502406,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 19,
+        "time_us": 2888502406,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "down",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": [
+              "OP-DEMO#1"
+            ]
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 20,
+        "time_us": 2888502406,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 0,
+            "station_id": "CORTE",
+            "machine_id": "CORTE:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      }
+    ]
+  },
+  "branch_A": {
+    "branch_id": "A",
+    "run_id": "FC-V302-THREE-STATIONS-A",
+    "scenario_label": "Sem intervencao",
+    "provenance": "engine_native",
+    "model_sha256": "71d1f156249140591fa85162676f43e2908b50aa5cf3605a1e251de2b0d7115a",
+    "seed": 42,
+    "action": null,
+    "keyframes": [
+      {
+        "branch_id": "A",
+        "seq": 40,
+        "time_us": 29617216949,
+        "stations": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          },
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          },
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#4"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "units": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          },
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "orders": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 3,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "branch_id": "A",
+        "seq": 48,
+        "time_us": 35762452561,
+        "stations": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          },
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          },
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "units": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "orders": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 5,
+            "completion_us": 35762452561
+          }
+        }
+      }
+    ],
+    "events": [
+      {
+        "seq": 21,
+        "time_us": 3606222262,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 22,
+        "time_us": 3606222262,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "down",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": [
+              "OP-DEMO#1"
+            ]
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 23,
+        "time_us": 9000000000,
+        "kind": "outage_end",
+        "entity_id": "CNC",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 24,
+        "time_us": 13264544695,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 25,
+        "time_us": 13264544695,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 26,
+        "time_us": 13264544695,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": "MONTAGEM:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 27,
+        "time_us": 13264544695,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#2"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 28,
+        "time_us": 14156363923,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "order_upserts": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 1,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "seq": 29,
+        "time_us": 18656126143,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 30,
+        "time_us": 18656126143,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#2"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 31,
+        "time_us": 18656126143,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#2"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": "MONTAGEM:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 32,
+        "time_us": 18656126143,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#3"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 33,
+        "time_us": 19564500019,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "order_upserts": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 2,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "seq": 34,
+        "time_us": 24218178101,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 35,
+        "time_us": 24218178101,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#3"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 36,
+        "time_us": 24218178101,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#3"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": "MONTAGEM:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 37,
+        "time_us": 24218178101,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#4"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 38,
+        "time_us": 25107838986,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "order_upserts": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 3,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "seq": 39,
+        "time_us": 29617216949,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 40,
+        "time_us": 29617216949,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#4"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 41,
+        "time_us": 29617216949,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#4"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": "MONTAGEM:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 42,
+        "time_us": 29617216949,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 43,
+        "time_us": 30489409962,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "order_upserts": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 4,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "seq": 44,
+        "time_us": 34831801762,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 45,
+        "time_us": 34831801762,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 46,
+        "time_us": 34831801762,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": "MONTAGEM:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 47,
+        "time_us": 35762452561,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "order_upserts": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 5,
+            "completion_us": 35762452561
+          }
+        }
+      },
+      {
+        "seq": 48,
+        "time_us": 35762452561,
+        "kind": "order_completed",
+        "entity_id": "OP-DEMO",
+        "station_upserts": {},
+        "unit_upserts": {},
+        "order_upserts": {}
+      }
+    ],
+    "summary": {
+      "feasible": "unverified",
+      "checks": [
+        {
+          "name": "operator_skill",
+          "status": "pass",
+          "subject_id": null,
+          "evidence": "Sem realocacao de trabalhadores."
+        },
+        {
+          "name": "buffer_capacity",
+          "status": "unknown",
+          "subject_id": null,
+          "evidence": "Motor V30.2 nao aplica bloqueio por lotacao do buffer."
+        },
+        {
+          "name": "sequence_setup",
+          "status": "unknown",
+          "subject_id": null,
+          "evidence": "Setup fixo nao equivale a setup dependente de sequencia."
+        },
+        {
+          "name": "machine_capacity",
+          "status": "pass",
+          "subject_id": null,
+          "evidence": "Motor impede inicio acima da capacidade disponivel."
+        },
+        {
+          "name": "worker_capacity",
+          "status": "pass",
+          "subject_id": null,
+          "evidence": "Motor limita paralelismo por trabalhadores disponiveis."
+        }
+      ],
+      "total_cost_cents": 159861,
+      "sla_pct": 0.0,
+      "makespan_us": 35762452561,
+      "late_orders": 1
+    }
+  },
+  "branch_B": {
+    "branch_id": "B",
+    "run_id": "FC-V302-THREE-STATIONS-B",
+    "scenario_label": "Manutenção expressa (hipotética)",
+    "provenance": "engine_native",
+    "model_sha256": "71d1f156249140591fa85162676f43e2908b50aa5cf3605a1e251de2b0d7115a",
+    "seed": 42,
+    "action": {
+      "action_id": "scheduled_response",
+      "label": "Manutenção expressa (hipotética)",
+      "requested_us": 3600000000,
+      "effective_us": 3600000000
+    },
+    "keyframes": [
+      {
+        "branch_id": "B",
+        "seq": 40,
+        "time_us": 26917216949,
+        "stations": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          },
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          },
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "units": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          },
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "orders": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 3,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "branch_id": "B",
+        "seq": 49,
+        "time_us": 33062452561,
+        "stations": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          },
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          },
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "units": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          },
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "orders": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 5,
+            "completion_us": 33062452561
+          }
+        }
+      }
+    ],
+    "events": [
+      {
+        "seq": 21,
+        "time_us": 3600000000,
+        "kind": "action_applied",
+        "entity_id": "Manutenção expressa (hipotética)",
+        "station_upserts": {},
+        "unit_upserts": {},
+        "order_upserts": {}
+      },
+      {
+        "seq": 22,
+        "time_us": 3606222262,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "CORTE": {
+            "id": "CORTE",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 23,
+        "time_us": 3606222262,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "down",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": [
+              "OP-DEMO#1"
+            ]
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 24,
+        "time_us": 6300000000,
+        "kind": "outage_end",
+        "entity_id": "CNC",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 25,
+        "time_us": 10564544695,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#2",
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 26,
+        "time_us": 10564544695,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 27,
+        "time_us": 10564544695,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#1"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": "MONTAGEM:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 28,
+        "time_us": 10564544695,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#2"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 29,
+        "time_us": 11456363923,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#1",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#1": {
+            "id": "OP-DEMO#1",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "order_upserts": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 1,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "seq": 30,
+        "time_us": 15956126143,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#3",
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 31,
+        "time_us": 15956126143,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#2"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 32,
+        "time_us": 15956126143,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#2"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": "MONTAGEM:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 33,
+        "time_us": 15956126143,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#3"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 34,
+        "time_us": 16864500019,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#2",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#2": {
+            "id": "OP-DEMO#2",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "order_upserts": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 2,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "seq": 35,
+        "time_us": 21518178101,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#4",
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 36,
+        "time_us": 21518178101,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#3"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 37,
+        "time_us": 21518178101,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#3"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": "MONTAGEM:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 38,
+        "time_us": 21518178101,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [
+              "OP-DEMO#4"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 39,
+        "time_us": 22407838986,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#3",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#3": {
+            "id": "OP-DEMO#3",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "order_upserts": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 3,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "seq": 40,
+        "time_us": 26917216949,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 41,
+        "time_us": 26917216949,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#4"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 42,
+        "time_us": 26917216949,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#4"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": "MONTAGEM:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 43,
+        "time_us": 26917216949,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 1,
+            "station_id": "CNC",
+            "machine_id": "CNC:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 44,
+        "time_us": 27789409962,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#4",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#4": {
+            "id": "OP-DEMO#4",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "order_upserts": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 4,
+            "completion_us": null
+          }
+        }
+      },
+      {
+        "seq": 45,
+        "time_us": 32131801762,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "CNC": {
+            "id": "CNC",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "unreleased"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 46,
+        "time_us": 32131801762,
+        "kind": "queue_enter",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": null,
+            "phase": "queued"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 47,
+        "time_us": 32131801762,
+        "kind": "operation_start",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "running",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 1,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [
+              "OP-DEMO#5"
+            ],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": "MONTAGEM",
+            "machine_id": "MONTAGEM:slot:0",
+            "phase": "processing"
+          }
+        },
+        "order_upserts": {}
+      },
+      {
+        "seq": 48,
+        "time_us": 33062452561,
+        "kind": "operation_finish",
+        "entity_id": "OP-DEMO#5",
+        "station_upserts": {
+          "MONTAGEM": {
+            "id": "MONTAGEM",
+            "status": "idle",
+            "machine_capacity": 1,
+            "workers_available": 1,
+            "busy_slots": 0,
+            "queue_unit_ids": [],
+            "processing_unit_ids": [],
+            "paused_unit_ids": []
+          }
+        },
+        "unit_upserts": {
+          "OP-DEMO#5": {
+            "id": "OP-DEMO#5",
+            "order_id": "OP-DEMO",
+            "route_step": 2,
+            "station_id": null,
+            "machine_id": null,
+            "phase": "completed"
+          }
+        },
+        "order_upserts": {
+          "OP-DEMO": {
+            "id": "OP-DEMO",
+            "completed_units": 5,
+            "completion_us": 33062452561
+          }
+        }
+      },
+      {
+        "seq": 49,
+        "time_us": 33062452561,
+        "kind": "order_completed",
+        "entity_id": "OP-DEMO",
+        "station_upserts": {},
+        "unit_upserts": {},
+        "order_upserts": {}
+      }
+    ],
+    "summary": {
+      "feasible": "unverified",
+      "checks": [
+        {
+          "name": "operator_skill",
+          "status": "pass",
+          "subject_id": null,
+          "evidence": "Sem realocacao de trabalhadores."
+        },
+        {
+          "name": "buffer_capacity",
+          "status": "unknown",
+          "subject_id": null,
+          "evidence": "Motor V30.2 nao aplica bloqueio por lotacao do buffer."
+        },
+        {
+          "name": "sequence_setup",
+          "status": "unknown",
+          "subject_id": null,
+          "evidence": "Setup fixo nao equivale a setup dependente de sequencia."
+        },
+        {
+          "name": "machine_capacity",
+          "status": "pass",
+          "subject_id": null,
+          "evidence": "Motor impede inicio acima da capacidade disponivel."
+        },
+        {
+          "name": "worker_capacity",
+          "status": "pass",
+          "subject_id": null,
+          "evidence": "Motor limita paralelismo por trabalhadores disponiveis."
+        }
+      ],
+      "total_cost_cents": 137760,
+      "sla_pct": 100.0,
+      "makespan_us": 33062452561,
+      "late_orders": 0
+    }
+  }
+}

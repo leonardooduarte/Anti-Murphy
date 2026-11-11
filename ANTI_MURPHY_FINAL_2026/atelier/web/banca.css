@@ -1,0 +1,75 @@
+/* Anti-Murphy / Edição para avaliação acadêmica
+   Purposeful motion, legible evidence and explicit model limits.
+   Identity: #1D292D #FF681B #F7F7F3 */
+:root{--banq-ink:#1D292D;--banq-paper:#F7F7F3;--banq-orange:#FF681B;--banq-muted:#536A71;--banq-line:#CBD6D8}
+body{background:#E6EBEC}
+.screen{padding-bottom:30px}
+.section-intro p{font-size:13px;line-height:1.5;color:#4C656B}
+.metric-unit .metric-foot{line-height:1.4}
+.compare-scoreboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:-2px 0 12px}
+.compare-scoreboard[hidden]{display:none}
+.compare-score{min-width:0;border:1px solid #CCD9DB;border-left:4px solid #627F86;background:#FBFDFC;display:flex;flex-direction:column;gap:4px;padding:10px 14px}
+.compare-score.b{border-left-color:#458D77}
+.compare-score>span{color:#4D6D72;font-size:10px;font-weight:760;letter-spacing:.055em}
+.compare-score>strong{color:#1D363D;font-size:15px;font-weight:760;font-variant-numeric:tabular-nums}
+.compare-score>small{color:#5A7276;font-size:10.5px}
+.pause-events{display:flex;align-items:center;gap:7px;font-size:11px;color:#2E5459;white-space:nowrap;cursor:pointer;margin-left:5px;font-weight:650}
+.pause-events input{accent-color:#FF681B;cursor:pointer;width:15px;height:15px}
+.time-conversion{font-size:10.5px;color:#526C72;margin:4px 0 0;text-align:left;letter-spacing:0}
+.timeline{padding-bottom:7px}
+.event-mark.incident{background:#FFF5EE;border-color:#E7B695}
+/* Clear contrast without overusing warning colors */
+.dash-status.risk{background:#FFF1DB;color:#875013}
+.dash-stat.dash-warn>strong{color:#904E2F}
+.dash-scenario-card strong{color:#223F46}
+.dash-body .dash-table td{font-size:12px}
+.audit-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;background:#1D292D;color:#F7F7F3;border-left:4px solid #FF681B;padding:21px 23px}
+.audit-heading>div>span{font-size:10px;color:#BAD0CE;letter-spacing:.07em;font-weight:730}
+.audit-heading h2{color:#F7F7F3;font-size:22px;font-weight:730;margin:5px 0 3px;letter-spacing:-.02em}
+.audit-heading p{color:#CBDEDC;font-size:12px}
+.audit-heading button{background:#31525A;color:#F2F8F4;border:1px solid #648187;font-size:11px}
+.audit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.audit-evidence{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:17px;gap:8px}
+.audit-evidence>div{border-right:1px solid #E2E9E9;display:flex;flex-direction:column;gap:7px;min-width:0;padding:4px 9px 4px 0}
+.audit-evidence>div:last-child{border-right:0}
+.audit-evidence span,.audit-threshold{color:#566F73;font-size:11px}
+.audit-evidence strong{color:#1E3A40;font-size:18px;font-weight:770;overflow-wrap:anywhere}
+.audit-evidence small{font-size:10.5px;color:#577478}
+.audit-foot{font-size:11.5px;line-height:1.65;color:#566F72;padding:11px 18px 15px;margin:0;border-top:1px solid #E2EBE9}
+.audit-checks{display:grid;gap:0;padding:9px 16px}
+.audit-checks>div{padding:11px 0;border-bottom:1px solid #E6ECEB;font-size:11.5px;color:#38555A;display:flex;gap:10px;align-items:start}
+.audit-checks>div:last-child{border-bottom:0}
+.audit-checks>div span{font-weight:850;border:1px solid #7AAC9C;background:#E7F1EC;border-radius:50%;width:18px;height:18px;line-height:17px;text-align:center;color:#2F775F;flex-shrink:0}
+.audit-checks>div.failed span{background:#FFF0E8;border-color:#D7956F;color:#A34B1E}
+.audit-limits{padding:16px 19px;display:grid;gap:12px}
+.audit-limits p{color:#536D72;line-height:1.6;font-size:12px;margin:0}
+.audit-limits b{color:#294B50}
+.audit-actions{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 18px}
+.audit-actions button{border:1px solid #BCCED1;background:#EFF5F3;padding:8px 11px;font-weight:650;color:#2D595F;cursor:pointer;font-size:11px}
+.audit-actions button:hover{background:#FFF3E8;border-color:#FF681B}
+.audit-threshold{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-weight:650;flex-shrink:0}
+.audit-threshold select{background:#F4F8F7;border:1px solid #BECFD1;padding:5px 8px;color:#28454A;font-size:11px}
+/* Risk-aware decision records: readable at 720p, metadata collapsible */
+.record-ack{font-size:11.5px;line-height:1.5;display:flex;align-items:flex-start;gap:9px;background:#FFF7F2;border-left:3px solid #D37E4F;padding:12px 11px;color:#63472F;margin:10px 0}
+.record-ack input{accent-color:#1D6554;width:18px;height:18px;flex-shrink:0;margin-top:1px}
+.decision-form label.record-label{margin-bottom:10px;display:flex;flex-direction:column;gap:6px}
+.decision-form .record-label input,.decision-form .record-label textarea{border:1px solid #BBD0D1;background:#FAFCFB;color:#203D41;font-size:12.5px;line-height:1.5;padding:9px 11px;width:100%}
+.decision-form .record-label textarea{resize:vertical;min-height:70px}
+.history-report-head{background:#E9F0EF;border-left:3px solid #FF681B;padding:17px 19px;margin-bottom:14px}
+.history-report-head>span{font-size:10px;color:#667F80;font-weight:740;letter-spacing:.08em}
+.history-report-head h3{margin:5px 0 3px;font-size:20px;letter-spacing:-.02em}
+.history-report-head small{font-size:11px;color:#587175}
+.history-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.history-meta>div{display:flex;flex-direction:column;gap:5px;padding:9px;border:1px solid #D1DEDD}
+.history-meta span{font-size:10px;color:#5F7678}
+.history-meta strong{font-size:11px;overflow-wrap:anywhere;color:#28464D}
+.history-validation{margin:12px 0;padding:12px;background:#ECF4F1;border-left:3px solid #568578;color:#3B615A;font-size:11px}
+.history-technical{border:1px solid #D3DFDE;margin-top:18px}
+.history-technical summary{padding:12px;background:#F1F6F4;color:#3C5960;cursor:pointer;font-size:11px;font-weight:700}
+.history-technical pre{font-size:10.5px;max-height:380px;overflow:auto;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+/* Discrete-event movements are paused if replay is paused or device requests reduced motion. */
+.factory-viewport[data-playing="false"] :is(.machine-activity,.machine-spindle,.machine-spark,.workcell-activity,.machine-operating-glow){animation-play-state:paused!important}
+.factory-viewport .station-group.down :is(.machine-activity,.machine-spindle,.machine-spark,.workcell-activity,.machine-operating-glow){animation-play-state:paused!important}
+@media(max-width:1120px){.audit-grid{grid-template-columns:1fr}.audit-heading{flex-wrap:wrap}.pause-events{font-size:10px}}
+@media(max-width:800px){.pause-events{font-size:0;gap:3px}.pause-events input{width:18px;height:18px}.compare-scoreboard{grid-template-columns:1fr}.audit-evidence{grid-template-columns:repeat(2,minmax(0,1fr))}.history-meta{grid-template-columns:1fr}.audit-heading h2{font-size:18px}}
+@media(prefers-reduced-motion:reduce){.factory-viewport *{animation:none!important;transition:none!important}}

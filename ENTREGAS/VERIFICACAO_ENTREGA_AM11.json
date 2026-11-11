@@ -1,0 +1,10 @@
+{
+  "zip_integrity": true,
+  "patch_identical_to_full": true,
+  "file_count": 353,
+  "tests_new_from_extracted": 81,
+  "launcher_http_status": 200,
+  "workspace_matches_base_before_launch": true,
+  "browser_three_resolutions": true,
+  "download_status": "blocked: configured output directory unavailable/read-only and no attachment tool"
+}

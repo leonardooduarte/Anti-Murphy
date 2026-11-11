@@ -1,0 +1,2 @@
+{"case": "short", "end_h": 0.001, "makespan_h": 0.0, "throughput_h": 100.0, "utilization": 10.0, "sla_pct": 100.0, "total_cost": 0.03}
+{"case": "efficiency", "end_h": 100.0, "makespan_h": 100.0, "throughput_h": 0.01, "utilization": 100.0, "sla_pct": 100.0, "total_cost": 3000.0}

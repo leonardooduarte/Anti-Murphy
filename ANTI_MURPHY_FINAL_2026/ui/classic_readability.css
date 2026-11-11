@@ -1,0 +1,20 @@
+/* Accessibility layer for historical pages displayed inside a light navigation shell. */
+html,body,.stApp,[data-testid="stAppViewContainer"]{background:#F7F7F3!important;color:#1D292D!important}
+[data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] > p,
+[data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] > ul,
+[data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] > ol,
+[data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] > h1,
+[data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] > h2,
+[data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] > h3,
+[data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] > h4{color:#273C3A!important}
+[data-testid="stCaptionContainer"] p,.stCaption p{color:#4A625C!important;font-size:.84rem!important;line-height:1.55!important}
+[data-testid="stWidgetLabel"] p{color:#304743!important;font-size:.88rem!important}
+.am16-pagehead h1,.am16-pagehead .copy,.am16-pagehead .copy b{color:#1D292D!important}
+.am16-breadcrumb{color:#455F58!important}
+/* Dark historical panels retain their own light type. */
+.atlas-hero,.atlas-stage,.atlas-status,.atlas-kpi,.atlas-station,.am16-topbar,.am16-status-chip{color:#F7F7F3}
+.atlas-hero p{color:#BDCAC7!important}
+[data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] > p{font-size:.92rem!important;line-height:1.6!important}
+.am-main-return{display:inline-flex;align-items:center;gap:8px;margin:0 0 12px;padding:10px 14px;
+ background:#1D292D;color:#F7F7F3!important;border:1px solid #1D292D;text-decoration:none!important;border-radius:4px;font:650 13px Segoe UI,Arial,sans-serif}
+.am-main-return:hover{background:#34464A;color:#FFFFFF!important}

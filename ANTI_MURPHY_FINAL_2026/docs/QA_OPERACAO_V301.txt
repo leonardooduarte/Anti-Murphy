@@ -1,0 +1,31 @@
+ANTI-MURPHY 30.1 — VERIFICACAO DE INTERFACE
+Ambiente: Python 3.12/Linux; Streamlit 1.66.0; pandas 3.0.6; Chromium 153.
+
+Aplicacao real iniciada por tools/run_browser_qa.py.
+O script bloqueou requisicoes HTTP externas, mantendo apenas localhost/127.0.0.1.
+As duas fontes AM Text foram confirmadas como loaded no navegador.
+
+Criterios exercitados:
+1. Componente local bidirecional pronto; nenhuma etapa de build do frontend.
+2. Selecao de SOLDA e do pedido OP-102 na cena.
+3. Caso CNC calculado; resposta solicitada em 6 h.
+4. Comparacao no mesmo instante e selecao de alternativa.
+5. Curva de quando agir com resultados reais por momento.
+6. Pedido de orcamento prepara plano, sem executar a ferramenta antes da autorizacao.
+7. Autorizacao consumida e nova comparacao publicada.
+8. Oito pares de sementes autorizados e faixa de economia exibida.
+9. Registro da decisao e exportacao na aba Evidencias.
+10. Download JSON, importacao com carteira alterada para 75 pecas e invalidacao dos resultados.
+11. Nova demonstracao preserva o modelo importado; restauracao recupera a carteira de 75 pecas.
+12. Apresentacao avanca ao resultado e Operacao encerra o modo de apresentacao.
+13. Larguras 1600, 1280 e 700 pixels; 11 capturas temporarias, nao incluidas.
+14. Nenhum erro JavaScript.
+
+Marcador: BROWSER_QA_PASS.
+
+HTML offline aberto por file://, com HTTP bloqueado:
+fontes carregadas, curva temporal, selecao de realocacao, comparacao e ultimo capitulo.
+Marcador: OFFLINE_HTML_PASS.
+
+A evidencia nao equivale a teste nativo no Windows nem a calibracao industrial.
+A integracao generativa foi preservada; nenhuma API paga foi chamada.

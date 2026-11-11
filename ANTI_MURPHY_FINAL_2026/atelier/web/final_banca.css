@@ -1,0 +1,93 @@
+/* ANTI-MURPHY | CANDIDATA À BANCA
+   Unobstructed operational evidence + stage-based presentation.
+   No new calculation, synthetic incident or fabricated physical transport. */
+:root{--final-ink:#1D292D;--final-accent:#FF681B;--final-paper:#F7F7F3;--final-muted:#536C72}
+.presentation-toggle{font-weight:760!important;border:1px solid #B3C5C7!important;background:#EDF3F1!important;color:#24444B!important}
+.presentation-toggle:hover{border-color:#FF681B!important;background:#FFF1E6!important}
+.presentation-toggle[aria-pressed="true"]{background:#1D292D!important;border-color:#1D292D!important;color:#fff!important;box-shadow:inset 3px 0 0 #FF681B}
+.presentation-guide{background:#1D292D;color:#F7F7F3;border-top:3px solid #FF681B;margin:0 0 12px;box-shadow:0 9px 26px rgba(29,41,45,.13)}
+.presentation-guide[hidden]{display:none!important}
+.presentation-guide-top{padding:13px 19px 8px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.presentation-guide-top>div:first-child{min-width:0}
+.presentation-kicker{font-size:9.5px;letter-spacing:.11em;font-weight:750;color:#A7C3C7;display:block;margin-bottom:2px}
+.presentation-guide-top strong{font-size:22px;font-weight:780;letter-spacing:-.025em;line-height:1.2;color:#fff}
+.presentation-guide-top p{margin:3px 0 0;font-size:12px;color:#C8D9D9;line-height:1.5}
+.presentation-actions{display:flex;gap:8px;flex-shrink:0}
+.presentation-actions button{font-size:12px;font-weight:700;border:1px solid #6C8587;background:#31484E;color:#F6FBF8;padding:10px 13px;white-space:nowrap}
+.presentation-actions button:disabled{opacity:.42}
+.presentation-actions button:last-child{background:#FF681B;border-color:#FF681B;color:#1D292D}
+.presentation-steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;padding:0 17px 10px}
+.presentation-steps button{min-width:0;border:1px solid #47626A;color:#BCD0D2;background:#263B42;padding:9px 9px;font-size:11px;font-weight:700;display:flex;justify-content:center;align-items:center;gap:9px}
+.presentation-steps button b{color:#8FA9AE;font-size:10px;font-variant-numeric:tabular-nums}
+.presentation-steps button.active{background:#F7F7F3;border-color:#F7F7F3;color:#1D292D}
+.presentation-steps button.active b{color:#DB5B1B}
+.presentation-steps button:hover:not(.active){border-color:#FFAB76;background:#344D54}
+.presentation-evidence{background:#F2F5F3;display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #C7D4D5}
+.presentation-evidence>div{padding:9px 18px;min-width:0;border-right:1px solid #CBD8D9;display:flex;flex-direction:column;gap:1px}
+.presentation-evidence>div:last-child{border-right:0}
+.presentation-evidence span{color:#567177;letter-spacing:.05em;font-size:9px;font-weight:760}
+.presentation-evidence strong{color:#1D343B;font-size:19px;line-height:1.22;font-variant-numeric:tabular-nums}
+.presentation-evidence small{color:#587078;font-size:10.5px;line-height:1.35}
+.presentation-evidence-delta{border-left:3px solid #FF681B}
+/* Event feedback on true DES state; no animated travel of materials */
+.stage-event-alert{position:absolute;z-index:7;right:14px;top:12px;max-width:min(42%,330px);padding:9px 12px;background:#573326;border:1px solid #FFAB73;border-left:4px solid #FF681B;color:#FFF5EE;font-size:11px;font-weight:780;letter-spacing:.03em;box-shadow:0 6px 18px #08131990;pointer-events:none}
+.stage-event-alert[hidden]{display:none!important}
+.stage-event-alert[data-tone="response"]{background:#19473D;border-color:#8DC0A9;border-left-color:#82C5AB;color:#E8F8EF}
+.station-outage-badge{visibility:hidden;opacity:0;transition:opacity .16s ease}
+.station-outage-badge rect{fill:#FF681B;stroke:#FFD1B5;stroke-width:1.2}
+.station-outage-badge text{fill:#14232B;font-size:10.5px;font-weight:840;letter-spacing:.025em}
+.station-group.down .station-outage-badge{visibility:visible;opacity:1}
+.station-group.down .station-base{stroke:#FF854B;stroke-width:2}
+.station-group.down .state-light{fill:#FF681B;filter:drop-shadow(0 0 4px rgba(255,104,27,.8))}
+.station-group.down .station-machine{opacity:.74}
+.station-group.is-processing .machine-operating-glow{opacity:.9}
+.station-group[data-state="idle"] .machine-operating-glow,.station-group.down .machine-operating-glow{opacity:.16}
+/* Contrast and keyboard navigation: projector and 720p use. */
+#view-simulacao .factory-viewport .station-status{font-size:12.7px;fill:#E6F1ED}
+#view-simulacao .factory-viewport .station-name{font-size:17px;fill:#FCFAF2}
+#view-simulacao .factory-viewport .station-caption{font-size:13.5px;fill:#D1E1DE}
+#view-simulacao button:focus-visible,.presentation-guide button:focus-visible{outline:2px solid #FF681B;outline-offset:2px}
+.presentation-mode #view-simulacao .section-intro,.presentation-mode #view-simulacao .metrics-line,.presentation-mode #view-simulacao #compare-scoreboard,.presentation-mode #view-simulacao .incident-workflow{display:none!important}
+.presentation-mode #view-simulacao .operations-layout{grid-template-columns:minmax(0,1fr);gap:0}
+.presentation-mode #view-simulacao .inspector{display:none!important}
+.presentation-mode #view-simulacao .factory-viewport{height:clamp(370px,56vh,730px)!important}
+.presentation-mode #view-simulacao .canvas-workspace{box-shadow:0 14px 32px rgba(18,43,49,.12)}
+.presentation-mode #view-simulacao .canvas-head{min-height:46px;padding:8px 14px}
+.presentation-mode #view-simulacao .canvas-heading{font-size:12px}
+.presentation-mode #view-simulacao .station-name{font-size:19px}
+.presentation-mode #view-simulacao .station-status{font-size:13.5px}
+.presentation-mode #view-simulacao .operational-hud{display:flex;right:14px;top:56px;left:auto;bottom:auto}
+.presentation-mode .screen{padding:8px 16px 26px}
+.presentation-mode #view-simulacao .event-log-panel,.presentation-mode #view-simulacao .schedule-panel{margin-top:4px}
+.presentation-mode #view-simulacao .orders-row{grid-template-columns:repeat(5,minmax(0,1fr))}
+.presentation-mode .rail{background:#19262B}
+.presentation-mode .topbar{box-shadow:inset 0 -2px 0 #FF681B}
+@media(max-height:790px) and (min-width:900px){
+ .presentation-guide-top{padding:9px 14px 6px}.presentation-guide-top strong{font-size:19px}.presentation-guide-top p{font-size:11px}
+ .presentation-steps{padding:0 13px 7px}.presentation-steps button{padding:6px 8px}
+ .presentation-evidence>div{padding:6px 14px}.presentation-evidence strong{font-size:17px}
+ .presentation-mode #view-simulacao .factory-viewport{height:clamp(350px,55vh,580px)!important}
+}
+@media(max-width:1120px){.presentation-toggle{font-size:11px}.presentation-guide-top{gap:11px}.presentation-guide-top strong{font-size:19px}.presentation-steps button{gap:5px;font-size:10px}}
+@media(max-width:750px){
+ .presentation-guide-top{flex-direction:column;align-items:stretch}.presentation-actions{justify-content:flex-end}
+ .presentation-steps{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .presentation-evidence{grid-template-columns:1fr}.presentation-evidence>div{border-bottom:1px solid #CBD8D9}
+ .presentation-mode #view-simulacao .factory-viewport{height:330px!important}
+ .presentation-mode #view-simulacao .orders-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .presentation-mode #view-simulacao .operational-hud{display:none}
+ .stage-event-alert{max-width:65%;font-size:9px;top:35px;right:8px}
+}
+@media(prefers-reduced-motion:reduce){.station-outage-badge{transition:none}.presentation-guide *{transition:none!important}}
+
+/* Clear A/B boundaries. Only the replay is split; totals above refer to full runs. */
+.split-divider{position:absolute;z-index:5;top:0;bottom:0;width:2px;background:#E9F1EE;pointer-events:none;box-shadow:0 0 0 1px #14272EA8,0 0 12px #051216}
+.split-divider[hidden]{display:none!important}
+.split-divider span{display:block;position:absolute;top:48%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;background:#F7F7F3;color:#1D292D;padding:5px 7px;border:1px solid #A8C0C1;font-size:10px;font-weight:820;letter-spacing:.08em}
+.factory-viewport[data-scene="split"] .scene-chips span{border-top:2px solid #FF681B}
+.factory-viewport[data-scene="split"] .scene-chips span:last-child{border-color:#77BAA6;border-top:2px solid #77BAA6}
+.presentation-mode .factory-viewport[data-scene="split"] .operational-hud{display:none!important}
+/* An effective response is NOT a completed repair. Keep cue neutral while the
+   machine is still unavailable, and avoid obscuring live station counters. */
+.stage-event-alert[data-tone="response"]{background:#294550;border-color:#86B4C0;border-left-color:#86B4C0;color:#E7F3F7}
+.presentation-mode .factory-viewport:has(.stage-event-alert[data-tone="response"]:not([hidden])) .operational-hud{display:none!important}

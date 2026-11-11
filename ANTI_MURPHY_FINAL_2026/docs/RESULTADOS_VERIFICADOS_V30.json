@@ -1,0 +1,29 @@
+{
+  "run_id": "8a9ea9caf15b",
+  "nominal": {
+    "total_cost": 8076.37,
+    "makespan_h": 16.9,
+    "sla_pct": 100.0,
+    "late_orders": 0
+  },
+  "incident": {
+    "total_cost": 16216.67,
+    "makespan_h": 24.58,
+    "sla_pct": 40.0,
+    "late_orders": 3
+  },
+  "response": {
+    "action": "Realocar operador · MONTAGEM → CNC",
+    "investment": 0.0,
+    "decision_cost": 9110.99,
+    "savings": 7105.68,
+    "sla_pct": 100.0,
+    "makespan_h": 18.82
+  },
+  "alternatives": 22,
+  "sensitivity": {
+    "mean_net_saving": 7231.19,
+    "min_net_saving": 7183.54,
+    "max_net_saving": 7287.5
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "compared_to": "ANTI_MURPHY_VERSAO_FINAL_CANDIDATA_BANCA_2026.zip",
+  "sha256": {
+    "simulation/engine.py": "170ab3136d04c064436e84be5050858356a2fc16f74d6fe6faaa561d47c052c2",
+    "simulation/nexus.py": "1a8a822e11a49448eb98a9a028fd5dd90b7c67001e7f39afc99dd9979e3f4d83",
+    "simulation/advanced.py": "6b7600f0f25ebb4df51ffede0bbf5b8c843950418dbd6d8efa9bb1f8c529de44",
+    "simulation/replay.py": "e4664ac11b4c529f51f9a86da3f3a7a60cbb3d59b1405a4d57e07b4cf87a2253",
+    "simulation/response.py": "914cbcea203df8cd88334d83ebbac6524def168cb185f72acb2bd0e3dcbab567",
+    "simulation/factory.py": "9d71fb3a782fdd2b4ed35e2286b9f372397db43a914a1ba0975e38ed11726669",
+    "start.py": "47581295d7e51bd5033b0ee64ddb312f45d7c96f5c01ecfa88aef34561af822f",
+    "INICIAR_ANTI_MURPHY.bat": "f99291fe578a91671ebc013f422cc386cd41b774ccf9c77e72c76eea8a3a8811",
+    "atelier/web/engineering_charts.js": "5a27066275d16afe0a1c4fe7985d8e9f7b4743af1658e52464957ccdca402152",
+    "atelier/web/engineering_charts.css": "d139e6598407ec851fcabef704f8378e48738093bf9e166f2d1169c7294d5c38",
+    "atelier/web/brand/logo-dark.svg": "2a1f3ca1fc75954c9ae63653a217c8bdbb2e4018ca52bb53c69db803a49535c0",
+    "atelier/web/brand/logo-light.svg": "2257ded1cef5e3e8aa589dd581a8220d78c85c8ffcc7d5ffc54f1bb48560c4a9"
+  }
+}

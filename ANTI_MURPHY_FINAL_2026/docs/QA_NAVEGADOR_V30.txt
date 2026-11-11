@@ -1,0 +1,13 @@
+ANTI-MURPHY V30 NEXUS — QA DO NAVEGADOR
+Ambiente: Chromium headless 153 / Linux; aplicação real via HTTP local.
+Resultado observado no fluxo final:
+BROWSER_QA_PASS {"errors":[],"queue_at_incident":"74","screens":9,"viewport":[1440,1050,600]}
+
+Fluxos: demo CNC, replay durante a falha, fila, antes/depois, pausa,
+chat com orçamento, autorização, tabela de evidências, revisão,
+oito pares de sementes, pitch/reinício e larguras responsivas.
+Asserções: zero erros JavaScript; valores monetários do chat não são
+interpretados como fórmulas; retorno do capítulo de recuperação.
+Inspeção visual: War Room, chat, revisão, pitch e gráficos econômicos.
+Capturas de QA temporárias; não incluídas neste pacote.
+Não valida Windows, conta de API ou dados industriais reais.

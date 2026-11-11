@@ -1,0 +1,31 @@
+{
+  "edition": "Anti-Murphy | Edição de avaliação acadêmica 2026",
+  "base_zip": "ANTI_MURPHY_PRE_FINAL_VALIDADA_2026.zip",
+  "core_and_brand_sha256_unchanged": {
+    "simulation/engine.py": "170ab3136d04c064436e84be5050858356a2fc16f74d6fe6faaa561d47c052c2",
+    "simulation/nexus.py": "1a8a822e11a49448eb98a9a028fd5dd90b7c67001e7f39afc99dd9979e3f4d83",
+    "simulation/advanced.py": "6b7600f0f25ebb4df51ffede0bbf5b8c843950418dbd6d8efa9bb1f8c529de44",
+    "atelier/decision_explainer.py": "c2637ae062e92c01ed8617b4f0a6c1f10c79743d708e006a5c7937def6691b97",
+    "INICIAR_ANTI_MURPHY.bat": "f99291fe578a91671ebc013f422cc386cd41b774ccf9c77e72c76eea8a3a8811",
+    "assets/brand/logo-dark.svg": "2a1f3ca1fc75954c9ae63653a217c8bdbb2e4018ca52bb53c69db803a49535c0",
+    "assets/brand/icon-dark.svg": "c24b00d844977317371d25e1663f1baf7e5a83071807be2645780ed5d51aba77"
+  },
+  "core_motor_modified": false,
+  "critical_features": [
+    "replay em tempo fixo",
+    "pausa por eventos",
+    "A/B com custos",
+    "auditoria técnica",
+    "folga por pedido",
+    "registro estruturado",
+    "relatório técnico"
+  ],
+  "known_unmodeled": [
+    "skills individuais",
+    "buffers finitos",
+    "setups dependentes da sequência",
+    "refugo/retrabalho",
+    "histórico MTBF/MTTR"
+  ],
+  "runtime": "Python 3.10+ / stdlib / navegador local / sem npm"
+}

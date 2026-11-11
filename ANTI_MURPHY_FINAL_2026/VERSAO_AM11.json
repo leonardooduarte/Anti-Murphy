@@ -1,0 +1,13 @@
+{
+  "version": "AM11-2026.1",
+  "base_archive": "ANTI_MURPHY_AM01_AM06_RECONSTRUIDO_LEVE_2026.zip",
+  "base_sha256": "b2e0b234a275432523698836bda0f596d7110ff4d264ae6ed6fb197a96a81419",
+  "scope": "AM-11 only",
+  "tests": {
+    "passed": 352,
+    "failed_preexisting": 5,
+    "new_passed": 81,
+    "subtests_passed": 10
+  },
+  "next": "AM-05 pending authorization"
+}

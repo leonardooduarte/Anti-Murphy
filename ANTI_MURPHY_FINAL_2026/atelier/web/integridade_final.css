@@ -1,0 +1,56 @@
+/* Anti-Murphy | final engineering presentation refinement
+   Read-only evidence, clear legal/physical limits and accessible focus. */
+.decision-money-audit{margin:6px 10px 5px;border:1px solid #C9D8D1;padding:10px 13px;background:#F2F6F3;color:#21453F;border-radius:4px;line-height:1.35;}
+.decision-money-audit[hidden],#decision-external-ack-wrap[hidden]{display:none!important;}
+.decision-money-audit .money-status{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;justify-content:space-between;}
+.decision-money-audit strong{font-size:11.5px;font-weight:850;}
+.decision-money-audit span{font-size:10px;color:#486A62;font-variant-numeric:tabular-nums;}
+.decision-money-audit p{font-size:10px;margin:4px 0 0;line-height:1.4;}
+.decision-money-audit.money-alert{background:#FFF2E5;border:1px solid #E8A76C;border-left:4px solid #DB702A;color:#702F15;}
+.decision-money-audit.money-alert strong{color:#793A1C;}
+.decision-money-audit.money-alert span{color:#98471F;font-weight:850;}
+.decision-money-audit.money-ok{background:#EDF6EE;border-left:3px solid #47836D;}
+.decision-money-audit.money-neutral{background:#F2F6F3;}
+#decision-external-ack-wrap{border-color:#E8B481;background:#FFF2E5;color:#773E1C;}
+#register-decision:disabled{opacity:.6;filter:grayscale(.2);cursor:not-allowed;}
+.presentation-mode #view-decisoes .decision-money-audit{margin:2px 8px 3px;padding:4px 9px;}
+.presentation-mode #view-decisoes .decision-money-audit .money-status strong{font-size:10px;}
+.presentation-mode #view-decisoes .decision-money-audit .money-status span{font-size:9.5px;}
+.presentation-mode #view-decisoes .decision-money-audit p{font-size:9.5px;margin:1px 0 0;}
+/* In paired focus only the investigated station is rendered. Nearby clipped labels
+   no longer look like cropped errors; switch to the full layout to see all posts. */
+.presentation-mode .factory-viewport[data-presentation-compare="true"][data-compare-overview="false"] .station-group:not(.selected){display:none!important;}
+.presentation-mode .factory-viewport[data-presentation-compare="true"][data-compare-overview="false"] .flow-stroke{opacity:.10;}
+.presentation-mode .factory-viewport[data-presentation-compare="true"][data-compare-overview="false"] .station-group.selected .station-name{font-weight:900;}
+.presentation-mode .factory-viewport[data-presentation-compare="true"] .scene-chips span{box-shadow:0 2px 8px #08141B55;}
+.presentation-mode .factory-viewport[data-presentation-compare="true"] #scene-b{border-left:2px solid #8FCDBB;}
+/* Make the human + simulated economic distinction visible on a projector. */
+.presentation-mode .presentation-fact.fact-delta{border-bottom:3px solid #D77A3A;}
+.presentation-mode .presentation-fact.fact-good{border-bottom:3px solid #5A9A81;}
+.presentation-mode .presentation-fact.fact-alert{border-bottom:3px solid #E89A55;}
+@media (min-width:1050px) and (max-height:760px){
+ .presentation-mode #view-decisoes .decision-money-audit{padding:3px 7px;}
+ .presentation-mode #view-decisoes .decision-money-audit p{display:none;}
+ .presentation-mode #view-decisoes .record-label{margin-top:1px!important;}
+ .presentation-mode #view-decisoes #decision-note{max-height:58px!important;}
+}
+@media(prefers-reduced-motion:reduce){.decision-money-audit{transition:none!important;}}
+/* The factory is the first visual evidence for the panel of professors.
+   Keep controls immediately underneath; no change in regular navigation. */
+.presentation-mode #view-simulacao .canvas-workspace > .factory-viewport{order:1!important;}
+.presentation-mode #view-simulacao .canvas-workspace > .timeline{order:2!important;}
+.presentation-mode #view-simulacao .canvas-workspace > .canvas-head{order:0!important;}
+.presentation-mode #view-simulacao .canvas-workspace > .presentation-compare-insights{order:3!important;}
+.presentation-mode #view-simulacao .canvas-workspace > .split-control{order:4!important;}
+.presentation-mode #view-simulacao .canvas-workspace > .event-bookmarks{order:5!important;}
+.presentation-mode #view-simulacao .canvas-workspace > .event-log-panel{order:6!important;}
+.presentation-mode #view-simulacao .canvas-workspace > .work-orders-head{order:7!important;}
+.presentation-mode #view-simulacao .canvas-workspace > .orders-row{order:8!important;}
+.presentation-mode #view-simulacao .canvas-workspace > .schedule-panel{order:9!important;}
+/* The outage ribbon sits above the station heading, not on top of CNC/PARADO. */
+.presentation-mode .factory-viewport[data-presentation-compare="true"] .station-group.down .station-outage-badge{transform:translateY(-23px);}
+.history-economic-evidence{margin:13px 0;padding:12px 15px;border:1px solid #CCDDD5;background:#F0F6F1;}
+.history-economic-evidence>strong{font-size:12px;color:#1D4640;display:block;margin-bottom:8px;}
+.history-economic-evidence>div{display:flex;justify-content:space-between;gap:16px;padding:5px 0;border-bottom:1px solid #D4E0D9;font-size:11px;}
+.history-economic-evidence>div b{font-variant-numeric:tabular-nums;white-space:nowrap;}
+.history-economic-evidence>small{display:block;color:#56736A;margin-top:8px;line-height:1.4;}

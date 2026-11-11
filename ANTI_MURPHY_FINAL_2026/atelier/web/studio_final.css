@@ -1,0 +1,209 @@
+/* ANTI-MURPHY · Refinamento de produto
+   Unidade visual e animações funcionais, sem alterar a física do simulador.
+   O mapa é uma representação da topologia; não afirma deslocamento físico. */
+:root{
+  --surface-work:#E7EBEC;
+  --surface-paper:#FCFDFC;
+  --surface-steel:#D9E1E2;
+  --surface-ink:#1D292D;
+  --surface-critical:#FF681B;
+  --border-product:#BECACD;
+}
+html,body{background:var(--surface-work)!important;color:#20343A}
+.screen{background:var(--surface-work);padding-top:15px}
+.topbar{background:#FCFDFC;box-shadow:0 1px 0 #CAD6D8;min-height:62px}
+.rail{background:#1D292D;box-shadow:4px 0 14px rgba(20,35,41,.08)}
+.rail-item{border-left:3px solid transparent;transition:background .13s ease,border-color .13s ease}
+.rail-item.active{border-left-color:#FF681B;background:#354950;box-shadow:none}
+.rail-item:hover{background:#31464C}
+.topbar .top-context{font-size:13px;letter-spacing:-.01em}
+.section-intro{border-bottom:1px solid #CAD5D7;padding:2px 0 17px;margin-bottom:15px}
+.section-intro h1{font-weight:740;letter-spacing:-.035em;color:#1D343A}
+.section-intro p{color:#52696E}
+.eyebrow{font-weight:750;color:#536A6F}
+.metrics-line{background:#FCFDFC;border:1px solid #C8D4D6;box-shadow:none}
+.metric-unit{border-right:1px solid #D7E0E1}
+.metric-label{font-size:11px;color:#506C72}
+.metric-value{font-weight:760;color:#1D353D}
+.metric-foot{font-size:11.5px;color:#5E767B}
+.primary-button{background:#1D292D;border:1px solid #1D292D;box-shadow:none}
+.primary-button:hover{background:#314A53}
+.subtle-button{border-color:#B9C9CC;background:#FDFEFE}
+.subtle-button:hover{border-color:#729197;background:#EFF4F4}
+
+/* Ação contextual associada à falha; não é uma recomendação de viabilidade. */
+.incident-workflow{border:1px solid #C2D0D1;background:#FCFDFC;min-height:76px;margin:0 0 14px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;position:relative}
+.incident-workflow:before{content:"";position:absolute;left:-1px;top:-1px;bottom:-1px;width:4px;background:#FF681B}
+.incident-workflow-main{display:flex;align-items:center;gap:14px;min-width:0}
+.incident-led{width:32px;height:32px;border-radius:50%;display:flex;flex-shrink:0;background:#FFE8D9;box-shadow:inset 0 0 0 7px #FCFDFC,0 0 0 1px #F5BBA0;position:relative}
+.incident-led:after{content:"";position:absolute;width:9px;height:9px;background:#FF681B;border-radius:50%;top:11.5px;left:11.5px}
+.incident-workflow-main>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.incident-eyebrow{font-size:10px;color:#AA4B1C;font-weight:770;letter-spacing:.065em}
+.incident-workflow-main strong{font-size:15px;color:#203940;font-weight:760;line-height:1.2}
+.incident-workflow-main small{font-size:11.5px;line-height:1.4;color:#587277}
+.incident-workflow-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.incident-workflow-actions button{font-size:11px;font-weight:720;min-height:37px;padding:8px 11px;cursor:pointer;color:#2D5159;background:#F5F8F8;border:1px solid #BFD0D2;white-space:nowrap}
+.incident-workflow-actions button:hover{background:#E7F0F0;border-color:#93ADB3}
+.incident-workflow-actions button.incident-workflow-cta{background:#1D292D;color:#FCFCFC;border-color:#1D292D}
+.incident-workflow-actions button.incident-workflow-cta:hover{background:#344B52}
+
+/* Estúdio de simulação: fundo e superfícies em uma família, controles legíveis */
+.canvas-workspace{background:#F9FCFB;border:1px solid #BDCBCD;box-shadow:0 5px 17px rgba(16,39,46,.08)}
+.canvas-head{background:#20353B;min-height:52px;border-bottom:1px solid #496068}
+.canvas-heading{color:#EDF6F3;letter-spacing:.055em}
+.canvas-actions .button-group{background:#13272D;border:1px solid #486267}
+.canvas-actions .button-group button{color:#C7DCDD;min-height:30px;font-size:11px}
+.canvas-actions .button-group button.active{background:#EDF5F3;color:#1E3439}
+.factory-viewport{background:radial-gradient(ellipse at 52% 29%,#27444D,#172F36 58%,#102329 100%);height:clamp(350px,42vh,510px)}
+.factory-viewport:after{opacity:.55;z-index:0}
+.scene-layer{z-index:1}
+.factory-bottom{background:#142B31EE;color:#B9D0CE;border-top:1px solid #3B5960;font-size:11px;letter-spacing:0}
+.factory-label{fill:#8DAFB2;font-size:10px;letter-spacing:.055em}
+.flow-stroke{stroke:#4E7E83;stroke-dasharray:7 10;stroke-width:2.3;opacity:.65}
+.flow-selected{stroke:#FFAC78;stroke-width:3.6;opacity:.94}
+.station-shadow{display:none}
+.station-base,.station-group:hover .station-base,.station-group.selected .station-base,.station-group.down .station-base,.station-group.is-processing .station-base{fill:transparent;stroke:transparent;filter:none}
+.station-face{display:none}
+.workcell-shadow{fill:#071920;opacity:.69;filter:blur(4px)}
+.workcell-deck{fill:#36525A;stroke:#68878C;stroke-width:1.2;filter:drop-shadow(0 6px 3px rgba(0,10,13,.4))}
+.workcell-edge{fill:#203940;stroke:#597A7F;stroke-width:.8}
+.workcell-safety{stroke:#E4B87F;stroke-width:1.7;stroke-dasharray:8 6;opacity:.65}
+.station-group.selected .workcell-deck{fill:#3B5861;stroke:#FF9A59;stroke-width:2.3}
+.station-group.down .workcell-deck{fill:#543D38;stroke:#FF681B;stroke-width:2}
+.station-group.is-processing .workcell-deck{stroke:#86CBBB;stroke-width:1.7}
+.station-group .workcell-activity{stroke:#5FABA0;opacity:0}
+.station-group.is-processing .workcell-activity{opacity:.9;animation:workcell-running 2s ease-in-out infinite}
+.station-group.is-processing .workcell-activity circle{fill:#8CC7BB}
+.station-group.down .workcell-activity{stroke:#FF681B;opacity:.6;animation:none}
+.station-group.down .workcell-activity circle{fill:#FF681B}
+@keyframes workcell-running{0%,100%{opacity:.25}50%{opacity:.95}}
+.station-machine{filter:drop-shadow(0 12px 7px rgba(0,9,14,.49))}
+.station-name{font-size:17.5px;font-weight:800;letter-spacing:.035em;fill:#F3F7F6;paint-order:stroke;stroke:#142930;stroke-width:2px}
+.station-status{font-size:12px;fill:#D8E7E7;font-weight:760}
+.station-group.down .station-status{fill:#FFAB7B}
+.station-caption{font-size:12px;fill:#BCD4D2;font-weight:580}
+.station-description{font-size:12px}
+.station-group .selection-halo{rx:13;stroke:#789DA0;stroke-width:1.1;opacity:0;fill:#72939A;fill-opacity:.03}
+.station-group.selected .selection-halo{opacity:1;stroke:#FF9C62;stroke-width:1.7;stroke-dasharray:8 7;animation:none}
+.station-group.down .selection-halo{opacity:.7;stroke:#FF681B;stroke-width:1.8}
+.station-group:focus-visible{outline:none}
+.station-group:focus-visible .selection-halo{opacity:1;stroke:#F8E7CF;stroke-width:3}
+.station-group.is-processing .machine-operating-glow{opacity:1}
+.queue-unit{fill:#E5B17C;stroke:#FBE2BD;stroke-width:.9;filter:drop-shadow(1px 2px 1px #0C1F25)}
+.timeline{background:#FAFCFC;border-bottom:1px solid #D4DFE0}
+.timeline-marks{font-size:11px}
+#timeline-range{accent-color:#FF681B}
+.work-orders-head{background:#F5F8F7}
+.inspector{background:#FBFDFC;border:1px solid #C4D2D4;top:72px;box-shadow:0 4px 14px rgba(20,45,51,.05)}
+.inspector-head{background:#E9EFF0;border-bottom:1px solid #C9D8D9;color:#3F5E65}
+.inspector-head span{font-size:11px}
+.inspect-row,.inspect-body p{font-size:12px}
+.inspect-machine-preview{border:1px solid #52717A;background:radial-gradient(ellipse at 50% 15%,#315661,#1A3038 80%)}
+.inspect-machine-head{font-size:10px}
+.inspect-machine-footer{font-size:10px}
+
+/* Dashboards orientados a decisões, mais gráficos e melhor leitura. */
+.dash-panel{background:#FCFDFC;border-color:#C9D7D8;box-shadow:0 4px 16px rgba(15,38,42,.04)}
+.dash-panel>header{background:#F8FAF9}
+.dash-panel>header h2{font-size:16px}
+.dash-panel>header p{font-size:12px}
+.dash-table{font-size:12.5px}
+.dash-table th{font-size:11px}
+.dash-table td{font-size:12px}
+.dash-stat{background:#FCFDFC}
+.dash-stat>strong{font-weight:750}
+.dash-scatter{max-height:430px;min-height:335px}
+.dash-chart-option circle{transition:r .16s,fill .16s}
+.dash-plot-note{padding:12px 20px;font-size:12px;color:#465F65;background:#F1F6F5;border-left:3px solid #638C8D;margin:0 16px 16px}
+.dash-pareto-line{stroke:#335E62;stroke-width:2.8;stroke-dasharray:7 5;fill:none}
+.dash-chart-option.pareto circle{stroke:#28565D;stroke-width:2.8}
+.dash-chart-option.pareto.chosen circle{stroke:#8C3D14;stroke-width:3}
+.dash-chart-option:focus-visible{outline:none}
+.dash-chart-option:focus-visible circle{stroke:#111F23;stroke-width:4}
+
+/* Editor de rotas contextual em vez de campos compactos propensos a erro. */
+.route-cell{min-width:255px}
+.route-edit{min-width:230px;max-width:330px;text-align:left;display:flex;flex-direction:column;gap:5px;padding:8px 11px;border:1px solid #B8CDCD;background:#F6FAF9;color:#2A5157;cursor:pointer}
+.route-edit span{font-size:12px;font-weight:760}
+.route-edit small{font-size:11px;color:#5B767B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.route-edit:hover{border-color:#FF681B;background:#FFF6F0}
+.route-dialog{border:1px solid #8FA9AD;box-shadow:0 30px 95px #0B222B55;border-radius:0;padding:0;width:min(790px,calc(100vw - 30px));max-height:87vh;background:#F8FAF9;color:#213C43}
+.route-dialog::backdrop{background:#10242BC7;backdrop-filter:blur(3px)}
+.route-head{background:#20353B;color:#EDF5F4;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:21px 24px}
+.route-kicker{color:#AAC4C4;font-size:10px;font-weight:760;letter-spacing:.08em}
+.route-head h2{font-size:23px;line-height:1.2;margin:6px 0 4px}
+.route-head p{font-size:12px;color:#C2D4D5;line-height:1.5;margin:0}
+.route-close{background:#335059;border:1px solid #627A80;color:white;font-size:23px;width:33px;height:33px;cursor:pointer}
+.route-steps{padding:20px 24px;overflow:auto;max-height:54vh;display:grid;gap:9px}
+.route-step{display:grid;grid-template-columns:34px minmax(120px,1.2fr) minmax(130px,.85fr) auto;gap:11px;align-items:end;background:#fff;border:1px solid #D2DEDF;padding:12px}
+.route-step-num{border-radius:50%;background:#20363C;color:white;width:29px;height:29px;display:grid;place-items:center;font-weight:760;font-size:11px;margin-bottom:5px}
+.route-step label{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:680;color:#47666B}
+.route-step select,.route-step input{min-height:39px;border:1px solid #BDCFD1;background:white;color:#1F3A40;padding:7px 9px;font-size:13px;width:100%}
+.route-step-actions{display:flex;align-items:center;gap:4px;min-height:39px}
+.route-step-actions button{width:29px;height:32px;background:#E9F0F0;border:1px solid #BCCBCD;font-size:15px;color:#2B545A;cursor:pointer}
+.route-step-actions button:disabled{opacity:.3;cursor:default}
+.route-step-actions button:hover:not(:disabled){border-color:#FF681B}
+.route-empty{font-size:13px;color:#60777B}
+.route-error{padding:10px 16px;margin:0 24px 14px;border-left:3px solid #C44B27;background:#FFF0E8;color:#943F1E;font-size:12px}
+.route-foot{padding:16px 24px;display:flex;justify-content:space-between;gap:12px;border-top:1px solid #D0DADB;background:#EFF3F3}
+.route-foot>div{display:flex;gap:7px}
+.route-foot button{font-size:12px}
+
+@media(max-width:1500px){
+  .incident-workflow{flex-wrap:wrap;gap:10px;padding:10px 14px}
+  .incident-workflow-actions{width:100%;justify-content:flex-end}
+  .operations-layout{grid-template-columns:minmax(0,1fr) 285px}
+}
+@media(max-width:1230px){.operations-layout{grid-template-columns:1fr}.inspector{position:static}.incident-workflow{align-items:stretch}}
+@media(max-width:800px){
+ .incident-workflow-actions{flex-wrap:wrap;justify-content:flex-start}
+ .route-step{grid-template-columns:30px minmax(100px,1fr);align-items:center}
+ .route-step-actions{grid-column:2}
+ .route-foot{flex-wrap:wrap}
+ .dash-scatter{min-height:250px}
+}
+@media(max-height:800px) and (min-width:801px){
+  .screen{padding-top:13px}
+  .section-intro{padding-bottom:10px;margin-bottom:10px}
+  .metrics-line{margin-bottom:10px}
+  .metric-unit{padding:9px 11px}
+  .incident-workflow{min-height:61px;margin-bottom:10px}
+  .factory-viewport{height:clamp(310px,43vh,420px)}
+}
+@media(prefers-reduced-motion:reduce){
+ .workcell-activity,.station-group.is-processing .workcell-activity,.rail-item{animation:none!important;transition:none!important}
+}
+
+.trace-interactive{display:flex;flex-direction:column;align-items:flex-start;width:100%;background:#F6F9F8;border:1px solid #D0DFE0;padding:9px 11px;text-align:left;gap:4px;font:inherit;color:#2C4D54;cursor:pointer}
+.trace-interactive strong{font-size:12px}.trace-interactive span{font-size:11px;color:#42646C}.trace-interactive small{font-size:10.5px;color:#627D82}
+.trace-interactive:hover{background:#FFF3EA;border-color:#FF681B}
+.trace-interactive:focus-visible{outline:2px solid #FF681B;outline-offset:1px}
+/* Vertical hierarchy: important controls and the factory must be visible together on 720p. */
+@media(min-width:1000px){
+ .screen{padding-top:9px}
+ #view-simulacao .section-intro{margin-bottom:9px;padding-bottom:9px}
+ #view-simulacao .section-intro h1{font-size:24px}
+ #view-simulacao .section-intro p{margin-top:4px;font-size:12px}
+ #view-simulacao .metrics-line{margin-bottom:9px}
+ #view-simulacao .metric-unit{padding:8px 12px}
+ #view-simulacao .metric-value{font-size:25px;margin:3px 0 2px}
+ #view-simulacao .metric-foot{font-size:10.5px}
+ #view-simulacao .incident-workflow{min-height:50px;margin-bottom:9px;flex-wrap:nowrap;padding:8px 12px}
+ #view-simulacao .incident-led{width:23px;height:23px;box-shadow:inset 0 0 0 5px #FCFDFC,0 0 0 1px #F5BBA0}
+ #view-simulacao .incident-led:after{top:7.5px;left:7.5px;width:8px;height:8px}
+ #view-simulacao .incident-workflow-main{gap:10px}
+ #view-simulacao .incident-workflow-main strong{font-size:13px}
+ #view-simulacao .incident-workflow-main small{font-size:10.5px}
+ #view-simulacao .incident-eyebrow{font-size:9px}
+ #view-simulacao .incident-workflow-actions{width:auto;gap:5px}
+ #view-simulacao .incident-workflow-actions button{padding:6px 9px;min-height:31px;font-size:10.5px}
+ #view-simulacao .canvas-head{min-height:45px;padding:6px 10px}
+ #view-simulacao .timeline{min-height:68px;padding:7px 13px 5px}
+ #view-simulacao .timeline-top{margin-bottom:4px}
+ #view-simulacao .factory-viewport{height:clamp(320px,47vh,530px)}
+}
+@media(min-width:1000px) and (max-width:1430px){
+ #view-simulacao .incident-workflow-actions button:nth-child(2){display:none}
+ #view-simulacao .intro-tools{gap:5px}
+ #view-simulacao .intro-tools button{font-size:11px;padding:7px 9px}
+}

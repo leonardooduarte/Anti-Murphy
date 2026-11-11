@@ -1,0 +1,47 @@
+ANTI-MURPHY 30.2 — ACEITACAO DE INTERFACE
+Ambiente: Python 3.12/Linux; Streamlit 1.66.0; pandas 3.0.6; Chromium 153.
+
+Execucao: tools/run_browser_qa.py inicia o aplicativo real e executa
+Playwright com conexoes HTTP externas bloqueadas. O arquivo de registros
+do ensaio fica em pasta temporaria para preservar dados do projeto.
+
+Criterios verificados:
+1. Entrada legivel, postos selecionaveis e roteiro por pedido.
+2. Configuracao de uma parada real pelo formulario.
+3. Tres prioridades escolhem respostas diferentes no mesmo caso CNC de 5 h.
+4. Limite de investimento R$ 0 identificado por alternativa.
+5. Botao principal de ensaio visivel no viewport 1366x768.
+6. Cena usa processamento, fila e contagem derivados do motor.
+7. Entregas mostram prazo e conclusao, com roteiro selecionavel.
+8. Curvas de conclusao compartilham o instante do relogio.
+9. Curva temporal calculada; espera 8 h preserva a manutencao examinada
+   e apresenta perda liquida de R$ 1.800.
+10. Pergunta de orcamento prepara o teste sem alterar o experimento.
+11. Autorizacao atualiza resultados e consome o plano.
+12. Oito pares de sementes executados apos autorizacao.
+13. Motivo e escolha gravados; JSON exporta criterios, cinco pedidos,
+    registro e oito replicacoes; HTML inclui a decisao.
+14. Importacao de carteira com 75 pecas invalida analise e decisao corrente.
+15. Demonstracao posterior guarda o modelo importado; restauracao recupera 75 pecas.
+16. Apresentacao distinta da operacao, com capitulo final por pedido.
+17. Navegacao da apresentacao inteira visivel em 1366x768 e 1366x640,
+    incluindo mudanca somente de altura do navegador.
+18. Nenhum transbordamento horizontal em 1920x1080; cena mede 1473x458 px.
+19. Nenhum erro JavaScript. Dezesseis capturas temporarias e revisao visual das composicoes.
+20. Escala de entregas inclui prazos posteriores a conclusao da producao,
+    com marcadores distintos e prazo numerico por pedido.
+
+Exportacao sem resposta em exame tambem e coberta por teste Python: nenhum
+valor zero e inventado como resultado de uma alternativa nao selecionada.
+
+Marcador: BROWSER_QA_PASS.
+
+HTML offline: tools/browser_offline.js abre o arquivo por file://, bloqueia
+HTTP, confirma fontes locais carregadas, escolhe outra resposta previamente
+calculada, compara no mesmo instante e navega para o resultado da apresentacao.
+Controles que exigem novo calculo ou registro ficam desabilitados.
+Zero requisicoes externas e zero erros JavaScript.
+Marcador: OFFLINE_HTML_PASS.
+
+Capturas nao integram o pacote. Os testes de composicao nao equivalem a
+pesquisa com usuarios, calibracao industrial, Windows nativo ou chamada paga de API.

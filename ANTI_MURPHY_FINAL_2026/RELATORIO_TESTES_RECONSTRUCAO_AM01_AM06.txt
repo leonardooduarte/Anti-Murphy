@@ -1,0 +1,15 @@
+Anti-Murphy — testes da reconstrução AM-01 a AM-06
+Data: 10/11/2026
+
+Suíte acessível: 234 aprovados, 4 testes históricos não selecionados, 10 subtestes aprovados.
+20 testes específicos novos (contados entre os 234).
+Os 4 testes históricos tratam de textos/arquivos da estrutura anterior.
+Três testes históricos Streamlit não puderam ser coletados: falta Streamlit.
+Experimentação banca: 3 experimentos aprovados.
+Endpoints HTTP locais: /, /app.js, /engineering_charts.js, /api/state,
+/api/dashboards, /api/technical-audit, /api/lab, /api/advanced => 200.
+Checagem sintática Python e JavaScript => sucesso.
+Navegador automatizado: bloqueado pela política administrativa neste ambiente.
+Windows e projetor físico: não testados.
+
+Detalhes no arquivo LEIA_RECONSTRUCAO_AM01_AM06_2026.md.

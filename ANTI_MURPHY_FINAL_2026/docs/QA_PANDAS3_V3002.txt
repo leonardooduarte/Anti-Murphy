@@ -1,0 +1,7 @@
+V30.0.2 · verificação de compatibilidade
+Linux / Python 3.12.14 / pandas 3.0.6 carregado de instalação isolada.
+Suíte com pandas 3.0.6: 98 passed.
+Fluxo completo do Chromium: BROWSER_QA_PASS {"errors":[],"queue_at_incident":"74","screens":9,"viewport":[1440,1050,600]}
+Windows/Python 3.15: 38 wheels baixados, sem código-fonte; todas as dependências
+transitivas foram conferidas com marcadores PEP 508 para Windows/CPython 3.15.
+Isso não é uma execução nativa do Windows 3.15 neste ambiente Linux.

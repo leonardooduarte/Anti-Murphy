@@ -1,0 +1,57 @@
+{
+  "metrics": {
+    "normal": {
+      "name": "Operação nominal",
+      "feasible": true,
+      "makespan_h": 0.001,
+      "sla_pct": 100.0,
+      "late_orders": 0,
+      "total_cost": 0.03,
+      "operating_cost": 0.03,
+      "penalty_total": 0.0,
+      "throughput_h": 1000.0,
+      "bottleneck": "P",
+      "planned_units": 1,
+      "total_units": 1,
+      "warnings": [],
+      "precise": {
+        "makespan_h": 0.001,
+        "throughput_h": 1000.0,
+        "sla_pct": 100.0,
+        "penalty_total": 0.0,
+        "operating_cost": 0.03,
+        "total_cost": 0.03,
+        "unit_cost": 0.03,
+        "balance_loss_pp": 0.0
+      }
+    },
+    "incident": {
+      "name": "Incidente sob análise",
+      "feasible": true,
+      "makespan_h": 0.001,
+      "sla_pct": 100.0,
+      "late_orders": 0,
+      "total_cost": 0.03,
+      "operating_cost": 0.03,
+      "penalty_total": 0.0,
+      "throughput_h": 1000.0,
+      "bottleneck": "P",
+      "planned_units": 1,
+      "total_units": 1,
+      "warnings": [],
+      "precise": {
+        "makespan_h": 0.001,
+        "throughput_h": 1000.0,
+        "sla_pct": 100.0,
+        "penalty_total": 0.0,
+        "operating_cost": 0.03,
+        "total_cost": 0.03,
+        "unit_cost": 0.03,
+        "balance_loss_pp": 0.0
+      }
+    },
+    "response": null
+  },
+  "page_errors": [],
+  "short_time_visible": true
+}

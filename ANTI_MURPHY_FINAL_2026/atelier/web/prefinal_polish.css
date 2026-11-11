@@ -1,0 +1,60 @@
+/* PRE-FINAL · Functional visual refinement / no simulated transport metrics. */
+:root {--am-accent:#FF681B;--am-ink:#1D292D;--am-paper:#F7F7F3}
+.factory-viewport{background:radial-gradient(ellipse at 52% 25%,#284a53,#1b343b 53%,#12252c 90%)}
+.factory-viewport .station-machine {transition:filter .18s ease,opacity .18s ease}
+.factory-viewport .station-group.is-processing .station-machine {filter:drop-shadow(0 12px 7px rgba(4,13,18,.55))}
+.factory-viewport .station-group.down .station-machine {filter:grayscale(.32) brightness(.84) drop-shadow(0 9px 4px rgba(4,13,18,.6))}
+.factory-viewport .station-group.selected .workcell-deck {stroke:#FF9959;stroke-width:2.5}
+.factory-viewport .station-group.down .workcell-deck {stroke:#FF681B;stroke-width:2}
+.factory-viewport .station-group:not(.is-processing) :is(.machine-activity,.machine-spindle,.machine-spark),
+.factory-viewport[data-playing="false"] :is(.machine-activity,.machine-spindle,.machine-spark,.workcell-activity,.machine-operating-glow){animation-play-state:paused!important}
+.factory-viewport .station-group.is-processing :is(.machine-activity,.machine-spindle,.machine-spark){animation-play-state:running}
+.factory-viewport .station-group.down :is(.machine-activity,.machine-spindle,.machine-spark){animation-play-state:paused!important}
+.factory-viewport .station-group[data-state="idle"] .state-light{fill:#7A9399;filter:none}
+.factory-viewport .station-group[data-state="paused"] .state-light{fill:#E9BD81}
+.factory-viewport .station-group.is-processing .state-light{fill:#90D2BE}
+.operational-hud{position:absolute;right:15px;top:56px;z-index:4;display:flex;gap:5px;pointer-events:none}
+.operational-hud>div{background:#10272dE8;border:1px solid #41626a;padding:7px 10px;min-width:90px;display:flex;flex-direction:column;gap:2px}
+.operational-hud span{color:#B8CFCE;font-weight:650;letter-spacing:.055em;font-size:9px}
+.operational-hud strong{color:#F5FBF8;font-size:17px;font-weight:730;font-variant-numeric:tabular-nums;line-height:1}
+.operational-hud .hud-alert{border-color:#E38150;background:#452D2AEB}
+.operational-hud .hud-alert strong{color:#FFB387}
+.factory-bottom{font-size:10.5px;gap:6px}
+.investment-caveat{margin:9px 0 12px;color:#5B6F71;background:#F1F5F3;border-left:2px solid #B7CBCA;padding:9px 10px;font-size:11.5px;line-height:1.5}
+.decision-validation{margin:5px 0 10px;padding:0 2px;font-size:11.5px;font-weight:600;color:#27715E}
+.decision-validation.invalid{color:#A54B20}
+/* Keep the factory, scenario controls and active orders visible on a laptop. */
+@media (min-width:1100px) and (max-height:820px){
+  #view-simulacao .section-intro{margin-bottom:9px;padding-bottom:7px}
+  #view-simulacao .section-intro h1{font-size:24px}
+  #view-simulacao .metrics-line{margin-bottom:8px}
+  #view-simulacao .metric-unit{padding:8px 11px}
+  #view-simulacao .incident-workflow{margin-bottom:9px;padding:7px 11px;min-height:51px}
+  #view-simulacao .canvas-head{padding:7px 12px}
+  #view-simulacao .factory-viewport{height:clamp(285px,40vh,380px)}
+  #view-simulacao .timeline{min-height:70px;padding:7px 12px}
+}
+@media(max-width:1450px){.operational-hud{right:9px;top:48px}.operational-hud>div{min-width:65px;padding:5px 7px}.operational-hud span{font-size:8px}.operational-hud strong{font-size:15px}}
+@media(max-width:800px){.operational-hud{top:50px;right:8px}.operational-hud>div{min-width:52px;padding:5px}.operational-hud span{font-size:7px}.operational-hud strong{font-size:13px}}
+@media(max-width:600px){.operational-hud{display:none}}
+@media(prefers-reduced-motion:reduce){.factory-viewport .station-group *, .factory-viewport .queue-unit{animation:none!important;transition:none!important}}
+/* The map must remain unobstructed in standard operation. The larger data
+   ribbon is reserved for fullscreen presentations; compact counts remain
+   accessible in the permanent status strip. */
+.factory-viewport .operational-hud{display:none}
+.canvas-workspace:fullscreen .operational-hud{display:flex;left:16px;right:auto;top:auto;bottom:48px}
+.factory-bottom #stage-activity-summary{color:#D2E2DE;font-weight:550}
+.factory-bottom #stage-mode-indicator{color:#A7CCC2!important}
+
+/* Evidence path: a sequence of actions, not a claim of physical causation. */
+.impact-path{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr) 20px minmax(0,1fr);gap:8px;align-items:stretch;margin:13px 0 11px}
+.impact-path-node{background:#F8FBF9;border:1px solid #BCD0CB;border-top:3px solid #4F8175;display:flex;flex-direction:column;gap:7px;text-align:left;padding:14px;min-width:0;color:#243E42;cursor:pointer}
+.impact-path-node:first-child{border-top-color:#FF681B}
+.impact-path-node:hover{border-color:#CE774C;background:#FFF9F4}
+.impact-path-node:focus-visible{outline:2px solid #FF681B;outline-offset:2px}
+.impact-path-node small{font-weight:750;color:#60777C;letter-spacing:.035em;font-size:9.5px}
+.impact-path-node strong{font-size:17px;line-height:1.2;letter-spacing:-.022em;color:#223F44}
+.impact-path-node span{font-size:11.5px;color:#556F73;line-height:1.4;overflow-wrap:anywhere}
+.impact-path-node em{font-size:11px;color:#34665A;margin-top:auto;padding-top:8px;font-style:normal;font-weight:700}
+.impact-path-separator{align-self:center;text-align:center;color:#8BA8A3;font-size:20px;font-weight:400}
+@media(max-width:900px){.impact-path{grid-template-columns:1fr;gap:5px}.impact-path-separator{transform:rotate(90deg);line-height:18px}.impact-path-node{padding:12px}}

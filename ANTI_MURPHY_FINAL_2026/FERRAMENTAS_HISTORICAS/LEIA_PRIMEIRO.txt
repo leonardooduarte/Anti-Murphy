@@ -1,0 +1,11 @@
+INTERFACE HISTORICA ATLAS / NEXUS
+
+Use ABRIR_ATLAS_NEXUS.bat para executar as ferramentas originais do
+Streamlit. Na primeira abertura, podem ser instaladas dependencias Python.
+
+Este ambiente usa a interface historica, separada da aplicacao principal.
+O projeto cadastrado em workspace/projeto.json e compartilhado na inicializacao,
+mas os resultados dos experimentos e sessoes nao sao sincronizados.
+
+Nao e necessario abrir esta interface para usar as ferramentas nativas de
+analise da aplicacao principal.

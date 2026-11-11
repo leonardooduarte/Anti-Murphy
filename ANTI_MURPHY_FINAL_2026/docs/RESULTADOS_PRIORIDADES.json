@@ -1,0 +1,177 @@
+{
+  "synthetic": true,
+  "case": "CNC, início 4 h, parada 5 h, resposta 6 h, investimento até 10000, entrega mínima 0%, semente 42",
+  "results": [
+    {
+      "objective": "cost",
+      "critical_order": "",
+      "run_id": "433d0c7d4acc",
+      "selection_reason": "Menor custo total entre as respostas que geram economia sem piorar entregas e conclusão, dentro do orçamento e da entrega mínima.",
+      "answer": {
+        "action": "Realocar operador · MONTAGEM → CNC",
+        "investment": 0.0,
+        "decision_cost": 9359.82,
+        "savings": 953.18,
+        "sla_pct": 100.0,
+        "makespan_h": 19.41,
+        "critical_finish_h": null
+      },
+      "order_impacts": [
+        {
+          "id": "OP-101",
+          "due_h": 13.0,
+          "before_h": 9.58,
+          "after_h": 9.72,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-102",
+          "due_h": 15.0,
+          "before_h": 13.99,
+          "after_h": 13.56,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-103",
+          "due_h": 18.0,
+          "before_h": 17.96,
+          "after_h": 17.08,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-104",
+          "due_h": 20.0,
+          "before_h": 9.94,
+          "after_h": 17.67,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-105",
+          "due_h": 22.0,
+          "before_h": 21.58,
+          "after_h": 19.41,
+          "late_before": false,
+          "late_after": false
+        }
+      ]
+    },
+    {
+      "objective": "delivery",
+      "critical_order": "",
+      "run_id": "0c77b4e756a8",
+      "selection_reason": "Prioriza mais pedidos no prazo, depois menos horas de atraso e menor conclusão da carteira; respeita orçamento e entrega mínima.",
+      "answer": {
+        "action": "+1 operador · CNC",
+        "investment": 1200.0,
+        "decision_cost": 9881.51,
+        "savings": 431.49,
+        "sla_pct": 100.0,
+        "makespan_h": 17.47,
+        "critical_finish_h": null
+      },
+      "order_impacts": [
+        {
+          "id": "OP-101",
+          "due_h": 13.0,
+          "before_h": 9.58,
+          "after_h": 9.58,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-102",
+          "due_h": 15.0,
+          "before_h": 13.99,
+          "after_h": 13.56,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-103",
+          "due_h": 18.0,
+          "before_h": 17.96,
+          "after_h": 17.01,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-104",
+          "due_h": 20.0,
+          "before_h": 9.94,
+          "after_h": 17.47,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-105",
+          "due_h": 22.0,
+          "before_h": 21.58,
+          "after_h": 16.35,
+          "late_before": false,
+          "late_after": false
+        }
+      ]
+    },
+    {
+      "objective": "critical",
+      "critical_order": "OP-101",
+      "run_id": "dc911d086109",
+      "selection_reason": "Prioriza o atraso e a conclusão de OP-101 entre as respostas simuladas; respeita orçamento e entrega mínima. Os demais pedidos podem ter perdas.",
+      "answer": {
+        "action": "Manutenção expressa · CNC",
+        "investment": 1800.0,
+        "decision_cost": 11396.0,
+        "savings": -1083.0,
+        "sla_pct": 100.0,
+        "makespan_h": 20.08,
+        "critical_finish_h": 8.14
+      },
+      "order_impacts": [
+        {
+          "id": "OP-101",
+          "due_h": 13.0,
+          "before_h": 9.58,
+          "after_h": 8.14,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-102",
+          "due_h": 15.0,
+          "before_h": 13.99,
+          "after_h": 12.6,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-103",
+          "due_h": 18.0,
+          "before_h": 17.96,
+          "after_h": 16.54,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-104",
+          "due_h": 20.0,
+          "before_h": 9.94,
+          "after_h": 17.54,
+          "late_before": false,
+          "late_after": false
+        },
+        {
+          "id": "OP-105",
+          "due_h": 22.0,
+          "before_h": 21.58,
+          "after_h": 20.08,
+          "late_before": false,
+          "late_after": false
+        }
+      ]
+    }
+  ]
+}

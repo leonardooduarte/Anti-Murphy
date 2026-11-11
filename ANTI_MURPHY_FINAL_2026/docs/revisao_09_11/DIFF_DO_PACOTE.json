@@ -1,0 +1,42 @@
+{
+  "changed": [
+    "atelier/service.py",
+    "atelier/tests/browser_final_banca.py",
+    "atelier/web/app.js",
+    "atelier/web/index.html",
+    "docs/capturas_banca_final/01_plano_1280.png",
+    "docs/capturas_banca_final/01_plano_1366.png",
+    "docs/capturas_banca_final/01_plano_1920.png",
+    "docs/capturas_banca_final/02_falha_1280.png",
+    "docs/capturas_banca_final/02_falha_1366.png",
+    "docs/capturas_banca_final/02_falha_1920.png",
+    "docs/capturas_banca_final/04_resposta_1280.png",
+    "docs/capturas_banca_final/04_resposta_1366.png",
+    "docs/capturas_banca_final/04_resposta_1920.png",
+    "docs/capturas_banca_final/05_comparacao_1280.png",
+    "docs/capturas_banca_final/05_comparacao_1366.png"
+  ],
+  "added": [
+    "LEIA_PRIMEIRO_REVISAO_09_11.md",
+    "atelier/decision_quality.py",
+    "atelier/tests/http_refino_09_11.py",
+    "atelier/tests/test_decision_quality.py",
+    "atelier/web/polimento_09_11.css",
+    "docs/capturas_banca_final/06_decisao_1280.png",
+    "docs/capturas_banca_final/06_decisao_1366.png",
+    "docs/capturas_banca_final/06_decisao_1920.png",
+    "docs/capturas_banca_final/07_registro_1280.png",
+    "docs/capturas_banca_final/07_registro_1366.png",
+    "docs/capturas_banca_final/07_registro_1920.png",
+    "docs/capturas_banca_final/08_alerta_multicriterio_1280.png",
+    "docs/capturas_banca_final/08_alerta_multicriterio_1366.png",
+    "docs/capturas_banca_final/08_alerta_multicriterio_1920.png",
+    "docs/revisao_09_11/CHECKLIST_WINDOWS_E_PROJETOR.md",
+    "docs/revisao_09_11/COMPONENTES_CRITICOS_PRESERVADOS.json",
+    "docs/revisao_09_11/GUIA_PITCH_CINCO_MINUTOS.md",
+    "docs/revisao_09_11/MELHORIAS_FUTURAS.md",
+    "docs/revisao_09_11/RELATORIO_TECNICO.md",
+    "docs/revisao_09_11/TESTES_EXECUTADOS.md"
+  ],
+  "missing": []
+}
