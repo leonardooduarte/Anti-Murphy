@@ -1478,10 +1478,18 @@ function localTimestamp(value){
  if(Number.isNaN(date.valueOf()))return String(value);
  return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short',timeZone:'America/Sao_Paulo'}).format(date)+' (Brasília)';
 }
+function historyProjectOrigin(record){
+ const id=record.project_id;
+ if(!id)return 'Projeto de origem não identificado neste registro';
+ if(record.project_name)return `Projeto: ${record.project_name} (${id}) · nome arquivado na decisão`;
+ const current=st.data?.projects?.find(p=>p.id===id);
+ return current?`Projeto: ${current.name} (${id}) · nome atual do cadastro; nome à época não arquivado`:
+  `Projeto: ${id} · nome não disponível; origem preservada pelo identificador`;
+}
 async function loadHistory(){
  try{
-  const all=await api('/api/history');$('history-count').textContent=`${all.length} registros`;
-  $('history-list').innerHTML=all.length?all.map(r=>`<button class="history-item" data-file="${esc(r.filename)}"><strong>${esc(r.action||'Decisão')}</strong><small>${esc(localTimestamp(r.utc))} · ${esc(r.run_id||'')}</small><small>Economia prevista: ${brl(r.savings)} · SLA ${h(r.sla_pct)}%</small></button>`).join(''):'<div class="empty-state">Nenhuma decisão registrada ainda.</div>';
+  const all=await api('/api/history');$('history-count').textContent=`${all.length} registros · todos os projetos`;
+  $('history-list').innerHTML=all.length?all.map(r=>`<button class="history-item" data-file="${esc(r.filename)}"><strong>${esc(r.action||'Decisão')}</strong><small>${esc(historyProjectOrigin(r))}</small><small>${esc(localTimestamp(r.utc))} · ${esc(r.run_id||'')}</small><small>Economia prevista: ${brl(r.savings)} · SLA ${h(r.sla_pct)}%</small></button>`).join(''):'<div class="empty-state">Nenhuma decisão registrada ainda.</div>';
   $$('#history-list .history-item').forEach(btn=>btn.onclick=()=>openHistory(btn.dataset.file));
  }catch(e){notify(e.message,true)}
 }
@@ -1496,7 +1504,7 @@ async function openHistory(filename){
     'Registro anterior sem conferência automatizada de valores.';
   const savedCosts=record.cost_snapshot||{};
   const economicTrace=savedCosts.run_id?`<div class="history-economic-evidence"><strong>Base monetária armazenada na decisão</strong><div><span>Falha sem resposta</span><b>${brlExact(savedCosts.incident_total_cost)}</b></div><div><span>Resposta + investimento</span><b>${brlExact(savedCosts.decision_cost)}</b></div><div><span>Diferença modelada</span><b>${brlExact(savedCosts.savings)}</b></div><small>Valores sintéticos vinculados à execução ${esc(savedCosts.run_id)}.</small></div>`:'';
-  $('history-detail').innerHTML=`<div class="history-report-head"><span>FICHA DE DECISÃO</span><h3>${esc(record.action)}</h3><small>${esc(localTimestamp(record.utc))}</small></div><div class="history-meta"><div><span>Responsável</span><strong>${esc(record.responsible||'Não informado')}</strong></div><div><span>Experimento</span><strong>${esc(record.run_id||'—')}</strong></div><div><span>Viabilidade física</span><strong>Não homologada</strong></div></div><div class="inspect-data"><div class="inspect-row"><span>Economia líquida estimada</span><b>${brl(action.savings)}</b></div><div class="inspect-row"><span>Pedidos no prazo</span><b>${h(action.sla_pct)}%</b></div><div class="inspect-row"><span>Conclusão</span><b>${h(action.makespan_h)} h</b></div></div>${record.decision_review?decisionReviewMarkup(record.decision_review,false):''}<h3>Justificativa</h3><p>${esc(record.note||'Nenhuma justificativa informada.')}</p><h3>Riscos e verificações pendentes</h3><p>${esc(record.risks||'Não detalhados neste registro.')}</p><div class="history-validation">${esc(moneyAuditText)}</div>${economicTrace}<div class="history-validation">${record.constraints_ack?'Limitações reconhecidas pelo responsável no registro.':'Registro legado sem confirmação explícita das limitações.'}</div><details class="history-technical"><summary>Rastreabilidade técnica · JSON e integridade</summary><pre>${esc(JSON.stringify({run_id:r.run_id,record:record,sha256:r.sha256},null,2))}</pre></details>`;
+  $('history-detail').innerHTML=`<div class="history-report-head"><span>FICHA DE DECISÃO</span><h3>${esc(record.action)}</h3><small>${esc(localTimestamp(record.utc))}</small></div><div class="history-meta"><div><span>Origem do projeto</span><strong>${esc(historyProjectOrigin(record))}</strong></div><div><span>Responsável</span><strong>${esc(record.responsible||'Não informado')}</strong></div><div><span>Experimento</span><strong>${esc(record.run_id||'—')}</strong></div><div><span>Viabilidade física</span><strong>Não homologada</strong></div></div><div class="inspect-data"><div class="inspect-row"><span>Economia líquida estimada</span><b>${brl(action.savings)}</b></div><div class="inspect-row"><span>Pedidos no prazo</span><b>${h(action.sla_pct)}%</b></div><div class="inspect-row"><span>Conclusão</span><b>${h(action.makespan_h)} h</b></div></div>${record.decision_review?decisionReviewMarkup(record.decision_review,false):''}<h3>Justificativa</h3><p>${esc(record.note||'Nenhuma justificativa informada.')}</p><h3>Riscos e verificações pendentes</h3><p>${esc(record.risks||'Não detalhados neste registro.')}</p><div class="history-validation">${esc(moneyAuditText)}</div>${economicTrace}<div class="history-validation">${record.constraints_ack?'Limitações reconhecidas pelo responsável no registro.':'Registro legado sem confirmação explícita das limitações.'}</div><details class="history-technical"><summary>Rastreabilidade técnica · JSON e integridade</summary><pre>${esc(JSON.stringify({run_id:r.run_id,record:record,sha256:r.sha256},null,2))}</pre></details>`;
   $$('#history-list .history-item').forEach(b=>b.classList.toggle('active',b.dataset.file===filename));
  }catch(e){notify(e.message,true)}
 }

@@ -651,7 +651,9 @@ class Studio:
                 raise StudioError('Quantia não identificada nesta execução ('+written+'). Confira ou confirme que deseja registrá-la como não verificada.')
             candidate=deepcopy(self.state)
             candidate['nx_selected']=signature
-            candidate['op_record']={'project_id':self.project_id,'run_id':a['run_id'],'signature':signature,'action':row['action'],
+            candidate['op_record']={'project_id':self.project_id,
+                'project_name':next((p['name'] for p in self.projects() if p['id']==self.project_id),None),
+                'run_id':a['run_id'],'signature':signature,'action':row['action'],
                 'utc':datetime.now(timezone.utc).isoformat(),'requested_h':row.get('requested_h'),
                 'effective_h':row.get('effective_h'),'objective':self.state['nx_spec']['objective'],
                 'note':note[:1000], 'responsible':responsible, 'risks':risks,
@@ -681,6 +683,7 @@ class Studio:
                 d=item['data'];r=d.get('record') or {}; ex=d.get('examined_action') or {}
                 out.append({'filename':item['filename'],'utc':r.get('utc'), 'action':r.get('action'),
                     'note':r.get('note'),'run_id':r.get('run_id'),
+                    'project_id':r.get('project_id'),'project_name':r.get('project_name'),
                     'savings':ex.get('savings'),'sla_pct':ex.get('sla_pct'), 'makespan_h':ex.get('makespan_h')})
             return out
 
