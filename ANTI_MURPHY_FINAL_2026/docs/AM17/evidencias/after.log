@@ -1,0 +1,2 @@
+WorkloadLimitError Este cálculo pode exigir até 175.000.000 operações em 7 cenários (25.000.000 por cenário). O limite desta versão é 25.000 por cenário e 250.000 por análise. Reduza quantidades ou etapas do roteiro, ou divida o estudo em lotes. Nenhum resultado foi substituído e nenhum cenário foi iniciado.
+{"json_bytes": 100371, "requested_operations": 25000000, "execute_calls": 0, "previous_run_preserved": true}

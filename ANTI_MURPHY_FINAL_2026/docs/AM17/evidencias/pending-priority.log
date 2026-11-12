@@ -1,0 +1,3 @@
+Valid optional-priority input: []
+Original normalized priority: None
+Validation after original editor normalization: ['Ordem A: prioridade inválida.']

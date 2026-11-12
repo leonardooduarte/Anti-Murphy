@@ -1,0 +1,10 @@
+{
+  "version": "AM17-2026.1",
+  "base_commit": "3e4bf47892be46cc3640ab2baee34a44faed4248",
+  "base_version": "AM04-FRONTEIRA-2026.1",
+  "branch": "correcao-am17-desempenho",
+  "regression_passed": 510,
+  "preexisting_failures": 5,
+  "subtests_passed": 10,
+  "new_tests_passed": 37
+}

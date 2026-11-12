@@ -1,3 +1,21 @@
+# Versão atual: AM17-2026.1
+
+Continuação do complemento AM04 sobre AM10. Preserva AM09/AM08/AM12/AM05/AM11 e a base reconstruída AM01–AM06.
+
+[Baixar aplicativo completo](ENTREGAS/AM17/ANTI_MURPHY_AM17_COMPLETO_2026.zip) · [Patch sobre AM04/AM10](ENTREGAS/AM17/ANTI_MURPHY_PATCH_AM17_2026.zip) · [Relatório](ENTREGAS/AM17/RELATORIO_AM17_2026.md) · [Continuidade](ENTREGAS/AM17/CONTINUIDADE_AM17_2026.md) · [Próximas etapas](ENTREGAS/AM17/STATUS_AM17_E_PROXIMAS_ETAPAS_2026.md).
+
+Abra o ZIP e clique em **Download raw file**. Extraia em pasta nova e execute `ANTI_MURPHY_FINAL_2026/INICIAR_ANTI_MURPHY.bat`. Preserve instalações anteriores e faça backup dos seus projetos.
+
+O editor mostra a dimensão do modelo antes de aplicar. Pedidos acima dos limites locais são recusados antes do cálculo: 25.000 operações por cenário e 250.000 por análise, contando os cenários. Projetos grandes salvos abrem para edição sem simular nem regravar automaticamente. O replay usa índices e o diário de eventos é consultado sem reordenar tudo a cada atualização.
+
+Benchmark específico de 3.600 consultas com 12.000 operações: mediana 790,47→10,58 ms após aquecimento, com 48,86 ms de construção inicial do índice. Não é ganho de velocidade global da aplicação. Fórmulas, indicadores e resultados oficiais foram preservados.
+
+510 testes aprovados, cinco falhas preexistentes e dez subtestes aprovados; 37 casos novos do AM17. Três experimentos oficiais e navegador nas três resoluções passaram. ZIP e patch reproduzem os mesmos 506 arquivos; após extração, 94 testes direcionados e a verificação HTTP passaram. Windows/projetor ainda exigem aceite local. As versões anteriores permanecem preservadas.
+
+---
+
+Histórico das versões anteriores:
+
 # Versão atual: complemento AM04 sobre AM10
 
 AM04-FRONTEIRA-2026.1 preserva AM10/AM09/AM08/AM12/AM05/AM11 e a base reconstruída AM01–AM06. O número AM04 identifica o achado complementado; esta é a continuação da AM10.

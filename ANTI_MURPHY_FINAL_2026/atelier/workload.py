@@ -36,7 +36,7 @@ def profile(stations, orders, scope='model', mode=''):
         else:
             scenarios = {'duration': 7, 'dispatch': 3, 'robustness': 12, 'stress': 16, 'goal': 0}.get(mode, 0)
         if mode == 'stress':
-            multiplier = 1.3
+            multiplier = 1.2
     else:
         # Advanced tools can fill the nominal cache once before their own runs.
         # Conservative upper bounds include that run, even if already cached.

@@ -1,0 +1,8 @@
+[http] "GET / HTTP/1.1" 200 -
+[http] "GET /app.js HTTP/1.1" 200 -
+[http] "GET /integridade_final.css HTTP/1.1" 200 -
+[http] "GET /api/state HTTP/1.1" 200 -
+[http] "GET /api/dashboards HTTP/1.1" 200 -
+[http] "GET /api/technical-audit HTTP/1.1" 200 -
+[http] "POST /api/model HTTP/1.1" 400 -
+Extracted ZIP HTTP checks OK [('/', 36635), ('/app.js', 198011), ('/integridade_final.css', 5786), ('/api/state', 266521), ('/api/dashboards', 46728), ('/api/technical-audit', 4368)] budget rejection preserves previous run

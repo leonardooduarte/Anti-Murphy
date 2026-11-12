@@ -18,7 +18,7 @@ def model():
     return {'stations':{'P':{'nome':'Célula de produção','maquinas':1,'operadores':1,
             'operadores_por_maquina':1,'eficiencia_operador':1,'disponibilidade':1,
             'custo_maquina_h':10,'custo_operador_h':10,'setup_min':0}},
-            'orders':[{'id':'A','quantidade':100,'prazo_h':100,'multa_hora':10,'route':[['P',1]]*12}]}
+            'orders':[{'id':'A','quantidade':100,'prioridade':1,'release_h':0,'prazo_h':100,'multa_hora':10,'route':[['P',1]]*12}]}
 
 
 with sync_playwright() as pw:
@@ -51,7 +51,7 @@ with sync_playwright() as pw:
                     page.locator('#model-workload').screenshot(path=str(OUT/f'limite_{width}.png'))
                     with page.expect_response(lambda r:r.url.endswith('/api/model')) as ev:
                         page.locator('#model-save').click()
-                    assert ev.value.status==400 and 'Nenhum resultado foi substituído' in ev.value.json()['error']
+                    assert ev.value.status==400 and 'Nenhum resultado foi substituído' in ev.value.json()['error'], ev.value.json()
                     assert studio.info()['run_id']==before and studio.state['orders'][0]['quantidade']==100
                     page.locator('input[data-field=quantidade]').fill('10')
                     with page.expect_response(lambda r:r.url.endswith('/api/model')) as ev:

@@ -1,0 +1,44 @@
+{
+  "version": "AM17-2026.1",
+  "base_commit": "3e4bf47892be46cc3640ab2baee34a44faed4248",
+  "branch": "correcao-am17-desempenho",
+  "project_files": 506,
+  "base_files_preserved": 475,
+  "zip_integrity": true,
+  "patch_matches_full_zip_sha256": true,
+  "changed_production_files": [
+    "atelier/service.py",
+    "atelier/web/app.js",
+    "atelier/web/index.html",
+    "atelier/web/integridade_final.css",
+    "simulation/decisions.py"
+  ],
+  "new_production_module": "atelier/workload.py",
+  "regression_passed": 510,
+  "preexisting_failures": 5,
+  "subtests_passed": 10,
+  "new_am17_tests_passed": 37,
+  "extracted_directed_tests_passed": 94,
+  "extracted_http_checks": true,
+  "extracted_budget_rejection_preserves_run": true,
+  "official_experiments_passed": 3,
+  "browser_resolutions": [
+    "1280x720",
+    "1366x768",
+    "1920x1080"
+  ],
+  "saved_large_model_editable_without_rewrite": true,
+  "native_windows_validated": false,
+  "benchmark": {
+    "operations": 12000,
+    "stations": 12,
+    "queries": 3600,
+    "repetitions": 5,
+    "before_warm_median_ms": 790.465329,
+    "after_warm_median_ms": 10.584904,
+    "before_cold_ms": 1.163511,
+    "after_cold_ms": 48.858895,
+    "checksum": 1798788,
+    "whole_application_speedup_claimed": false
+  }
+}

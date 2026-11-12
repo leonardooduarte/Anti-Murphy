@@ -80,7 +80,7 @@ def test_demand_growth_and_capacity_candidates_are_included():
     m=model(2000,8)
     assert not profile(**m,scope='advanced',mode='demand')['within_limits']  # 1.6 × demand
     p=profile(**m,scope='lab',mode='stress')
-    assert p['max_scenario_operations']==20800 and p['scenario_upper_bound']==16
+    assert p['max_scenario_operations']==19200 and p['scenario_upper_bound']==16
     assert not p['within_limits']
     capacity=profile(**m,scope='lab',mode='capacity')
     assert capacity['scenario_upper_bound']==6  # five candidates + optional nominal
@@ -121,3 +121,21 @@ def test_opportunities_do_not_clone_discarded_candidates():
     with patch.object(cfg,'clone',wraps=original) as clone,patch('simulation.decisions.run_simulation',return_value={'feasible':False}):
         assert generate_opportunities(cfg,{},max_candidates=1)==[]
     assert clone.call_count==1
+
+
+@pytest.mark.parametrize('scope,mode', [('lab',m) for m in ('duration','dispatch','robustness','stress','capacity')]
+                         + [('advanced',m) for m in ('diagnostic','opportunities','sensitivity','demand','uncertainty','recovery')])
+def test_declared_tool_bound_covers_actual_des_calls_and_operations(tmp_path,monkeypatch,scope,mode):
+    import importlib
+    from simulation.engine import run_simulation
+    s=Studio(tmp_path);calls=[]
+    def measured(config,*args,**kwargs):
+        calls.append(operations(config.orders,config.demand_multiplier))
+        return run_simulation(config,*args,**kwargs)
+    for name in ['atelier.service','simulation.nexus','simulation.response','simulation.advanced','simulation.innovation','simulation.decisions']:
+        monkeypatch.setattr(importlib.import_module(name),'run_simulation',measured)
+    expected=profile(s.state['stations'],s.state['orders'],scope,mode)
+    getattr(s,scope)({'mode':mode})
+    assert len(calls)<=expected['scenario_upper_bound']
+    assert sum(calls)<=expected['operation_upper_bound']
+    assert max(calls,default=0)<=expected['max_scenario_operations']

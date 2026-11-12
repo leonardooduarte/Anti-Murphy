@@ -1,0 +1,1662 @@
+--- a/atelier/service.py
++++ b/atelier/service.py
+@@ -38,8 +38,13 @@
+ from .persistence import atomic_bundle
+ from .workspace_guard import workspace_lock, project_revision
+ from .analysis_provenance import contexts as experiment_contexts, inputs as experiment_inputs, signature as experiment_signature
++from .workload import profile as workload_profile, limit_message as workload_message
+ 
+ class StudioError(Exception):
++    pass
++
++
++class WorkloadLimitError(StudioError):
+     pass
+ 
+ 
+@@ -116,6 +121,7 @@
+         self._lab={}
+         self._last_config=None
+         self._recovery_warning=None
++        self._workload_blocked=False
+         p=storage/'projeto.json'
+         if p.exists():
+             try:
+@@ -178,7 +184,10 @@
+                 startup_spec=asdict(ExperimentSpec())
+             self._recovery_warning='Configuração inválida na abertura; recuperada a última versão confirmada ou o exemplo padrão.'
+         startup_spec['station']=startup_spec['station'] if startup_spec['station'] in self.state['stations'] else next(iter(self.state['stations']))
+-        self.calculate(startup_spec,initial=True)
++        try:
++            self.calculate(startup_spec,initial=True)
++        except WorkloadLimitError as exc:
++            self._open_without_calculation(self.state, startup_spec, self.project_id, str(exc))
+ 
+     def _project_file(self, project_id):
+         if not isinstance(project_id,str) or not re.fullmatch(r'[a-z0-9_-]{1,48}',project_id):
+@@ -295,7 +304,10 @@
+             payload=dict(data.get('spec') or {})
+             payload['station']=payload.get('station') if payload.get('station') in candidate['stations'] else next(iter(candidate['stations']))
+             payload['delay_h']=data.get('delay_h',2.)
+-            self._commit_calculation(candidate,payload,project_id=project_id,project_name=data['name'])
++            try:
++                self._commit_calculation(candidate,payload,project_id=project_id,project_name=data['name'])
++            except WorkloadLimitError as exc:
++                self._open_without_calculation(candidate,payload,project_id,str(exc))
+             return self.info()
+ 
+     def rename_project(self,name):
+@@ -377,6 +389,25 @@
+     def _rebuild_replays(self):
+         self._replays=self._prepared_replays(self.state)
+ 
++    def _check_workload(self, stations, orders, scope='model', mode=''):
++        p=workload_profile(stations,orders,scope,mode)
++        if not p['within_limits']:
++            raise WorkloadLimitError(workload_message(p))
++        return p
++
++    def _open_without_calculation(self, candidate, payload, project_id, message):
++        """Keep a large saved model editable without calculating or rewriting it."""
++        invalidate_model(candidate)
++        candidate['nx_spec']=asdict(replace(ExperimentSpec(**candidate['nx_spec']),
++            **{k:v for k,v in payload.items() if k in asdict(ExperimentSpec())}))
++        candidate['op_delay']=payload.get('delay_h',candidate.get('op_delay',2.))
++        self.state=candidate
++        self.project_id=project_id
++        self._replays={}
++        self._last_config=None
++        self._workload_blocked=True
++        self._recovery_warning='Projeto aberto para edição, sem simular. '+message
++
+     def _commit_calculation(self, candidate, payload, *, project_id=None, project_name=None, initial=False):
+         """Compute and persist candidate before replacing the visible state."""
+         old=ExperimentSpec(**candidate['nx_spec'])
+@@ -400,6 +431,11 @@
+         if spec.objective=='critical' and spec.critical_order not in {o['id'] for o in candidate['orders']}:
+             raise StudioError('O pedido prioritário não existe no modelo atual. Escolha um pedido válido.')
+         try:
++            spec.validate(candidate['stations'])
++        except (ValueError,TypeError) as exc:
++            raise StudioError(str(exc)) from exc
++        self._check_workload(candidate['stations'],candidate['orders'])
++        try:
+             execute(candidate,spec,source='Interface integrada')
+             replays=self._prepared_replays(candidate)
+         except (ValueError,OverflowError,TypeError,KeyError,IndexError) as exc:
+@@ -414,6 +450,9 @@
+         self.state=candidate
+         self._replays=replays
+         self.project_id=project_id or self.project_id
++        if self._workload_blocked:
++            self._workload_blocked=False
++            self._recovery_warning=None
+         self._last_config=_json_safe({'spec':asdict(spec),'delay_h':candidate['op_delay']})
+         return self.info()
+ 
+@@ -461,6 +500,8 @@
+                 'projects':self.projects(),
+                 'experiment_count':len(self.experiment_list()),
+                 'stations':self.state['stations'],'orders':self.state['orders'],
++                'workload':workload_profile(self.state['stations'],self.state['orders']),
++                'calculation_blocked':self._workload_blocked,
+                 'rule':self.state.get('nx_rule','EDD'),
+                 'run_id':a.get('run_id') if a else None,
+                 'analysis_signature':self._analysis_signature(),
+@@ -563,6 +604,7 @@
+             if errors:raise StudioError(' | '.join(errors[:10]))
+             if len(stations)>50 or len(orders)>200 or sum(int(o['quantidade']) for o in orders)>2500:
+                 raise StudioError('Modelo excede os limites desta estação (50 postos, 200 ordens, 2.500 unidades).')
++            self._check_workload(stations,orders)
+             candidate=deepcopy(self.state)
+             candidate.update(stations=deepcopy(stations),orders=deepcopy(orders),
+                              nx_source='Modelo editado pelo usuário')
+@@ -666,6 +708,7 @@
+             a=current_analysis(self.state)
+             if not a:raise StudioError('Execute uma simulação antes de abrir o laboratório.')
+             mode=str(payload.get('mode') or '')
++            self._check_workload(self.state['stations'],self.state['orders'],'lab',mode)
+             cfg=base_config(self.state)
+             spec=ExperimentSpec(**self.state['nx_spec'])
+             points=[];notes=[]
+@@ -743,6 +786,7 @@
+             a=current_analysis(self.state)
+             if not a:
+                 raise StudioError('Execute uma simulação antes de usar esta análise.')
++            self._check_workload(self.state['stations'],self.state['orders'],'advanced',mode)
+             cfg=base_config(self.state)
+             nominal_result=nominal(self.state)
+             incident=a['incident']
+--- a/atelier/web/app.js
++++ b/atelier/web/app.js
+@@ -343,14 +343,49 @@
+  return bestScore>0?Math.min(finish,best):start;
+ }
+ function _binaryCount(arr,t){let l=0,r=arr.length;while(l<r){const m=(l+r)>>1;if(arr[m]<=t)l=m+1;else r=m;}return l;}
++const replayIndexes=new WeakMap();
++function intervalIndex(entries,start,end){
++ const sorted=entries.slice().sort((a,b)=>a.op[start]-b.op[start]||a.order-b.order);
++ const starts=[],maxEnds=[];let max=-Infinity;
++ for(const entry of sorted){starts.push(entry.op[start]);max=Math.max(max,entry.op[end]);maxEnds.push(max);}
++ return {sorted,starts,maxEnds,end};
++}
++function intervalsAt(index,t){
++ const found=[];
++ for(let i=_binaryCount(index.starts,t)-1;i>=0&&index.maxEnds[i]>t;i--){
++  const entry=index.sorted[i];if(entry.op[index.end]>t)found.push(entry);
++ }
++ return found.sort((a,b)=>a.order-b.order).map(x=>x.op);
++}
++function replayIndex(payload){
++ let index=replayIndexes.get(payload);if(index)return index;
++ const groups=payload.stations.map(()=>[]),events=[];
++ (payload.operations||[]).forEach((op,order)=>{
++  if(groups[op[0]])groups[op[0]].push({op,order});
++  const station=payload.stations[Number(op[0])]?.id||'POSTO';
++  for(const [field,kind] of [[2,'Início'],[3,'Conclusão']])events.push({t:Number(op[field]),kind,station,order:String(op[4]||'—'),unit:String(op[5]||'')});
++ });
++ if(payload.outage){const o=payload.outage;
++  events.push({t:Number(o.start),kind:'Parada',station:o.station,order:'—',unit:''},
++              {t:Number(o.end),kind:'Fim da parada',station:o.station,order:'—',unit:''});
++ }
++ events.sort((a,b)=>a.t-b.t||a.kind.localeCompare(b.kind,'pt-BR'));
++ index={stations:groups.map(g=>({active:intervalIndex(g,2,3),waiting:intervalIndex(g,1,2)})),events,eventTimes:events.map(e=>e.t)};
++ replayIndexes.set(payload,index);return index;
++}
++function recentReplayEvents(payload,t){
++ const index=replayIndex(payload),end=_binaryCount(index.eventTimes,t+1e-9);
++ return index.events.slice(Math.max(0,end-6),end).reverse();
++}
+ function machineState(p,idx,t){
+   const s=p.stations[idx]; const a=_binaryCount(s.arrivals,t),b=_binaryCount(s.starts,t),c=_binaryCount(s.ends,t);
+   let workers=s.workers,machines=s.machines;
+   for(const change of s.changes||[]){if(change.time<=t){workers=change.workers_after;machines=change.machines_after}}
+   const outage=p.outage && p.outage.station===s.id && t>=p.outage.start && t<p.outage.end;
+-  const ops=(p.operations||[]).filter(op=>op[0]===idx && op[2]<=t && t<op[3]);
++  const index=replayIndex(p).stations[idx];
++  const ops=intervalsAt(index.active,t);
+   const live=ops.filter(op=>((op[8]||[[op[2],op[3]]]).some(seg=>seg[0]<=t&&t<seg[1])));
+-  const waiting=(p.operations||[]).filter(op=>op[0]===idx && op[1]<=t && t<op[2]);
++  const waiting=intervalsAt(index.waiting,t);
+   return {id:s.id,name:s.name,queued:Math.max(0,a-b),active:Math.max(0,b-c),processing:live.length,
+     paused:ops.length-live.length,finished:c,down:!!outage,workers,machines,
+     queue:waiting.map(op=>`${op[4]} · ${op[5]}`),working:live.map(op=>`${op[4]} · ${op[5]}`),
+@@ -568,20 +603,7 @@
+  * Only completed/started operations already known to the DES are listed. */
+ function renderEventLog(){
+  const payload=currentReplay(), el=$('event-log');if(!payload||!el)return;
+- const events=[];
+- for(const op of (payload.operations||[])){
+-   const sid=payload.stations[Number(op[0])]?.id||'POSTO';
+-   const order=String(op[4]||'—');const unit=String(op[5]||'');
+-   if(Number(op[2])<=st.t+1e-9)events.push({t:Number(op[2]),kind:'Início',station:sid,order,unit});
+-   if(Number(op[3])<=st.t+1e-9)events.push({t:Number(op[3]),kind:'Conclusão',station:sid,order,unit});
+- }
+- const outage=payload.outage;
+- if(outage){
+-   if(Number(outage.start)<=st.t+1e-9)events.push({t:Number(outage.start),kind:'Parada',station:outage.station,order:'—',unit:''});
+-   if(Number(outage.end)<=st.t+1e-9)events.push({t:Number(outage.end),kind:'Fim da parada',station:outage.station,order:'—',unit:''});
+- }
+- events.sort((a,b)=>a.t-b.t||a.kind.localeCompare(b.kind,'pt-BR'));
+- const recent=events.slice(-6).reverse();
++ const recent=recentReplayEvents(payload,st.t);
+  const signature=st.scene+'|'+recent.map(x=>[x.t,x.kind,x.station,x.order,x.unit].join(':')).join('|');
+  if(el.dataset.signature===signature)return;
+  el.dataset.signature=signature;
+@@ -1027,6 +1049,7 @@
+  const m=st.editing;
+  $('count-stations').textContent=Object.keys(m.stations).length;
+  $('count-orders').textContent=m.orders.length;
++ renderModelWorkload();
+  $$('#model-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.modelTab===st.modelTab));
+  const body=st.modelTab==='stations'?renderStationsTable(m.stations):renderOrdersTable(m.orders);
+  $('model-table').innerHTML=body;
+@@ -1036,9 +1059,10 @@
+    const original=st.modelTab==='stations'?m.stations[idx]:m.orders[Number(idx)];
+    if(!original)return;
+    if(field==='route'){
+-    original.route=inp.value;return;
++    original.route=inp.value;renderModelWorkload();return;
+    }
+    original[field]=inp.dataset.numeric==='1'? Number(inp.value):inp.value;
++   renderModelWorkload();
+   });
+  });
+  $$('#model-table button[data-route-edit]').forEach(btn=>btn.onclick=()=>openRouteEditor(Number(btn.dataset.routeEdit)));
+@@ -1047,6 +1071,21 @@
+   else m.orders.splice(Number(btn.dataset.remove),1);
+   renderModel();
+  });
++}
++function renderModelWorkload(){
++ const el=$('model-workload'),m=st.editing;if(!el||!m)return;
++ const limit=st.data?.workload?.limits;if(!limit){el.hidden=true;return;}
++ el.hidden=false;
++ let units=0,operations=0,valid=true;
++ for(const o of m.orders){const q=Number(o.quantidade);let route=o.route;
++  if(typeof route==='string')route=route.split(';').map(s=>s.trim()).filter(Boolean);
++  if(!Number.isSafeInteger(q)||q<=0||!Array.isArray(route)||!route.length){valid=false;continue;}
++  units+=q;operations+=q*route.length;
++ }
++ const over=valid&&operations>limit.per_scenario;
++ el.classList.toggle('workload-over',over);
++ const posts=Object.keys(m.stations).length;
++ el.innerHTML=`<div><span class="eyebrow">DIMENSÃO DO MODELO</span><strong>${valid?integer(operations):'—'} <small>operações por cenário</small></strong><span>${valid?integer(units):'—'} ${units===1?'unidade':'unidades'} · ${integer(posts)} ${posts===1?'posto':'postos'}</span></div><p role="status">${!valid?'Complete quantidades e roteiros para conferir o volume.':over?`Volume acima do limite de ${integer(limit.per_scenario)} operações por cenário. Reduza quantidades ou etapas antes de aplicar; o projeto salvo permanece preservado.`:`Limites: ${integer(limit.per_scenario)} operações por cenário e ${integer(limit.per_analysis)} por análise. A conferência considera todos os cenários do ensaio antes de simular.`}</p>`;
+ }
+ function renderStationsTable(stations){
+  const cols=[['nome','Posto','text'],['maquinas','Máquinas','number'],['operadores','Operadores','number'],
+--- a/atelier/web/index.html
++++ b/atelier/web/index.html
+@@ -87,6 +87,7 @@
+   <div class="section-intro"><div><div class="eyebrow">02 / CONFIGURAÇÃO</div><h1>Modelo produtivo</h1><p>Postos, equipes, roteiros e pedidos utilizados em todos os experimentos.</p></div><div class="intro-tools"><button id="model-import-button" class="subtle-button">Importar JSON</button><button id="model-save" class="primary-button">Aplicar alterações <svg><use href="#ico-arrow"/></svg></button></div></div>
+   <div class="editor-note"><span class="editor-mark"></span><span>Alterar o modelo recalcula a simulação e invalida comparações anteriores. Os dados são armazenados apenas neste computador.</span></div>
+   <div class="model-toolbar"><div class="tab-buttons" id="model-tabs"><button data-model-tab="stations" class="active">Postos e recursos <span id="count-stations"></span></button><button data-model-tab="orders">Ordens de produção <span id="count-orders"></span></button></div><div class="model-actions"><button id="add-model-row" class="subtle-button">+ Adicionar</button><button id="reset-model" class="text-link danger">Restaurar exemplo</button></div></div>
++  <div id="model-workload" class="model-workload" hidden></div>
+   <div id="model-table" class="table-container"></div>
+   <div class="model-assistant"><h3>Roteiros de produção</h3><p>Utilize <strong>Editar etapas</strong> no pedido para incluir, reordenar ou remover operações. O editor verifica a existência dos postos e os tempos em minutos por unidade. Alterações são aplicadas à simulação somente quando você escolher <strong>Aplicar alterações</strong>.</p></div>
+  </section>
+--- a/atelier/web/integridade_final.css
++++ b/atelier/web/integridade_final.css
+@@ -54,3 +54,6 @@
+ .history-economic-evidence>div{display:flex;justify-content:space-between;gap:16px;padding:5px 0;border-bottom:1px solid #D4E0D9;font-size:11px;}
+ .history-economic-evidence>div b{font-variant-numeric:tabular-nums;white-space:nowrap;}
+ .history-economic-evidence>small{display:block;color:#56736A;margin-top:8px;line-height:1.4;}
++.model-workload{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:18px 22px;margin:0 0 16px;border:1px solid #cbded9;border-left:4px solid #407f70;background:#f4f8f6;border-radius:8px;color:#244b42}
++.model-workload[hidden]{display:none}.model-workload>div{display:grid;gap:5px;min-width:235px}.model-workload strong{font-size:24px}.model-workload strong small{font-size:13px;font-weight:500}.model-workload p{max-width:620px;font-size:13px;line-height:1.6;margin:0}.model-workload.workload-over{border-left-color:#bd622b;background:#fff7ed;color:#7a431e}
++@media(max-width:900px){.model-workload{align-items:flex-start;flex-direction:column;gap:12px}}
+--- a/simulation/decisions.py
++++ b/simulation/decisions.py
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
+ 
+ from copy import deepcopy
++from itertools import islice
+ from typing import Dict, Any, List, Tuple
+ 
+ from simulation.factory import ScenarioConfig
+@@ -8,21 +9,17 @@
+ from simulation.metrics import compare_results
+ 
+ 
+-def generate_opportunities(base_config: ScenarioConfig, base_result: Dict[str, Any], max_candidates: int = 36) -> List[Dict[str, Any]]:
+-    """Explora microdecisões de baixo esforço e ordena pelo ganho operacional/econômico.
+-
+-    A função não 'decide' pelo gestor; apenas quantifica alternativas comparáveis.
+-    """
+-    candidates: List[Tuple[str, ScenarioConfig, str]] = []
++def _opportunity_candidates(base_config):
++    """Build only candidates requested by the caller, in the historical order."""
+ 
+     for sid in base_config.stations:
+         c = base_config.clone(name=f"+1 operador em {sid}")
+         c.stations[sid]["operadores"] += 1
+-        candidates.append((c.name, c, f"Adicionar 1 operador em {sid}"))
++        yield c.name, c, f"Adicionar 1 operador em {sid}"
+ 
+         c2 = base_config.clone(name=f"+1 máquina em {sid}")
+         c2.stations[sid]["maquinas"] += 1
+-        candidates.append((c2.name, c2, f"Adicionar 1 posto/máquina em {sid}"))
++        yield c2.name, c2, f"Adicionar 1 posto/máquina em {sid}"
+ 
+     # Realocações: tira 1 operador de um posto com folga e leva a outro.
+     for src in base_config.stations:
+@@ -34,7 +31,7 @@
+             c = base_config.clone(name=f"Realocar {src} → {dst}")
+             c.stations[src]["operadores"] -= 1
+             c.stations[dst]["operadores"] += 1
+-            candidates.append((c.name, c, f"Realocar 1 operador de {src} para {dst}"))
++            yield c.name, c, f"Realocar 1 operador de {src} para {dst}"
+ 
+ 
+     # Melhorias de processo: reduzir setup em 25% quando houver setup relevante.
+@@ -43,17 +40,21 @@
+         if setup >= 4:
+             c = base_config.clone(name=f"-25% setup em {sid}")
+             c.stations[sid]["setup_min"] = max(0.0, setup * 0.75)
+-            candidates.append((c.name, c, f"Reduzir setup em 25% em {sid}"))
++            yield c.name, c, f"Reduzir setup em 25% em {sid}"
+ 
+     # Regras de despacho são contrafactuais de baixo custo e alto valor gerencial.
+     for rule in ["EDD", "SPT", "FIFO"]:
+         if rule != base_config.dispatch_rule:
+             c = base_config.clone(name=f"Despacho {rule}")
+             c.dispatch_rule = rule
+-            candidates.append((c.name, c, f"Alterar regra de despacho para {rule}"))
++            yield c.name, c, f"Alterar regra de despacho para {rule}"
+ 
++def generate_opportunities(base_config: ScenarioConfig, base_result: Dict[str, Any], max_candidates: int = 36) -> List[Dict[str, Any]]:
++    """Quantify the same finite candidates without constructing discarded models."""
++    candidates = _opportunity_candidates(base_config)
++    selected = islice(candidates, max_candidates) if max_candidates >= 0 else list(candidates)[:max_candidates]
+     rows = []
+-    for name, cfg, action in candidates[:max_candidates]:
++    for name, cfg, action in selected:
+         r = run_simulation(cfg)
+         if not r.get("feasible",True):
+             continue  # Sem postos funcionais, não existem métricas econômicas para ranquear.
+--- /dev/null
++++ b/CONTINUIDADE_AM17_2026.md
+@@ -0,0 +1,41 @@
++# Continuidade — AM17-2026.1
++
++Base: `3e4bf47892be46cc3640ab2baee34a44faed4248`, complemento AM04 sobre AM10.
++Branch: `correcao-am17-desempenho`.
++
++AM17 acrescenta limites explícitos de operações, contagem dos cenários e
++réplicas, cartão de dimensão do modelo, abertura de projetos grandes para
++edição sem simular, índices do replay e geração limitada de oportunidades.
++Não altera fórmulas do DES nem dos indicadores econômicos.
++
++Política local: 25.000 operações por cenário e 250.000 por análise. São limites
++de recursos, não uma garantia de tempo/memória para toda configuração. Perfis
++de ensaio usam limites superiores e podem contar um cache nominal ainda vazio.
++A função `profile` deve acompanhar mudanças de cenários e réplicas das ferramentas.
++
++Validação: 510 aprovados, cinco falhas preexistentes e dez subtestes aprovados;
++37 casos novos. Três experimentos oficiais e navegador nas três resoluções
++passaram. Benchmark de consultas de replay: mediana 790,47→10,58 ms após
++aquecimento; construção do índice 48,86 ms uma vez. Não é ganho global de FPS.
++Os testes e logs após extração acompanham os arquivos da entrega.
++
++Preservados AM04, AM10, AM09, AM08, AM12, AM05, AM11 e a base reconstruída
++AM01–AM06. Dados-base e arquivos históricos não foram regravados. Instale
++o ZIP completo em pasta nova e guarde versões anteriores e seus projetos.
++O patch exige a AM04/AM10 exata e cria uma pasta nova após conferir hashes.
++
++Ao abrir um projeto salvo acima do limite, a edição permanece acessível e
++não há simulação ou regravação automática. Reduza o volume e aplique para
++voltar a calcular. Ao trocar para projeto grande nesse modo, o ponteiro
++persistido só é atualizado quando houver gravação explícita.
++
++Próxima etapa recomendada: AM07, indicação correta do replay com detalhes
++omitidos; depois AM16, submissões duplicadas. AM15 é o próximo ganho visual
++relevante: legibilidade e enquadramento da fábrica, preservando identidade.
++Também restam rastreabilidade AM13/14, cinco contratos históricos AM19 e
++os complementos listados no plano. Um defeito anterior de prioridade ausente
++em modelos opcionais foi documentado e continua pendente.
++
++Seguir sem agentes paralelos, uma etapa por branch, checkpoints no GitHub,
++reprodução, regressão, três experimentos, navegador e entrega verificável.
++Não reconstruir a partir dos ZIPs antigos. Windows/projetor seguem pendentes.
+--- /dev/null
++++ b/LEIA_AM17_2026.md
+@@ -0,0 +1,18 @@
++# Anti-Murphy — AM17-2026.1
++
++Extraia em uma pasta nova e execute `INICIAR_ANTI_MURPHY.bat` com Python 3.10
++ou superior. Preserve instalações anteriores e faça backup dos projetos locais.
++O ZIP completo já contém a correção; não precisa aplicar o patch.
++
++Esta versão continua a AM04/AM10 e preserva AM09, AM08, AM12, AM05, AM11
++e a base reconstruída AM01–AM06. No editor, o cartão Dimensão do modelo mostra
++o volume antes de aplicar. Limites desta versão local: 25.000 operações por
++cenário e 250.000 por análise, contando os cenários do ensaio.
++
++Projetos salvos acima do limite abrem para edição sem calcular nem regravar
++seus dados. Reduza quantidades/etapas e aplique para voltar a simular. O replay
++usa índices, mantendo eventos e estados. Os ganhos medidos são específicos
++do benchmark, não uma garantia de velocidade em qualquer computador.
++
++Leia o relatório, a continuidade e o plano desta versão. Windows, instalação
++pelo BAT e projetor ainda exigem validação no computador da apresentação.
+--- /dev/null
++++ b/RELATORIO_AM17_2026.md
+@@ -0,0 +1,194 @@
++# Anti-Murphy — AM17: dimensão do cálculo e consultas do replay
++
++Versão AM17-2026.1. Base obrigatória: complemento AM04 sobre AM10,
++commit `3e4bf47892be46cc3640ab2baee34a44faed4248`.
++Branch: `correcao-am17-desempenho`.
++
++## Mudanças percebidas pelo usuário
++
++O editor apresenta um cartão integrado à identidade visual: operações por
++cenário, unidades e postos. A contagem acompanha a edição, sem executar
++simulações. Ao exceder o limite por cenário, mostra como reduzir o volume.
++O servidor verifica também a soma dos cenários antes de calcular.
++
++Um pedido excessivo não substitui o resultado anterior nem grava o modelo.
++Projetos grandes já salvos podem ser abertos para edição sem simulação ou
++regravação automática. A redução e aplicação explícita do modelo reabilitam
++o cálculo. Abrir outro projeto dessa forma não muda o ponteiro persistido
++até uma gravação autorizada pelo usuário; reiniciar pode voltar ao projeto
++anterior. Os dados continuam preservados nos respectivos arquivos.
++
++A fábrica virtual usa índices de consulta para evitar percorrer todo o
++histórico de operações a cada atualização de posto. O diário de eventos é
++ordenado uma vez por replay e consultado por busca binária.
++
++## Reprodução antes/depois
++
++Na base anterior, um JSON de 100.371 bytes com um posto, 2.500 unidades e
++10.000 etapas por unidade passava pelas verificações do Studio. Uma chamada
++interceptada a `execute` provou que seriam solicitadas **25 milhões de
++operações por cenário**. A interceptação parou antes de executar o DES.
++O caso extremo não foi simulado.
++
++Depois, o mesmo pedido é recusado com explicação antes de `execute`: zero
++chamadas ao motor, arquivos JSON e experimento anterior preservados.
++O limite inclui o número de cenários, além da operação nominal. Os logs
++`before.log` e `after.log` e o script `reproduce.py` estão nas evidências.
++
++## Política de volume
++
++O módulo novo `atelier/workload.py` centraliza limites desta versão local:
++
++- 25.000 operações por cenário;
++- 250.000 operações por análise, somando cenários.
++
++São limites de recursos do aplicativo, não pisos de cálculo nem correções de
++indicadores físicos. O DES independente não recebeu limites novos e suas
++fórmulas não foram alteradas. A ampliação futura dessa política deve ser
++acompanhada de medições e validação no computador de destino.
++
++Para cada pedido, a contagem usa `max(1, round(quantidade × demanda)) × etapas`,
++com o mesmo arredondamento por pedido do motor. A análise principal conta
++nominal, incidente, regras, acréscimos, realocações elegíveis e reparo expresso.
++Na fábrica padrão: 402 operações nominais, 19 cenários e 7.638 operações.
++
++Nos ensaios, usam-se limites superiores conhecidos: sete durações, três
++regras, seis pares de sementes, 16 cenários de estresse com demanda até 1,2,
++ou todos os planos de capacidade AM10. Análises avançadas incluem as réplicas,
++demanda até 1,6 e uma possível execução nominal para preencher o cache.
++Isso pode ser conservador quando o cache já está preenchido. A filtragem
++de metas, que usa resultados existentes, não é cobrada como nova simulação.
++
++Todos os modos que simulam são verificados antes de criar configurações ou
++preencher o cache nominal. Testes acompanham chamadas reais do DES nas 11
++ferramentas para verificar que os limites declarados cobrem o trabalho.
++Contadores e números de réplicas devem ser mantidos juntos em mudanças futuras.
++Essa política não é um orçamento de tempo de CPU nem uma garantia universal
++de memória, especialmente sob concorrência ou configurações extremas de
++recursos. A submissão duplicada de Monte Carlo permanece no escopo AM16.
++
++## Otimização do replay
++
++`replayIndex` mantém índices por objeto de replay em `WeakMap`. Cada posto
++possui intervalos de processamento e espera ordenados por início, com máximos
++acumulados de término para interromper buscas que já não podem produzir
++resultados. As operações retornam na mesma ordem original. Segmentos reais de
++processamento, pausas, mudanças de recursos e intervalos semiabertos são
++preservados. Busca para trás no tempo também funciona.
++
++`recentReplayEvents` usa eventos previamente ordenados e busca binária para os
++seis eventos mais recentes. Mantém o desempate por tipo e a tolerância temporal
++de apresentação existente. Um replay novo recebe índice novo; objetos antigos
++podem ser coletados sem um cache global que os retenha indefinidamente.
++O índice assume o contrato de replay imutável que a interface já utiliza.
++Em intervalos muito sobrepostos, a busca por máximos acumulados ainda pode
++percorrer muitos itens; não se afirma complexidade logarítmica universal.
++
++O Opportunity Engine também passou a construir somente os candidatos que
++realmente vai avaliar. A lista, ordem, scores e fórmulas dos candidatos usados
++permanecem iguais. Evita clonar previamente modelos que seriam descartados
++pelo limite existente de candidatos.
++
++## Medição de desempenho
++
++Ensaio controlado em Node, 12.000 operações distribuídas em 12 postos, 3.600
++consultas por repetição, mediana de cinco repetições:
++
++| Medida | Base anterior | AM17 |
++| --- | ---: | ---: |
++| Consultas após aquecimento | 790,47 ms | 10,58 ms |
++| Primeira consulta, incluindo construção do índice | 1,16 ms | 48,86 ms |
++| Soma de verificação dos estados | 1.798.788 | 1.798.788 |
++
++O ganho de aproximadamente 75 vezes refere-se **somente às consultas desse
++ensaio após aquecimento**. Não mede FPS, velocidade total da aplicação, rede
++ou desempenho no Windows. A construção do índice introduz um custo inicial
++único, mostrado na tabela. Os scripts e cinco tempos individuais estão nas
++evidências; resultados variam conforme máquina e carga.
++
++Também foram executados cenários individuais limitados, em processos Python
++separados, sem instrumentar o motor:
++
++| Operações | Tempo medido | Pico RSS do processo Linux |
++| --- | ---: | ---: |
++| 400 | 0,0075 s | 14.336 KiB |
++| 6.000 | 0,1433 s | 19.328 KiB |
++| 25.000 | 0,4350 s | 35.328 KiB |
++
++São cenários sintéticos simples, não uma homologação de todo arranjo possível.
++RSS inclui o processo; não é memória incremental nem estimativa de Windows.
++
++## Validação e preservação
++
++- 510 testes aprovados, cinco falhas preexistentes e dez subtestes aprovados.
++- 37 casos novos: limites individuais e por análise, crescimento da demanda,
++  candidatos/repetições, rejeição antes do motor, arquivos preservados,
++  abertura/edição de projetos grandes e construção limitada de oportunidades.
++- A referência independente do replay compara 960 estados e 160 consultas
++  de eventos, incluindo retrocesso, empates, pausas, recursos e ordem das linhas.
++- Três experimentos oficiais aprovados sem mudança de resultados:
++  SLA nominal/incidente/resposta 100/40/100%; custo do incidente R$16.216,67;
++  decisão da manutenção expressa R$12.113,00; economia líquida R$4.103,68;
++  conclusão da manutenção 21,57530617980079 h e operador temporal
++  19,973006391870044 h.
++- Navegador HTTP real nas três resoluções: cartão de volume, edição sem
++  recálculo, recusa sem perda, redução e aplicação, projeto salvo grande
++  reaberto para edição, sem erros JavaScript nos fluxos exercitados.
++- Testes anteriores de legendas, ampliação, gráficos e exportações passaram
++  nas três resoluções. Modo Banca, justificativa, registro e relatório também.
++
++As cinco falhas preservadas continuam em `test_operation_ui` (evidência),
++`test_restauracao_acesso` (dois contratos históricos) e `test_v31_editorial`
++(launcher/prévia). Não foram removidas nem ajustadas para esconder problemas.
++Não se declara suíte totalmente verde; o detalhamento está no log de regressão.
++
++Arquivos de produção alterados: `atelier/service.py`, `atelier/web/app.js`,
++`atelier/web/index.html`, `atelier/web/integridade_final.css` e
++`simulation/decisions.py`; módulo novo `atelier/workload.py`.
++Testes novos: `tests/test_am17_workload.py`, `tests/test_am17_replay.py` e
++`atelier/tests/browser_am17.py`.
++
++Motor `engine.py`, contratos numéricos, fórmulas econômicas, persistência AM12,
++proveniência AM05, estatísticas AM09, enumeração AM10 e fronteira AM04 não
++foram modificados. Marcas, abertura, projetos-base e registros arquivados
++permanecem byte a byte iguais à base. O CSS novo se limita ao cartão do editor.
++
++## Pendências e limites
++
++AM07 não foi antecipado: quando o backend omite detalhes acima de 12.000
++operações, a indicação de processamento ainda exige sua correção própria.
++Um teste registra explicitamente esse comportamento anterior. AM16,
++rastreabilidade e legibilidade ampla permanecem nas próximas etapas.
++
++Foi confirmado um defeito preexistente ao preparar um modelo sem `prioridade`
++de pedido: ele é válido no backend, mas `normalizedModel` converte o campo
++ausente em NaN, serializado como null, e a reaplicação é recusada por prioridade
++inválida. A reprodução foi feita na fonte anterior, registrada em
++`pending-priority.log`. Não foi corrigido nesta etapa. O fluxo de aceitação
++AM17 usa prioridade explícita, como a carteira padrão. Não afirmar cobertura
++universal da importação de modelos opcionais.
++
++Windows, BAT e projetor ainda requerem validação local. Os dados continuam
++sintéticos; esta etapa não comprova calibração industrial. Leia o plano
++de continuidade antes de iniciar outra correção.
++
++## Como reproduzir e recuperar a entrega
++
++```sh
++python -m pytest tests contract_tests atelier/tests -q
++python -m pytest tests/test_am17_workload.py tests/test_am17_replay.py -q
++python -m atelier.tests.browser_am17
++python -m atelier.tests.browser_acabamento_final
++python -m atelier.tests.validacao_experimentos_banca
++```
++
++Testes JavaScript exigem Node; navegador exige Playwright/Chromium. Esses
++requisitos de desenvolvimento não são novos requisitos para executar o app.
++Os scripts adicionais de reprodução e benchmark ficam em `docs/AM17/evidencias`.
++Execute em cópia. O benchmark JavaScript recebe os caminhos de `app.js` da
++base e da versão atual como argumentos; o benchmark de RSS usa Linux.
++
++O ZIP completo e o patch sobre a base exata são extraídos e comparados por
++SHA-256. O aplicador cria uma pasta nova e preserva a origem. Logs dos testes
++do pacote extraído e `VERIFICACAO_AM17.json` acompanham a entrega. Os arquivos
++publicados no GitHub são recuperados e conferidos antes de declarar a conclusão.
+--- /dev/null
++++ b/STATUS_AM17_E_PROXIMAS_ETAPAS_2026.md
+@@ -0,0 +1,42 @@
++# Próximas etapas após AM17
++
++Base deste quadro: AM17-2026.1. Ele atualiza o plano da AM04 sem apagar o
++documento histórico anterior. O relatório desta entrega define o que foi
++realmente exercitado; este quadro não é uma nova auditoria completa.
++
++## Ganho entregue
++
++O usuário passa a ver a dimensão do modelo, recebe uma recusa compreensível
++antes de um cálculo excessivo e preserva os dados anteriores. Consultas do
++replay foram aceleradas em um benchmark controlado, com estados e eventos
++comparados a referências independentes. A identidade visual foi mantida.
++
++## Ordem recomendada para uma demonstração com exploração livre
++
++| Etapa | Objetivo e evidência para encerrar |
++| --- | --- |
++| AM07 | Explicar o modo de replay reduzido e impedir que detalhes omitidos sejam apresentados como zero processamento. Testar acima de 12.000 operações, sem alterar o passado nem inventar estados. |
++| AM16 | Uma submissão de Monte Carlo por ação, estado de execução claro, recuperação após erro e navegação livre. |
++| AM13/14 | Identificar pedidos completos (OP-1 versus OP-10), explicar o critério de escolha e exibir projeto de origem no histórico. |
++| AM15 | Melhorar leitura e enquadramento do mapa para vários postos, com verificação nas três resoluções e no projetor, preservando marcas e abertura. |
++| AM19 | Resolver as cinco falhas antigas a partir de contratos funcionais atuais, sem simplesmente excluir testes. |
++| Complementos de robustez | Recuperação de arquivos já inválidos, Host/Origin local (AM22) e normalização da prioridade opcional no editor, recém-confirmada na base anterior. |
++| Aceite final | Auditoria integrada e ensaio no Windows: instalação, projetos, A/B, ensaios, gráficos, decisão, histórico e relatório no computador e projetor da apresentação. |
++
++AM17 não é promessa de tempo de execução ou memória sob toda combinação de
++recursos. Os limites desta versão foram definidos para a estação local e
++devem ser reavaliados com medições antes de ampliá-los. Não foi executada
++carga de 25 milhões de operações. A redução de detalhes do replay e as
++submissões simultâneas continuam nas etapas próprias acima.
++
++## Melhorias posteriores conforme o uso
++
++AM20/AM21 tratam importação clássica, radar e aproximação de confiabilidade
++em caminhos históricos/adicionais. AM18 é organização gradual de código e
++CSS. Calibração industrial e acessibilidade integral exigem trabalho próprio.
++Não é necessário reescrever o produto para encerrar a preparação da banca.
++
++Estamos na consolidação. Os principais problemas de cálculo e interpretação
++já tiveram etapas próprias, mas ainda há pendências concretas; não há base
++para declarar percentual ou prazo fechado. O próximo ganho visual maior
++deve vir da legibilidade da fábrica, depois de estabilizar seu replay.
+--- /dev/null
++++ b/VERSAO_AM17.json
+@@ -0,0 +1,10 @@
++{
++  "version": "AM17-2026.1",
++  "base_commit": "3e4bf47892be46cc3640ab2baee34a44faed4248",
++  "base_version": "AM04-FRONTEIRA-2026.1",
++  "branch": "correcao-am17-desempenho",
++  "regression_passed": 510,
++  "preexisting_failures": 5,
++  "subtests_passed": 10,
++  "new_tests_passed": 37
++}
+--- /dev/null
++++ b/atelier/tests/browser_am17.py
+@@ -0,0 +1,81 @@
++"""Real HTTP workload preview, safe rejection, editing recovery, and saved large model."""
++from http.server import ThreadingHTTPServer
++import json
++import os
++from pathlib import Path
++from tempfile import TemporaryDirectory
++from threading import Thread
++
++from playwright.sync_api import sync_playwright, expect
++
++from atelier import server
++from atelier.service import Studio
++
++OUT=Path(os.environ.get('AM17_QA_OUT','docs/AM17/capturas'));OUT.mkdir(parents=True,exist_ok=True)
++
++
++def model():
++    return {'stations':{'P':{'nome':'Célula de produção','maquinas':1,'operadores':1,
++            'operadores_por_maquina':1,'eficiencia_operador':1,'disponibilidade':1,
++            'custo_maquina_h':10,'custo_operador_h':10,'setup_min':0}},
++            'orders':[{'id':'A','quantidade':100,'prioridade':1,'release_h':0,'prazo_h':100,'multa_hora':10,'route':[['P',1]]*12}]}
++
++
++with sync_playwright() as pw:
++    browser=pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
++    try:
++        for width,height in [(1280,720),(1366,768),(1920,1080)]:
++            with TemporaryDirectory() as storage:
++                studio=Studio(Path(storage));studio.set_model(model());server.STUDIO=studio
++                httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler)
++                Thread(target=httpd.serve_forever,daemon=True).start()
++                page=browser.new_page(viewport={'width':width,'height':height});errors=[];posts=[]
++                page.on('pageerror',lambda e:errors.append(str(e)))
++                page.on('request',lambda r:posts.append(r.url) if r.method=='POST' else None)
++                try:
++                    def open_editor():
++                        page.goto(f'http://127.0.0.1:{httpd.server_port}/',wait_until='networkidle')
++                        page.wait_for_selector('#status-run')
++                        page.evaluate('document.querySelector("#splash")?.remove()')
++                        page.locator('[data-nav=modelo]').click()
++                        expect(page.locator('#model-workload')).to_be_visible()
++                        page.locator('[data-model-tab=orders]').click()
++                    open_editor()
++                    expect(page.locator('#model-workload strong')).to_contain_text('1.200')
++                    page.locator('#model-workload').screenshot(path=str(OUT/f'dimensao_{width}.png'))
++                    before=studio.info()['run_id'];initial_posts=len(posts)
++                    page.locator('input[data-field=quantidade]').fill('2500')
++                    expect(page.locator('#model-workload')).to_have_class('model-workload workload-over')
++                    expect(page.locator('#model-workload strong')).to_contain_text('30.000')
++                    assert len(posts)==initial_posts  # Preview does not run a simulation.
++                    page.locator('#model-workload').screenshot(path=str(OUT/f'limite_{width}.png'))
++                    with page.expect_response(lambda r:r.url.endswith('/api/model')) as ev:
++                        page.locator('#model-save').click()
++                    assert ev.value.status==400 and 'Nenhum resultado foi substituído' in ev.value.json()['error'], ev.value.json()
++                    assert studio.info()['run_id']==before and studio.state['orders'][0]['quantidade']==100
++                    page.locator('input[data-field=quantidade]').fill('10')
++                    with page.expect_response(lambda r:r.url.endswith('/api/model')) as ev:
++                        page.locator('#model-save').click()
++                    assert ev.value.ok
++                    expect(page.locator('#view-simulacao')).to_be_visible()
++                    assert studio.state['orders'][0]['quantidade']==10
++                    # An already saved large project remains editable without rewriting.
++                    path=Path(storage)/'projetos/principal.json'
++                    data=json.loads(path.read_text());data['orders'][0]['quantidade']=2500
++                    path.write_text(json.dumps(data));saved=path.read_bytes()
++                    server.STUDIO=Studio(Path(storage))
++                    assert server.STUDIO.info()['calculation_blocked'] and path.read_bytes()==saved
++                    open_editor()
++                    expect(page.locator('#model-workload strong')).to_contain_text('30.000')
++                    page.locator('input[data-field=quantidade]').fill('10')
++                    with page.expect_response(lambda r:r.url.endswith('/api/model')) as ev:
++                        page.locator('#model-save').click()
++                    assert ev.value.ok and not server.STUDIO.info()['calculation_blocked']
++                    assert not errors,errors
++                    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+3')
++                    print(json.dumps({'resolution':[width,height],'preview_without_simulation':True,
++                                      'safe_rejection':True,'saved_large_model_editable':True,'errors':errors}),flush=True)
++                finally:
++                    page.close();httpd.shutdown();httpd.server_close()
++    finally:
++        browser.close()
+--- /dev/null
++++ b/atelier/workload.py
+@@ -0,0 +1,63 @@
++"""Deterministic, conservative work estimates for the local Studio only.
++
++Resource policy, not a numerical approximation of production performance.
++The standalone DES remains unrestricted and its formulas are unchanged.
++"""
++import math
++
++from simulation.innovation import _capacity_plans
++
++MAX_SCENARIO_OPERATIONS = 25_000
++MAX_ANALYSIS_OPERATIONS = 250_000
++
++
++def operations(orders, multiplier=1.0):
++    # Same per-order demand rounding as the DES, including the minimum one unit.
++    return sum(max(1, int(round(int(o['quantidade']) * multiplier))) * len(o['route']) for o in orders)
++
++
++def response_scenarios(stations, orders):
++    used = {sid for o in orders for sid, _ in o['route']}
++    transfers = sum(len(used - {sid}) for sid, s in stations.items()
++                    if int(s['operadores']) > (0 if s.get('automatizada', False)
++                                               else math.ceil(float(s['operadores_por_maquina']))))
++    # Nominal + incident + two other rules + two additions per used post + repair.
++    return 5 + 2 * len(used) + transfers
++
++
++def profile(stations, orders, scope='model', mode=''):
++    nominal = operations(orders)
++    multiplier = 1.0
++    if scope == 'model':
++        scenarios = response_scenarios(stations, orders)
++    elif scope == 'lab':
++        if mode == 'capacity':
++            scenarios = len(_capacity_plans(stations, 2, 1)) + 1  # optional nominal cache miss
++        else:
++            scenarios = {'duration': 7, 'dispatch': 3, 'robustness': 12, 'stress': 16, 'goal': 0}.get(mode, 0)
++        if mode == 'stress':
++            multiplier = 1.2
++    else:
++        # Advanced tools can fill the nominal cache once before their own runs.
++        # Conservative upper bounds include that run, even if already cached.
++        scenarios = {'diagnostic': 1, 'opportunities': 29, 'sensitivity': 4,
++                     'demand': 8, 'uncertainty': 13, 'recovery': 6}.get(mode, 0)
++        if mode == 'demand':
++            multiplier = 1.6
++    largest = operations(orders, multiplier)
++    upper = largest * scenarios
++    allowed = not scenarios or (largest <= MAX_SCENARIO_OPERATIONS and upper <= MAX_ANALYSIS_OPERATIONS)
++    return {'nominal_operations': nominal, 'max_scenario_operations': largest,
++            'scenario_upper_bound': scenarios, 'operation_upper_bound': upper,
++            'limits': {'per_scenario': MAX_SCENARIO_OPERATIONS, 'per_analysis': MAX_ANALYSIS_OPERATIONS},
++            'within_limits': allowed, 'estimate_kind': 'upper_bound',
++            'units': sum(int(o['quantidade']) for o in orders)}
++
++
++def limit_message(p):
++    def n(value): return f'{value:,}'.replace(',', '.')
++    return (f'Este cálculo pode exigir até {n(p["operation_upper_bound"])} operações em '
++            f'{n(p["scenario_upper_bound"])} cenários ({n(p["max_scenario_operations"])} por cenário). '
++            f'O limite desta versão é {n(MAX_SCENARIO_OPERATIONS)} por cenário e '
++            f'{n(MAX_ANALYSIS_OPERATIONS)} por análise. Reduza quantidades ou etapas do roteiro, '
++            'ou divida o estudo em lotes. Nenhum resultado foi substituído e nenhum cenário foi iniciado.')
+--- /dev/null
++++ b/docs/AM17/evidencias/actual_http_browser.py
+@@ -0,0 +1,129 @@
++from pathlib import Path
++from tempfile import TemporaryDirectory
++from threading import Thread
++from http.server import ThreadingHTTPServer
++from playwright.sync_api import sync_playwright
++from atelier.service import Studio
++from atelier import server
++OUT=Path('/workspace/work/am17/banca-browser-evidence');OUT.mkdir(exist_ok=True)
++with sync_playwright() as p:
++ browser=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
++ for width,height in [(1280,720),(1366,768),(1920,1080)]:
++  with TemporaryDirectory() as tmp:
++   studio=Studio(Path(tmp));server.STUDIO=studio;errors=[]
++   httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler)
++   Thread(target=httpd.serve_forever,daemon=True).start()
++   page=browser.new_page(viewport={'width':width,'height':height},device_scale_factor=1,accept_downloads=True)
++   page.on('pageerror',lambda e:errors.append(str(e)))
++   page.goto(f'http://127.0.0.1:{httpd.server_port}/',wait_until='networkidle')
++   page.wait_for_selector('#factory-a .station-group',timeout=18000)
++   page.evaluate('document.querySelector("#splash")?.remove()')
++   page.locator('#presentation-toggle').click()
++   assert '01 / 06' in page.locator('#presentation-title').inner_text()
++   evidence=page.locator('#presentation-evidence')
++   assert 'CONCLUSÃO NOMINAL' in evidence.inner_text()
++   assert 'SEM INTERVENÇÃO' not in evidence.inner_text() and 'R$' not in evidence.inner_text(),evidence.inner_text()
++   page.screenshot(path=str(OUT/f'01_plano_{width}.png'))
++   page.locator('#presentation-next').click()
++   assert '02 / 06' in page.locator('#presentation-title').inner_text()
++   assert 'INCIDENTE' in evidence.inner_text() and 'DIFERENÇA' not in evidence.inner_text()
++   assert page.locator('#factory-a .station-group.down').count()==1
++   page.screenshot(path=str(OUT/f'02_falha_{width}.png'))
++   page.locator('#presentation-next').click()
++   assert '03 / 06' in page.locator('#presentation-title').inner_text()
++   assert 'PEDIDOS ATRASADOS' in evidence.inner_text()
++   page.screenshot(path=str(OUT/f'03_pedidos_{width}.png'))
++   page.locator('#presentation-next').click()
++   assert '04 / 06' in page.locator('#presentation-title').inner_text()
++   assert 'INVESTIMENTO MODELADO' in evidence.inner_text()
++   page.screenshot(path=str(OUT/f'04_intervencao_{width}.png'))
++   page.locator('#presentation-next').click()
++   assert '05 / 06' in page.locator('#presentation-title').inner_text()
++   assert page.locator('#factory-viewport').get_attribute('data-presentation-compare')=='true'
++   assert page.locator('#presentation-compare-insights').is_visible()
++   assert page.locator('#presentation-compare-view').is_visible()
++   assert page.locator('#split-divider').is_hidden()
++   assert page.locator('#factory-a').get_attribute('viewBox')!='0 0 1200 600'
++   assert page.locator('#scene-b').bounding_box()['x']>=page.locator('#scene-a').bounding_box()['x']+page.locator('#scene-a').bounding_box()['width']-4
++   assert page.locator('#presentation-compare-insights').inner_text().count('CNC')>=2
++   page.screenshot(path=str(OUT/f'05_comparacao_foco_{width}.png'))
++   page.locator('#presentation-compare-view').click()
++   assert page.locator('#factory-a').get_attribute('viewBox')=='0 0 1200 600'
++   page.screenshot(path=str(OUT/f'05b_comparacao_layout_{width}.png'))
++   page.locator('#presentation-compare-view').click()
++   page.locator('#presentation-next').click()
++   assert '06 / 06' in page.locator('#presentation-title').inner_text()
++   assert 'ESTADO DO REGISTRO' in evidence.inner_text()
++   assert page.locator('#view-decisoes').is_visible()
++   page.screenshot(path=str(OUT/f'06_decisao_{width}.png'))
++   # Free-text reasoning: no artificial 65-character, 8-term or risk quota.
++   page.locator('#decision-note').fill('Escolha pela menor multa.')
++   page.locator('#decision-risks').fill('')
++   page.locator('#decision-ack').check()
++   assert page.locator('#register-decision').is_enabled()
++   assert 'Texto livre' in page.locator('#decision-validation').inner_text() or 'Registro disponível' in page.locator('#decision-validation').inner_text()
++   # An outdated R$ value triggers a transparent warning, not forced rewriting.
++   page.locator('#decision-note').fill('A manutenção expressa foi escolhida por reduzir atrasos. A economia modelada neste experimento é R$ 4.223,17. A decisão depende de conferência dos prazos e custos efetivos.')
++   page.locator('#decision-risks').fill('')
++   assert 'R$ 4.223,17' in page.locator('#decision-money-audit').inner_text()
++   assert 'Confira uma quantia' in page.locator('#decision-money-audit').inner_text()
++   assert page.locator('#register-decision').is_disabled()
++   assert page.locator('#decision-external-ack-wrap').is_visible()
++   page.locator('#decision-external-ack').check()
++   assert page.locator('#register-decision').is_enabled()
++   page.locator('#decision-external-ack').uncheck()
++   assert len(studio.history())==0
++   page.screenshot(path=str(OUT/f'06a_valor_anterior_alerta_{width}.png'))
++   # Repeated reasoning/risk text is an editorial suggestion, not a forced form.
++   repeated='Decidimos validar a resposta com os resultados calculados e verificar restrições antes da aplicação, pois o modelo é sintético e requer verificação em campo.'
++   page.locator('#decision-note').fill(repeated)
++   page.locator('#decision-risks').fill(repeated)
++   assert page.locator('#register-decision').is_enabled()
++   assert 'Dica' in page.locator('#decision-validation').inner_text()
++   page.locator('#decision-note').fill('')
++   page.locator('#decision-risks').fill('')
++   page.locator('#decision-draft').click()
++   assert 'cenário sintético' in page.locator('#decision-note').input_value()
++   assert 'disponibilidade' in page.locator('#decision-risks').input_value()
++   assert page.locator('#register-decision').is_enabled()
++   assert 'Quantias reconhecidas' in page.locator('#decision-money-audit').inner_text()
++   page.locator('#decision-owner').fill('Equipe de apresentação')
++   page.screenshot(path=str(OUT/f'06b_justificativa_{width}.png'))
++   page.locator('#register-decision').click()
++   page.wait_for_selector('#record-see-report',timeout=18000)
++   assert len(studio.history())==1
++   assert 'Registrado' in evidence.inner_text()
++   assert 'Abrir relatório final' in page.locator('#presentation-next').inner_text()
++   page.screenshot(path=str(OUT/f'07_registro_{width}.png'))
++   with page.expect_popup() as popup_event:page.locator('#presentation-next').click()
++   popup=popup_event.value
++   assert 'Decisão efetivamente registrada' in popup.locator('body').inner_text()
++   assert 'cenário sintético' in popup.locator('body').inner_text()
++   assert 'Valores com R$ conferidos' not in popup.locator('body').inner_text()
++   assert 'conferidas numericamente' in popup.locator('body').inner_text()
++   assert 'RESULTADO DO EXPERIMENTO' in popup.locator('body').inner_text()
++   assert 'verificações' in popup.locator('body').inner_text().lower()
++   popup.close()
++   # Pop-up blockers should not make the report disappear: fall back to HTML download.
++   page.evaluate('window.open = () => null')
++   with page.expect_download() as download_event:
++    page.locator('#record-see-report').click()
++   saved_report=download_event.value
++   assert saved_report.suggested_filename.endswith('.html')
++   assert 'anti-murphy-relatorio-' in saved_report.suggested_filename
++   assert 'Decisão efetivamente registrada' in Path(saved_report.path()).read_text('utf8')
++   assert page.locator('#presentation-restart').is_visible()
++   page.locator('#presentation-restart').click()
++   assert '01 / 06' in page.locator('#presentation-title').inner_text()
++   assert 'SEM INTERVENÇÃO' not in evidence.inner_text()
++   page.locator('#presentation-toggle').click()
++   assert page.locator('#presentation-guide').is_hidden()
++   assert page.locator('#sim-metrics').is_visible()
++   page.locator('[data-nav="analise"]').click()
++   assert page.locator('#view-analise').is_visible()
++   assert not errors,errors
++   assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 3')
++   print(f'Modo Banca premium OK {width}x{height} · progressive / dual panels / justification / record / report',flush=True)
++   page.close()
++   httpd.shutdown();httpd.server_close()
++ browser.close()
+--- /dev/null
++++ b/docs/AM17/evidencias/after.log
+@@ -0,0 +1,2 @@
++WorkloadLimitError Este cálculo pode exigir até 175.000.000 operações em 7 cenários (25.000.000 por cenário). O limite desta versão é 25.000 por cenário e 250.000 por análise. Reduza quantidades ou etapas do roteiro, ou divida o estudo em lotes. Nenhum resultado foi substituído e nenhum cenário foi iniciado.
++{"json_bytes": 100371, "requested_operations": 25000000, "execute_calls": 0, "previous_run_preserved": true}
+--- /dev/null
++++ b/docs/AM17/evidencias/banca.log
+@@ -0,0 +1,4 @@
++3 EXPERIMENTOS APROVADOS
++A: 100.0 40.0 100.0 custos 16216.67 12113.0 4103.68
++B: [(0, 5.681763308299117, 84.12881249414335), (1, 5.681763308299117, 96.09692807908425), (2, 5.681763308299117, 108.06504366402514), (3, 5.681763308299117, 120.033159248966)]
++C: Manutenção expressa · CNC 21.57530617980079 +1 operador · CNC 19.973006391870044
+--- /dev/null
++++ b/docs/AM17/evidencias/before.log
+@@ -0,0 +1,2 @@
++RuntimeError EXECUTION_REACHED_WITHOUT_RUNNING_DES
++{"json_bytes": 100371, "requested_operations": 25000000, "execute_calls": 1, "previous_run_preserved": true}
+--- /dev/null
++++ b/docs/AM17/evidencias/benchmark-engine.log
+@@ -0,0 +1,3 @@
++{"operations": 400, "seconds": 0.00747233399306424, "peak_process_rss_kib": 14336}
++{"operations": 6000, "seconds": 0.1433006099978229, "peak_process_rss_kib": 19328}
++{"operations": 25000, "seconds": 0.4350177820015233, "peak_process_rss_kib": 35328}
+--- /dev/null
++++ b/docs/AM17/evidencias/benchmark.js
+@@ -0,0 +1,23 @@
++const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
++const files=process.argv.slice(2),p={stations:[],operations:[],outage:null};
++for(let j=0;j<12;j++)p.stations.push({id:'P'+j,name:'P'+j,workers:1,machines:1,arrivals:[],starts:[],ends:[],changes:[]});
++for(let i=0;i<12000;i++){
++ const j=i%12,start=Math.floor(i/12)*.03,arrival=Math.max(0,start-.02),end=start+.025;
++ p.operations.push([j,arrival,start,end,'A',i,0,0,[[start,end]]]);
++ const s=p.stations[j];s.arrivals.push(arrival);s.starts.push(start);s.ends.push(end);
++}
++for(const path of files){
++ const src=fs.readFileSync(path,'utf8'),ctx={};vm.createContext(ctx);
++ vm.runInContext(src.slice(src.indexOf('function _binaryCount('),src.indexOf('const positions =')),ctx);
++ const cold=performance.now();ctx.machineState(p,0,0);const coldMs=performance.now()-cold;
++ const samples=[];let checksum;
++ for(let trial=0;trial<5;trial++){
++  let sum=0;const begin=performance.now();
++  for(let i=0;i<300;i++)for(let j=0;j<12;j++){
++   const x=ctx.machineState(p,j,i*.1);sum+=x.processing+x.queued+x.finished;
++  }
++  samples.push(performance.now()-begin);checksum=sum;
++ }
++ samples.sort((a,b)=>a-b);
++ console.log(JSON.stringify({file:path,operations:12000,stations:12,queries:3600,cold_ms:coldMs,median_ms:samples[2],samples_ms:samples,checksum}));
++}
+--- /dev/null
++++ b/docs/AM17/evidencias/benchmark.log
+@@ -0,0 +1,2 @@
++{"file":"/workspace/work/am17/app-before.js","operations":12000,"stations":12,"queries":3600,"cold_ms":1.163511000000014,"median_ms":790.465329,"samples_ms":[761.1432360000001,781.255369,790.465329,797.8479090000001,907.6897449999999],"checksum":1798788}
++{"file":"atelier/web/app.js","operations":12000,"stations":12,"queries":3600,"cold_ms":48.8588950000003,"median_ms":10.584904000000279,"samples_ms":[9.866323000000193,10.388437999999951,10.584904000000279,11.859691999999995,14.841354000000138],"checksum":1798788}
+--- /dev/null
++++ b/docs/AM17/evidencias/benchmark_engine.py
+@@ -0,0 +1,17 @@
++"""Bounded individual scenarios, never the refused 25-million-operation case."""
++import json, resource, subprocess, sys, time
++
++if len(sys.argv)==1:
++    for quantity,stages in [(100,4),(1000,6),(2500,10)]:
++        subprocess.run([sys.executable,__file__,str(quantity),str(stages)],check=True)
++else:
++    from simulation.factory import build_scenario
++    from simulation.engine import run_simulation
++    q,k=map(int,sys.argv[1:])
++    s={'nome':'P','maquinas':1,'operadores':1,'operadores_por_maquina':1,
++       'eficiencia_operador':1,'disponibilidade':1,'custo_maquina_h':10,'custo_operador_h':10,'setup_min':0}
++    cfg=build_scenario('Bounded benchmark',{'P':s},[{'id':'A','quantidade':q,'prazo_h':100,
++                        'multa_hora':10,'route':[['P',1]]*k}])
++    begin=time.perf_counter();result=run_simulation(cfg);elapsed=time.perf_counter()-begin
++    assert len(result['operations'])==q*k
++    print(json.dumps({'operations':q*k,'seconds':elapsed,'peak_process_rss_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}),flush=True)
+--- /dev/null
++++ b/docs/AM17/evidencias/browser-am17.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++{"resolution": [1280, 720], "preview_without_simulation": true, "safe_rejection": true, "saved_large_model_editable": true, "errors": []}
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++{"resolution": [1366, 768], "preview_without_simulation": true, "safe_rejection": true, "saved_large_model_editable": true, "errors": []}
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++{"resolution": [1920, 1080], "preview_without_simulation": true, "safe_rejection": true, "saved_large_model_editable": true, "errors": []}
+--- /dev/null
++++ b/docs/AM17/evidencias/browser-charts.log
+@@ -0,0 +1,3 @@
++ACABAMENTO OK 1280 720 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1366 768 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1920 1080 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
+--- /dev/null
++++ b/docs/AM17/evidencias/browser-http.log
+@@ -0,0 +1,78 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1280x720 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1366x768 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1920x1080 · progressive / dual panels / justification / record / report
+# Binary in overlay: docs/AM17/evidencias/dimensao_1280.png
+# Binary in overlay: docs/AM17/evidencias/dimensao_1366.png
+# Binary in overlay: docs/AM17/evidencias/dimensao_1920.png
+--- /dev/null
++++ b/docs/AM17/evidencias/focused.log
+@@ -0,0 +1,11 @@
++.....................................                                    [100%]
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++37 passed, 1 warning in 6.48s
+# Binary in overlay: docs/AM17/evidencias/limite_1280.png
+# Binary in overlay: docs/AM17/evidencias/limite_1366.png
+# Binary in overlay: docs/AM17/evidencias/limite_1920.png
+--- /dev/null
++++ b/docs/AM17/evidencias/pending-priority.log
+@@ -0,0 +1,3 @@
++Valid optional-priority input: []
++Original normalized priority: None
++Validation after original editor normalization: ['Ordem A: prioridade inválida.']
+--- /dev/null
++++ b/docs/AM17/evidencias/regression.log
+@@ -0,0 +1,155 @@
++........................................................................ [ 13%]
++........................................................................ [ 27%]
++........................................................................ [ 41%]
++........................................................................ [ 55%]
++...................................F.......FF........................... [ 69%]
++.............................................F.F........................ [ 83%]
++.............................................................. [ 95%]
++.....................                                                    [100%]
++=================================== FAILURES ===================================
++______________ test_evidence_exports_the_current_timed_experiment ______________
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-31/test_evidence_exports_the_curr0')
++
++    def test_evidence_exports_the_current_timed_experiment(tmp_path):
++        a=app();state={};initialize_operation(state)
++        # AppTest cannot operate an iframe; execute the same serialized user command
++        # tested in Chromium, then verify the native export view.
++        handle_command(state,{'id':'ui-demo','token':state['op_token'],'kind':'demo','body':{}})
++        for key,value in state.items():a.session_state[key]=value
++        a.session_state['op_store_dir']=str(tmp_path)
++        a.session_state['op_page']='Registros';a.run()
++        assert not list(a.exception)
++>       assert len(a.get('download_button'))==3
++E       AssertionError: assert 0 == 3
++E        +  where 0 = len([])
++E        +    where [] = get('download_button')
++E        +      where get = AppTest(\n    _script_path='/workspace/work/am17/repo/ANTI_MURPHY_FINAL_2026/app.py',\n    default_timeout=30,\n    _sess...             19: Caption()\n            }\n        ),\n        2: SpecialBlock(\n            type='event'\n        )\n    }\n).get
++
++tests/test_operation_ui.py:35: AssertionError
++----------------------------- Captured stderr call -----------------------------
++2026-11-12 15:57:35.502 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++2026-11-12 15:57:35.831 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++------------------------------ Captured log call -------------------------------
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++WARNING  streamlit.runtime.scriptrunner_utils.script_run_context:script_run_context.py:522 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
++____________ test_inicio_prioriza_o_workspace_original_e_nao_o_mapa ____________
++
++    def test_inicio_prioriza_o_workspace_original_e_nao_o_mapa():
++        src=(ROOT/'app.py').read_text(encoding='utf-8')
++>       assert 'CORE = "Operação e decisões"' in src
++E       assert 'CORE = "Operação e decisões"' in '"""Single workspace for the complete Anti-Murphy. No information-only landing page."""\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'</style>\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'
++
++tests/test_restauracao_acesso.py:13: AssertionError
++_______________ test_modulos_importantes_tem_atendimento_direto ________________
++
++    def test_modulos_importantes_tem_atendimento_direto():
++        src=(ROOT/'app.py').read_text(encoding='utf-8')
++        for page in ['War Room','Murphy AI','Decision Evidence','Murphy Lab',
++                     'Optimization Hub','Stress Lab','Opportunity Engine',
++                     'Scenario Portfolio','Operations Studio','Trust Center']:
++>           assert '"'+page+'"' in src
++E           assert (('"' + 'War Room') + '"') in '"""Single workspace for the complete Anti-Murphy. No information-only landing page."""\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'</style>\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'
++
++tests/test_restauracao_acesso.py:26: AssertionError
++_________________________ test_only_one_root_launcher __________________________
++
++    def test_only_one_root_launcher():
++        assert [x.name for x in ROOT.glob('*.bat')]==['INICIAR_ANTI_MURPHY.bat']
++>       assert 'tools\\start_nexus.py' in (ROOT/'INICIAR_ANTI_MURPHY.bat').read_text()
++E       assert 'tools\\start_nexus.py' in '@echo off\nsetlocal\ncd /d "%~dp0"\nset "PYTHONUTF8=1"\nwhere py >nul 2>&1\nif not errorlevel 1 (\n  py -3 start.py\n...xit /b 1\n  )\n)\nif errorlevel 1 (\n  echo O programa foi encerrado com erro. Confira a mensagem acima.\n  pause\n)\n'
++E        +  where '@echo off\nsetlocal\ncd /d "%~dp0"\nset "PYTHONUTF8=1"\nwhere py >nul 2>&1\nif not errorlevel 1 (\n  py -3 start.py\n...xit /b 1\n  )\n)\nif errorlevel 1 (\n  echo O programa foi encerrado com erro. Confira a mensagem acima.\n  pause\n)\n' = read_text()
++E        +    where read_text = (PosixPath('/workspace/work/am17/repo/ANTI_MURPHY_FINAL_2026') / 'INICIAR_ANTI_MURPHY.bat').read_text
++
++tests/test_v31_editorial.py:25: AssertionError
++________________ test_preview_has_no_external_script_dependency ________________
++
++    def test_preview_has_no_external_script_dependency():
++>       html=(ROOT/'PREVIEW_OPERACAO.html').read_text(encoding='utf8')
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++
++tests/test_v31_editorial.py:36: 
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py:1027: in read_text
++    with self.open(mode='r', encoding=encoding, errors=errors) as f:
++         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++
++self = PosixPath('/workspace/work/am17/repo/ANTI_MURPHY_FINAL_2026/PREVIEW_OPERACAO.html')
++mode = 'r', buffering = -1, encoding = 'utf8', errors = None, newline = None
++
++    def open(self, mode='r', buffering=-1, encoding=None,
++             errors=None, newline=None):
++        """
++        Open the file pointed to by this path and return a file object, as
++        the built-in open() function does.
++        """
++        if "b" not in mode:
++            encoding = io.text_encoding(encoding)
++>       return io.open(self, mode, buffering, encoding, errors, newline)
++               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       FileNotFoundError: [Errno 2] No such file or directory: '/workspace/work/am17/repo/ANTI_MURPHY_FINAL_2026/PREVIEW_OPERACAO.html'
++
++/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py:1013: FileNotFoundError
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++=========================== short test summary info ============================
++FAILED tests/test_operation_ui.py::test_evidence_exports_the_current_timed_experiment
++FAILED tests/test_restauracao_acesso.py::test_inicio_prioriza_o_workspace_original_e_nao_o_mapa
++FAILED tests/test_restauracao_acesso.py::test_modulos_importantes_tem_atendimento_direto
++FAILED tests/test_v31_editorial.py::test_only_one_root_launcher - assert 'too...
++FAILED tests/test_v31_editorial.py::test_preview_has_no_external_script_dependency
++5 failed, 510 passed, 1 warning, 10 subtests passed in 76.44s (0:01:16)
+--- /dev/null
++++ b/docs/AM17/evidencias/regression.xml
+@@ -0,0 +1,64 @@
++<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="525" time="76.437" timestamp="2026-11-12T15:56:54.077648+00:00" hostname="bde2eac28dd2"><testcase classname="tests.test_am04_frontier" name="test_frontier_matches_exact_independent_definition[rows0]" time="0.071" /><testcase classname="tests.test_am04_frontier" name="test_frontier_matches_exact_independent_definition[rows1]" time="0.044" /><testcase classname="tests.test_am04_frontier" name="test_frontier_matches_exact_independent_definition[rows2]" time="0.062" /><testcase classname="tests.test_am04_frontier" name="test_frontier_matches_exact_independent_definition[rows3]" time="0.043" /><testcase classname="tests.test_am04_frontier" name="test_frontier_matches_exact_independent_definition[rows4]" time="0.045" /><testcase classname="tests.test_am04_frontier" name="test_frontier_matches_exact_independent_definition[rows5]" time="0.046" /><testcase classname="tests.test_am04_frontier" name="test_frontier_matches_exact_independent_definition[rows6]" time="0.042" /><testcase classname="tests.test_am04_frontier" name="test_frontier_matches_exact_independent_definition[rows7]" time="0.042" /><testcase classname="tests.test_am04_frontier" name="test_permutations_keep_membership_order_and_equivalent_alternatives" time="0.089" /><testcase classname="tests.test_am04_frontier" name="test_unqualified_rival_cannot_dominate_a_qualified_alternative[feasible]" time="0.035" /><testcase classname="tests.test_am04_frontier" name="test_unqualified_rival_cannot_dominate_a_qualified_alternative[within_budget]" time="0.035" /><testcase classname="tests.test_am04_frontier" name="test_unqualified_rival_cannot_dominate_a_qualified_alternative[meets_sla]" time="0.043" /><testcase classname="tests.test_am04_frontier" name="test_all_unqualified_produces_no_frontier_but_preserves_points" time="0.041" /><testcase classname="tests.test_am04_frontier" name="test_many_tied_and_untied_sets_match_independent_oracle" time="0.219" /><testcase classname="tests.test_am04_frontier" name="test_nonfinite_metrics_are_not_plotted_or_ranked" time="0.031" /><testcase classname="tests.test_am04_frontier" name="test_two_objective_plot_does_not_change_three_objective_record_review" time="0.033" /><testcase classname="tests.test_am05_provenance" name="test_all_twelve_tools_have_named_context" time="0.320" /><testcase classname="tests.test_am05_provenance" name="test_model_inputs_change_every_tool[nome]" time="0.069" /><testcase classname="tests.test_am05_provenance" name="test_model_inputs_change_every_tool[custo_maquina_h]" time="0.161" /><testcase classname="tests.test_am05_provenance" name="test_model_inputs_change_every_tool[eficiencia_operador]" time="0.068" /><testcase classname="tests.test_am05_provenance" name="test_model_inputs_change_every_tool[maquinas]" time="0.068" /><testcase classname="tests.test_am05_provenance" name="test_orders_change_every_tool" time="0.068" /><testcase classname="tests.test_am05_provenance" name="test_project_identity_invalidates_every_context_even_identical_model" time="0.003" /><testcase classname="tests.test_am05_provenance" name="test_presentation_and_examined_selection_do_not_change_dependencies[nx_source]" time="0.157" /><testcase classname="tests.test_am05_provenance" name="test_presentation_and_examined_selection_do_not_change_dependencies[nx_page]" time="0.067" /><testcase classname="tests.test_am05_provenance" name="test_presentation_and_examined_selection_do_not_change_dependencies[nx_reduced_motion]" time="0.070" /><testcase classname="tests.test_am05_provenance" name="test_presentation_and_examined_selection_do_not_change_dependencies[nx_selected]" time="0.070" /><testcase classname="tests.test_am05_provenance" name="test_seed_affects_only_tools_that_use_it" time="0.158" /><testcase classname="tests.test_am05_provenance" name="test_original_dispatch_rule_irrelevant_when_tool_sweeps_it" time="0.067" /><testcase classname="tests.test_am05_provenance" name="test_duration_change_ignored_by_duration_sweep_and_nominal_tools" time="0.068" /><testcase classname="tests.test_am05_provenance" name="test_incident_location_time_dependencies[start_h-1]" time="0.066" /><testcase classname="tests.test_am05_provenance" name="test_incident_location_time_dependencies[station-SOLDA]" time="0.151" /><testcase classname="tests.test_am05_provenance" name="test_delay_only_changes_tools_which_use_response_time" time="0.067" /><testcase classname="tests.test_am05_provenance" name="test_selected_response_changes_only_paired_experiment" time="0.003" /><testcase classname="tests.test_am05_provenance" name="test_policy_only_changes_goal_tool[budget-0]" time="0.068" /><testcase classname="tests.test_am05_provenance" name="test_policy_only_changes_goal_tool[min_sla-100]" time="0.158" /><testcase classname="tests.test_am05_provenance" name="test_policy_only_changes_goal_tool[cost_worker-999]" time="0.067" /><testcase classname="tests.test_am05_provenance" name="test_policy_only_changes_goal_tool[objective-delivery]" time="0.068" /><testcase classname="tests.test_am05_provenance" name="test_station_iteration_order_is_a_real_seeded_dependency" time="0.068" /><testcase classname="tests.test_am05_provenance" name="test_normalized_inputs_are_only_effective_controls[lab-duration-payload0-expected0]" time="0.001" /><testcase classname="tests.test_am05_provenance" name="test_normalized_inputs_are_only_effective_controls[lab-goal-payload1-expected1]" time="0.000" /><testcase classname="tests.test_am05_provenance" name="test_normalized_inputs_are_only_effective_controls[lab-capacity-payload2-expected2]" time="0.000" /><testcase classname="tests.test_am05_provenance" name="test_normalized_inputs_are_only_effective_controls[advanced-demand-payload3-expected3]" time="0.000" /><testcase classname="tests.test_am05_provenance" name="test_normalized_inputs_are_only_effective_controls[advanced-sensitivity-payload4-expected4]" time="0.001" /><testcase classname="tests.test_am05_provenance" name="test_normalized_inputs_are_only_effective_controls[advanced-uncertainty-payload5-expected5]" time="0.000" /><testcase classname="tests.test_am05_provenance" name="test_canonical_signature_equivalent_numbers_and_dict_key_order" time="0.000" /><testcase classname="tests.test_am05_provenance" name="test_stamp_deterministic_without_timestamp_and_preserves_origin" time="0.280" /><testcase classname="tests.test_am05_provenance" name="test_signature_preserved_for_irrelevant_selection_and_result_points" time="0.334" /><testcase classname="tests.test_am05_provenance" name="test_advanced_scope_and_origin_explicit[diagnostic]" time="0.203" /><testcase classname="tests.test_am05_provenance" name="test_advanced_scope_and_origin_explicit[opportunities]" time="0.414" /><testcase classname="tests.test_am05_provenance" name="test_advanced_scope_and_origin_explicit[sensitivity]" time="0.197" /><testcase classname="tests.test_am05_provenance" name="test_advanced_scope_and_origin_explicit[demand]" time="0.329" /><testcase classname="tests.test_am05_provenance" name="test_advanced_scope_and_origin_explicit[uncertainty]" time="0.271" /><testcase classname="tests.test_am05_provenance" name="test_advanced_scope_and_origin_explicit[recovery]" time="0.344" /><testcase classname="tests.test_am05_provenance" name="test_info_contexts_are_small_and_do_not_run_engine" time="0.192" /><testcase classname="tests.test_am05_provenance" name="test_dashboard_and_audit_snapshots_guard_current_complete_analysis_context" time="0.261" /><testcase classname="tests.test_am05_state_contract" name="test_live_inputs_and_context_compared_without_mutating_origin[controls.min_sla=100;-desatualizado]" time="0.038" /><testcase classname="tests.test_am05_state_contract" name="test_live_inputs_and_context_compared_without_mutating_origin[contexts[&quot;lab:goal&quot;].context_signature=&quot;project-B&quot;;-desatualizado]" time="0.031" /><testcase classname="tests.test_am05_state_contract" name="test_live_inputs_and_context_compared_without_mutating_origin[contexts[&quot;lab:duration&quot;].context_signature=&quot;unrelated&quot;;-atual]" time="0.030" /><testcase classname="tests.test_am05_state_contract" name="test_live_inputs_and_context_compared_without_mutating_origin[controls.min_sla=100;controls.min_sla=80;-atual]" time="0.029" /><testcase classname="tests.test_am05_state_contract" name="test_live_inputs_and_context_compared_without_mutating_origin[contexts[&quot;lab:goal&quot;].context_signature=&quot;B&quot;;contexts[&quot;lab:goal&quot;].context_signature=&quot;A&quot;;-atual]" time="0.032" /><testcase classname="tests.test_am05_state_contract" name="test_out_of_order_async_completion_keeps_later_request_current" time="0.030" /><testcase classname="tests.test_am05_state_contract" name="test_old_results_unknown_and_scope_separation" time="0.030" /><testcase classname="tests.test_am05_state_contract" name="test_more_than_25_results_are_retained_and_older_exports_historical" time="0.031" /><testcase classname="tests.test_am05_state_contract" name="test_canonical_control_key_order_and_numeric_equivalence" time="0.031" /><testcase classname="tests.test_am05_state_contract" name="test_csv_export_uses_live_status_and_single_line_project_metadata" time="0.531" /><testcase classname="tests.test_am08_economics" name="test_persist_components_exact_and_compare_without_double_investment" time="0.453" /><testcase classname="tests.test_am08_economics" name="test_zero_investment_is_explicit_and_negative_savings_supported" time="0.201" /><testcase classname="tests.test_am08_economics" name="test_legacy_comparison_never_rewrites_or_infers_investment" time="0.294" /><testcase classname="tests.test_am08_economics" name="test_unknown_or_invalid_component_not_zero[None]" time="0.001" /><testcase classname="tests.test_am08_economics" name="test_unknown_or_invalid_component_not_zero[bad]" time="0.000" /><testcase classname="tests.test_am08_economics" name="test_unknown_or_invalid_component_not_zero[True]" time="0.000" /><testcase classname="tests.test_am08_economics" name="test_unknown_or_invalid_component_not_zero[inf]" time="0.000" /><testcase classname="tests.test_am08_economics" name="test_unknown_or_invalid_component_not_zero[nan]" time="0.000" /><testcase classname="tests.test_am08_economics" name="test_partial_new_mixed_with_old_and_different_reference" time="0.000" /><testcase classname="tests.test_am08_economics" name="test_infeasible_does_not_appear_free" time="0.000" /><testcase classname="tests.test_am08_economics" name="test_legacy_precision_and_missing_response" time="0.000" /><testcase classname="tests.test_am08_economics" name="test_different_models_warning_retained" time="0.470" /><testcase classname="tests.test_am08_economics" name="test_real_capacity_action_archives_negative_net_saving" time="0.259" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_real_stress_separates_eleven_infeasible_trials" time="0.004" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_stress_all_invalid_has_no_zero_statistics" time="0.001" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_stress_mixed_statistics_and_percentiles_use_valid_subset" time="0.001" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_monte_carlo_counts_and_missing_metrics[0]" time="0.001" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_monte_carlo_counts_and_missing_metrics[1]" time="0.001" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_monte_carlo_counts_and_missing_metrics[3]" time="0.001" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_monte_carlo_counts_and_missing_metrics[4]" time="0.001" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_monte_carlo_independent_valid_mean_variance_and_interval" time="0.001" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_all_viable_repeatability_and_seeds_unchanged" time="0.004" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_studio_preserves_feasibility_and_reason_in_lab_payload" time="0.252" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_new_policy_only_invalidates_affected_experiments" time="0.241" /><testcase classname="tests.test_am09_infeasible_statistics" name="test_historical_panels_accept_all_invalid_statistics" time="0.013" /><testcase classname="tests.test_am10_capacity" name="test_enumeration_matches_independent_cartesian_reference[0-0]" time="0.001" /><testcase classname="tests.test_am10_capacity" name="test_enumeration_matches_independent_cartesian_reference[1-0]" time="0.000" /><testcase classname="tests.test_am10_capacity" name="test_enumeration_matches_independent_cartesian_reference[0-1]" time="0.001" /><testcase classname="tests.test_am10_capacity" name="test_enumeration_matches_independent_cartesian_reference[1-1]" time="0.001" /><testcase classname="tests.test_am10_capacity" name="test_enumeration_matches_independent_cartesian_reference[2-1]" time="0.001" /><testcase classname="tests.test_am10_capacity" name="test_enumeration_matches_independent_cartesian_reference[2-2]" time="0.001" /><testcase classname="tests.test_am10_capacity" name="test_enumeration_matches_independent_cartesian_reference[3-2]" time="0.001" /><testcase classname="tests.test_am10_capacity" name="test_real_same_station_combination_reaches_independent_reference" time="0.002" /><testcase classname="tests.test_am10_capacity" name="test_invalid_budget_rejected[limits0]" time="0.000" /><testcase classname="tests.test_am10_capacity" name="test_invalid_budget_rejected[limits1]" time="0.000" /><testcase classname="tests.test_am10_capacity" name="test_invalid_budget_rejected[limits2]" time="0.000" /><testcase classname="tests.test_am10_capacity" name="test_invalid_budget_rejected[limits3]" time="0.000" /><testcase classname="tests.test_am10_capacity" name="test_invalid_budget_rejected[limits4]" time="0.000" /><testcase classname="tests.test_am10_capacity" name="test_space_limit_explicit_before_any_simulation" time="0.004" /><testcase classname="tests.test_am10_capacity" name="test_zero_limit_and_result_truncation_do_not_change_evaluated_count" time="0.002" /><testcase classname="tests.test_am10_capacity" name="test_goal_satisfaction_precedes_cost_score_and_blocked_is_not_approved" time="0.001" /><testcase classname="tests.test_am10_capacity" name="test_context_and_service_declare_actual_space" time="0.241" /><testcase classname="tests.test_am11_consumers" name="test_percent_change_preserves_nonzero_small_reference" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_percentage_zero_reference_keeps_legacy_neutral_convention" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_uses_cost_rate_over_actual_short_horizon" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_horizon_without_finite_positive_rate[0.0]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_horizon_without_finite_positive_rate[-1.0]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_horizon_without_finite_positive_rate[inf]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_horizon_without_finite_positive_rate[nan]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_nonfinite_input[contribution_margin_per_unit]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_nonfinite_input[hours_per_day]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_finance_rejects_nonfinite_input[one_time_investment]" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_goal_sla_threshold_does_not_approve_rounded_up_fraction" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_goal_throughput_threshold_does_not_reject_rounded_down_value" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_sensitivity_keeps_true_small_marginal_gain" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_demand_breakpoint_compares_exact_sla" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_monte_carlo_statistics_use_unrounded_values" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_recovery_ranks_before_rounding_heuristic_score" time="0.001" /><testcase classname="tests.test_am11_consumers" name="test_fingerprint_preserves_small_positive_scale_ratios" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_fingerprint_zero_reference_has_explicit_meaning" time="0.000" /><testcase classname="tests.test_am11_consumers" name="test_murphy_score_uses_precise_station_utilization" time="0.000" /><testcase classname="tests.test_am11_display" name="test_nonzero_small_value_visible_without_changing_ordinary_format[False]" time="0.049" /><testcase classname="tests.test_am11_display" name="test_nonzero_small_value_visible_without_changing_ordinary_format[True]" time="0.051" /><testcase classname="tests.test_am11_numeric_precision" name="test_one_thousandth_hour_reference_has_positive_horizon_and_full_utilization" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[1-1]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[1-2]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[1-4]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[3-1]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[3-2]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_parallel_capacity_uses_actual_machine_and_worker_hours[3-4]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.001-eficiencia_operador]" time="0.002" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.001-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.009-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.009-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.01-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.01-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.1-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[0.1-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[1.0-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_positive_factors_are_preserved_without_hidden_floor[1.0-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[None-eficiencia_operador]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[None-disponibilidade]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[0-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[0-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[-0.001-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[-0.001-disponibilidade]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[nan-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[nan-disponibilidade]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[inf-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[inf-disponibilidade]" time="0.002" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[-inf-eficiencia_operador]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_invalid_factors_are_rejected_before_simulation[-inf-disponibilidade]" time="0.003" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[None]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[0]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[-0.001]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[nan]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[inf]" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_zero_negative_and_nonfinite_processing_durations_are_rejected[-inf]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_actual_seeded_noise_still_obeys_dimensional_metrics" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_releases_and_multiple_orders_include_idle_time_in_plan_horizon" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_automated_station_with_no_workers_has_defined_zero_labor_utilization" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_timed_worker_addition_integrates_capacity_and_keeps_in_flight_operations" time="0.002" /><testcase classname="tests.test_am11_numeric_precision" name="test_precise_values_are_not_rounded_before_ratio_or_cost_calculation" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_unrepresentable_overflow_underflow_or_clock_progress_is_explicitly_rejected[&lt;lambda&gt;0]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_unrepresentable_overflow_underflow_or_clock_progress_is_explicitly_rejected[&lt;lambda&gt;1]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_unrepresentable_overflow_underflow_or_clock_progress_is_explicitly_rejected[&lt;lambda&gt;2]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_metric_helper_keeps_legacy_result_dictionary_compatibility" time="0.000" /><testcase classname="tests.test_am11_numeric_precision" name="test_order_reference_keeps_completion_and_lateness_before_display_rounding" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_temporal_response_sla_eligibility_uses_two_thirds_before_display_rounding[66.66-True]" time="0.002" /><testcase classname="tests.test_am11_numeric_precision" name="test_temporal_response_sla_eligibility_uses_two_thirds_before_display_rounding[66.68-False]" time="0.002" /><testcase classname="tests.test_am11_numeric_precision" name="test_structural_decisions_sla_eligibility_uses_unrounded_two_thirds[66.66-True]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_structural_decisions_sla_eligibility_uses_unrounded_two_thirds[66.68-False]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_capacity_goal_threshold_reads_precise_throughput[1.0002-Sim]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_capacity_goal_threshold_reads_precise_throughput[1.0005-N\xe3o]" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_precise_metrics_survive_plain_json_archive_roundtrip" time="0.001" /><testcase classname="tests.test_am11_numeric_precision" name="test_representable_duration_is_recovered_when_naive_intermediate_division_underflows" time="0.001" /><testcase classname="tests.test_am11_review_regressions" name="test_nonzero_subnormal_intermediate_product_uses_representable_reference" time="0.000" /><testcase classname="tests.test_am11_review_regressions" name="test_recovery_percentage_avoids_intermediate_overflow[1]" time="0.000" /><testcase classname="tests.test_am11_review_regressions" name="test_recovery_percentage_avoids_intermediate_overflow[-1]" time="0.000" /><testcase classname="tests.test_am11_review_regressions" name="test_unrepresentable_percentage_is_explicit_error" time="0.000" /><testcase classname="tests.test_am11_review_regressions" name="test_null_precise_legacy_summary_falls_back_to_rounded_metric" time="0.000" /><testcase classname="tests.test_am11_review_regressions" name="test_cost_component_underflow_is_explicit_not_free_production" time="0.001" /><testcase classname="tests.test_am11_review_regressions" name="test_zero_cost_and_automated_zero_labor_remain_valid" time="0.001" /><testcase classname="tests.test_am12_workspace" name="test_stale_rename_preserves_saved_edit" time="0.960" /><testcase classname="tests.test_am12_workspace" name="test_opening_and_inspection_do_not_write_or_invalidate_owner" time="0.587" /><testcase classname="tests.test_am12_workspace" name="test_stale_writes_are_rejected_without_disk_or_memory_publish[reset]" time="0.884" /><testcase classname="tests.test_am12_workspace" name="test_stale_writes_are_rejected_without_disk_or_memory_publish[calculate]" time="0.960" /><testcase classname="tests.test_am12_workspace" name="test_stale_writes_are_rejected_without_disk_or_memory_publish[model]" time="0.930" /><testcase classname="tests.test_am12_workspace" name="test_stale_writes_are_rejected_without_disk_or_memory_publish[create]" time="0.987" /><testcase classname="tests.test_am12_workspace" name="test_stale_writes_are_rejected_without_disk_or_memory_publish[open]" time="0.977" /><testcase classname="tests.test_am12_workspace" name="test_stale_writes_are_rejected_without_disk_or_memory_publish[decision]" time="0.699" /><testcase classname="tests.test_am12_workspace" name="test_stale_writes_are_rejected_without_disk_or_memory_publish[experiment]" time="0.689" /><testcase classname="tests.test_am12_workspace" name="test_external_edit_detected_and_restart_loads_new_data" time="0.431" /><testcase classname="tests.test_am12_workspace" name="test_independent_workspaces_and_symlink_alias" time="0.633" /><testcase classname="tests.test_am12_workspace" name="test_two_processes_cannot_both_commit_same_revision" time="0.826" /><testcase classname="tests.test_am12_workspace" name="test_lock_released_after_process_crash_without_deleting_lockfile" time="0.125" /><testcase classname="tests.test_am17_replay" name="test_index_preserves_states_events_order_segments_and_seeks" time="0.170" /><testcase classname="tests.test_am17_workload" name="test_count_uses_per_order_des_rounding[1-0.1-2]" time="0.001" /><testcase classname="tests.test_am17_workload" name="test_count_uses_per_order_des_rounding[5-1.3-12]" time="0.001" /><testcase classname="tests.test_am17_workload" name="test_count_uses_per_order_des_rounding[5-1.5-16]" time="0.001" /><testcase classname="tests.test_am17_workload" name="test_count_uses_per_order_des_rounding[4-1.6-12]" time="0.000" /><testcase classname="tests.test_am17_workload" name="test_main_scenario_count_matches_real_candidate_enumeration[False-False]" time="0.001" /><testcase classname="tests.test_am17_workload" name="test_main_scenario_count_matches_real_candidate_enumeration[False-True]" time="0.001" /><testcase classname="tests.test_am17_workload" name="test_main_scenario_count_matches_real_candidate_enumeration[True-False]" time="0.001" /><testcase classname="tests.test_am17_workload" name="test_main_scenario_count_matches_real_candidate_enumeration[True-True]" time="0.001" /><testcase classname="tests.test_am17_workload" name="test_scenario_and_analysis_limits_are_inclusive_and_independent" time="0.000" /><testcase classname="tests.test_am17_workload" name="test_excessive_import_is_rejected_before_engine_or_disk_change" time="0.268" /><testcase classname="tests.test_am17_workload" name="test_all_simulating_labs_check_budget_before_cloning_or_running[duration]" time="0.160" /><testcase classname="tests.test_am17_workload" name="test_all_simulating_labs_check_budget_before_cloning_or_running[dispatch]" time="0.161" /><testcase classname="tests.test_am17_workload" name="test_all_simulating_labs_check_budget_before_cloning_or_running[robustness]" time="0.161" /><testcase classname="tests.test_am17_workload" name="test_all_simulating_labs_check_budget_before_cloning_or_running[stress]" time="0.269" /><testcase classname="tests.test_am17_workload" name="test_all_simulating_labs_check_budget_before_cloning_or_running[capacity]" time="0.156" /><testcase classname="tests.test_am17_workload" name="test_all_advanced_tools_check_budget_before_nominal_calculation[diagnostic]" time="0.161" /><testcase classname="tests.test_am17_workload" name="test_all_advanced_tools_check_budget_before_nominal_calculation[opportunities]" time="0.237" /><testcase classname="tests.test_am17_workload" name="test_all_advanced_tools_check_budget_before_nominal_calculation[sensitivity]" time="0.160" /><testcase classname="tests.test_am17_workload" name="test_all_advanced_tools_check_budget_before_nominal_calculation[demand]" time="0.162" /><testcase classname="tests.test_am17_workload" name="test_all_advanced_tools_check_budget_before_nominal_calculation[uncertainty]" time="0.174" /><testcase classname="tests.test_am17_workload" name="test_all_advanced_tools_check_budget_before_nominal_calculation[recovery]" time="0.360" /><testcase classname="tests.test_am17_workload" name="test_demand_growth_and_capacity_candidates_are_included" time="0.000" /><testcase classname="tests.test_am17_workload" name="test_large_saved_project_opens_for_editing_without_rewrite_then_recovers" time="0.202" /><testcase classname="tests.test_am17_workload" name="test_switch_to_large_project_preserves_its_archived_bytes" time="0.574" /><testcase classname="tests.test_am17_workload" name="test_opportunities_do_not_clone_discarded_candidates" time="0.001" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[lab-duration]" time="0.325" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[lab-dispatch]" time="0.321" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[lab-robustness]" time="0.273" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[lab-stress]" time="0.246" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[lab-capacity]" time="1.153" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[advanced-diagnostic]" time="0.187" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[advanced-opportunities]" time="0.524" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[advanced-sensitivity]" time="0.202" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[advanced-demand]" time="0.261" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[advanced-uncertainty]" time="0.417" /><testcase classname="tests.test_am17_workload" name="test_declared_tool_bound_covers_actual_des_calls_and_operations[advanced-recovery]" time="0.249" /><testcase classname="tests.test_atlas_agent" name="test_cnc_recovery" time="0.305" /><testcase classname="tests.test_atlas_agent" name="test_outage_after_end_is_not_sold_as_recovery" time="0.208" /><testcase classname="tests.test_atlas_agent" name="test_blocked_model_no_economic_recommendation" time="0.025" /><testcase classname="tests.test_atlas_agent" name="test_too_high_sla_excludes_recommendation" time="0.225" /><testcase classname="tests.test_atlas_agent" name="test_sha_export_reproducible_format_and_no_config_object" time="0.553" /><testcase classname="tests.test_atlas_agent" name="test_agent_proposals[Simule uma parada de 3 horas na CNC-True]" time="0.004" /><testcase classname="tests.test_atlas_agent" name="test_agent_proposals[simule uma falha de 5h na Usinagem CNC, in\xedcio em 2 horas-True]" time="0.002" /><testcase classname="tests.test_atlas_agent" name="test_agent_proposals[qual \xe9 o gargalo?-False]" time="0.002" /><testcase classname="tests.test_atlas_agent" name="test_agent_proposals[simule uma falha na m\xe1quina inexistente-False]" time="0.002" /><testcase classname="tests.test_atlas_agent" name="test_reject_tool_proposal_unknown_station" time="0.001" /><testcase classname="tests.test_atlas_agent" name="test_bad_policy_rejected" time="0.002" /><testcase classname="tests.test_decision_priorities" name="test_priorities_choose_different_simulated_outcomes_for_the_same_incident" time="0.738" /><testcase classname="tests.test_decision_priorities" name="test_zero_budget_is_a_real_limit_in_the_new_workflow" time="0.656" /><testcase classname="tests.test_decision_priorities" name="test_invalid_critical_order_does_not_publish_half_an_experiment" time="0.193" /><testcase classname="tests.test_decision_priorities" name="test_delaying_an_examined_action_keeps_it_even_when_it_becomes_unprofitable" time="0.408" /><testcase classname="tests.test_decision_priorities" name="test_priority_change_invalidates_a_prepared_authorization" time="0.292" /><testcase classname="tests.test_decision_priorities" name="test_no_critical_improvement_is_reported_without_a_recommendation" time="0.245" /><testcase classname="tests.test_decision_priorities" name="test_murphy_explains_the_examined_response_instead_of_another_recommendation" time="0.163" /><testcase classname="tests.test_decision_priorities" name="test_budget_question_prepares_zero_limit_without_running_it" time="0.289" /><testcase classname="tests.test_decision_priorities" name="test_report_preserves_recorded_and_examined_choices_and_escapes_notes" time="0.211" /><testcase classname="tests.test_decision_priorities" name="test_request_for_unlimited_budget_keeps_it_distinct_from_zero_investment" time="0.277" /><testcase classname="tests.test_decision_priorities" name="test_export_without_an_examined_response_does_not_invent_zero_results" time="0.133" /><testcase classname="tests.test_decision_store" name="test_record_survives_a_new_session_without_changing_its_model" time="0.208" /><testcase classname="tests.test_decision_store" name="test_modified_archive_is_rejected_and_not_listed" time="0.136" /><testcase classname="tests.test_factory_command_trace" name="test_instrumentation_preserves_all_engine_metrics_and_outputs" time="0.008" /><testcase classname="tests.test_factory_command_trace" name="test_comparison_roundtrips_replay_and_fork" time="0.013" /><testcase classname="tests.test_factory_command_trace" name="test_export_json_is_engine_derived" time="0.016" /><testcase classname="tests.test_factory_command_trace" name="test_sequential_events_with_same_timestamp" time="0.010" /><testcase classname="tests.test_factory_command_trace" name="test_four_parallel_slots_and_machine_reinforcement" time="0.017" /><testcase classname="tests.test_factory_command_trace" name="test_no_false_skill_or_buffer_verification" time="0.009" /><testcase classname="tests.test_factory_command_trace" name="test_invalid_comparisons_rejected" time="0.000" /><testcase classname="tests.test_frontend_replay" name="test_real_bundle_valid" time="0.003" /><testcase classname="tests.test_frontend_replay" name="test_two_futures_share_prefix" time="0.001" /><testcase classname="tests.test_frontend_replay" name="test_exact_event_timing" time="0.004" /><testcase classname="tests.test_frontend_replay" name="test_branches_differ_after_intervention" time="0.000" /><testcase classname="tests.test_frontend_replay" name="test_real_frontend_is_no_longer_mock" time="0.002" /><testcase classname="tests.test_frontend_replay" name="test_ts_client_replays_real_json" time="0.036" /><testcase classname="tests.test_integrated_shell" name="test_only_one_streamlit_page_config" time="0.043" /><testcase classname="tests.test_integrated_shell" name="test_full_function_inventory_visible_in_shell" time="0.000" /><testcase classname="tests.test_integrated_shell" name="test_original_logo_is_used_for_restored_splash" time="0.000" /><testcase classname="tests.test_integrated_shell" name="test_legacy_navigation_is_managed_by_shared_shell" time="0.001" /><testcase classname="tests.test_integrated_shell" name="test_animation_only_uses_engine_station_state" time="0.000" /><testcase classname="tests.test_integrated_shell" name="test_core_engine_is_bitwise_preserved" time="0.000" /><testcase classname="tests.test_integrated_shell" name="test_windows_launcher_no_npm_build_and_browser_auto_open" time="0.002" /><testcase classname="tests.test_integrated_shell" name="test_no_font_files_distributed" time="0.002" /><testcase classname="tests.test_model_optional_fields" name="test_excel_round_trip_preserves_automation_and_order_release" time="0.080" /><testcase classname="tests.test_model_optional_fields" name="test_csv_locale_decimal_and_boolean_false_are_not_lost" time="0.005" /><testcase classname="tests.test_nexus_ui" name="test_primary_pages_and_shared_run_after_demo" time="1.175" /><testcase classname="tests.test_nexus_ui" name="test_ai_budget_authorization_then_evidence_and_review" time="1.125" /><testcase classname="tests.test_nexus_ui" name="test_sensitivity_authorization_in_review_and_no_rerun_on_navigation" time="0.855" /><testcase classname="tests.test_nexus_ui" name="test_original_tools_open_and_return_to_new_workspace" time="0.524" /><testcase classname="tests.test_nexus_v30" name="test_reference_and_noop_are_never_recommended" time="0.000" /><testcase classname="tests.test_nexus_v30" name="test_all_views_share_authoritative_leader" time="0.173" /><testcase classname="tests.test_nexus_v30" name="test_policy_and_model_changes_hide_old_decisions" time="0.470" /><testcase classname="tests.test_nexus_v30" name="test_plan_cannot_execute_against_changed_context[model]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_plan_cannot_execute_against_changed_context[policy]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_plan_tampering_and_repeat_execution_rejected" time="0.200" /><testcase classname="tests.test_nexus_v30" name="test_interpreting_ai_request_never_runs_engine" time="0.011" /><testcase classname="tests.test_nexus_v30" name="test_portuguese_budgets[Tenho apenas R$ 3.000-3000]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_portuguese_budgets[Or\xe7amento de 3 mil-3000]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_portuguese_budgets[tenho R$ 2.500,50-2500.5]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_portuguese_budgets[orcamento: 3000-3000]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_portuguese_budgets[Qual o gargalo?-None]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_unknown_broken_station_is_not_silently_assigned" time="0.012" /><testcase classname="tests.test_nexus_v30" name="test_constraints_really_apply_to_ai_authorized_result" time="0.182" /><testcase classname="tests.test_nexus_v30" name="test_demo_is_reproducible_and_restores_original_model" time="0.440" /><testcase classname="tests.test_nexus_v30" name="test_replay_mass_balance_outage_and_exact_completion" time="0.176" /><testcase classname="tests.test_nexus_v30" name="test_no_machine_lane_overlaps" time="0.008" /><testcase classname="tests.test_nexus_v30" name="test_browser_counter_core_matches_python_at_boundaries" time="0.332" /><testcase classname="tests.test_nexus_v30" name="test_html_cannot_break_script_with_uploaded_names" time="0.010" /><testcase classname="tests.test_nexus_v30" name="test_sensitivity_reports_net_savings_and_consumes_authorization" time="0.282" /><testcase classname="tests.test_nexus_v30" name="test_non_finite_policy_rejected[nan]" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_non_finite_policy_rejected[inf]" time="0.000" /><testcase classname="tests.test_nexus_v30" name="test_generative_tool_only_prepares_plan" time="0.008" /><testcase classname="tests.test_nexus_v30" name="test_budget_followup_preserves_pending_incident_not_defaults" time="0.009" /><testcase classname="tests.test_nexus_v30" name="test_comparing_calculated_alternatives_does_not_propose_redundant_run" time="0.289" /><testcase classname="tests.test_nexus_v30" name="test_new_explicit_test_can_repeat_same_parameters" time="0.339" /><testcase classname="tests.test_nexus_v30" name="test_examined_export_keeps_recommendation_and_manual_selection_distinct" time="0.276" /><testcase classname="tests.test_nexus_v30" name="test_model_editor_rejects_fractional_or_negative_resources" time="0.000" /><testcase classname="tests.test_nexus_v30" name="test_json_automation_flag_cannot_turn_string_false_into_unmanned_capacity" time="0.001" /><testcase classname="tests.test_nexus_v30" name="test_ai_does_not_offer_delay_reduction_when_no_orders_are_late" time="0.176" /><testcase classname="tests.test_nexus_v30" name="test_economic_recovery_ratio_is_undefined_when_crisis_adds_no_cost" time="0.001" /><testcase classname="tests.test_operation_ui" name="test_current_primary_views_render_without_exceptions" time="0.250" /><testcase classname="tests.test_operation_ui" name="test_blocked_resources_show_an_error_instead_of_a_production_forecast" time="0.193" /><testcase classname="tests.test_operation_ui" name="test_evidence_exports_the_current_timed_experiment" time="1.026"><failure message="AssertionError: assert 0 == 3&#10; +  where 0 = len([])&#10; +    where [] = get('download_button')&#10; +      where get = AppTest(\n    _script_path='/workspace/work/am17/repo/ANTI_MURPHY_FINAL_2026/app.py',\n    default_timeout=30,\n    _sess...             19: Caption()\n            }\n        ),\n        2: SpecialBlock(\n            type='event'\n        )\n    }\n).get">tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-31/test_evidence_exports_the_curr0')
++
++    def test_evidence_exports_the_current_timed_experiment(tmp_path):
++        a=app();state={};initialize_operation(state)
++        # AppTest cannot operate an iframe; execute the same serialized user command
++        # tested in Chromium, then verify the native export view.
++        handle_command(state,{'id':'ui-demo','token':state['op_token'],'kind':'demo','body':{}})
++        for key,value in state.items():a.session_state[key]=value
++        a.session_state['op_store_dir']=str(tmp_path)
++        a.session_state['op_page']='Registros';a.run()
++        assert not list(a.exception)
++&gt;       assert len(a.get('download_button'))==3
++E       AssertionError: assert 0 == 3
++E        +  where 0 = len([])
++E        +    where [] = get('download_button')
++E        +      where get = AppTest(\n    _script_path='/workspace/work/am17/repo/ANTI_MURPHY_FINAL_2026/app.py',\n    default_timeout=30,\n    _sess...             19: Caption()\n            }\n        ),\n        2: SpecialBlock(\n            type='event'\n        )\n    }\n).get
++
++tests/test_operation_ui.py:35: AssertionError</failure></testcase><testcase classname="tests.test_operation_workspace" name="test_complete_response_workflow_and_export" time="0.433" /><testcase classname="tests.test_operation_workspace" name="test_duplicate_and_stale_commands_cannot_execute_again" time="0.136" /><testcase classname="tests.test_operation_workspace" name="test_invalid_experiment_does_not_half_commit_parameters" time="0.137" /><testcase classname="tests.test_operation_workspace" name="test_question_only_prepares_a_budget_experiment_then_authorization_runs_it" time="0.381" /><testcase classname="tests.test_operation_workspace" name="test_authorization_is_bound_to_response_time" time="0.136" /><testcase classname="tests.test_operation_workspace" name="test_examining_a_different_row_preserves_recommendation" time="0.230" /><testcase classname="tests.test_operation_workspace" name="test_recalculation_and_model_changes_clear_old_decision_records" time="0.294" /><testcase classname="tests.test_restauracao_acesso" name="test_inicio_prioriza_o_workspace_original_e_nao_o_mapa" time="0.001"><failure message="assert 'CORE = &quot;Operação e decisões&quot;' in '&quot;&quot;&quot;Single workspace for the complete Anti-Murphy. No information-only landing page.&quot;&quot;&quot;\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'&lt;/style&gt;\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'">def test_inicio_prioriza_o_workspace_original_e_nao_o_mapa():
++        src=(ROOT/'app.py').read_text(encoding='utf-8')
++&gt;       assert 'CORE = "Operação e decisões"' in src
++E       assert 'CORE = "Operação e decisões"' in '"""Single workspace for the complete Anti-Murphy. No information-only landing page."""\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'&lt;/style&gt;\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'
++
++tests/test_restauracao_acesso.py:13: AssertionError</failure></testcase><testcase classname="tests.test_restauracao_acesso" name="test_modulos_importantes_tem_atendimento_direto" time="0.003"><failure message="assert (('&quot;' + 'War Room') + '&quot;') in '&quot;&quot;&quot;Single workspace for the complete Anti-Murphy. No information-only landing page.&quot;&quot;&quot;\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'&lt;/style&gt;\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'">def test_modulos_importantes_tem_atendimento_direto():
++        src=(ROOT/'app.py').read_text(encoding='utf-8')
++        for page in ['War Room','Murphy AI','Decision Evidence','Murphy Lab',
++                     'Optimization Hub','Stress Lab','Opportunity Engine',
++                     'Scenario Portfolio','Operations Studio','Trust Center']:
++&gt;           assert '"'+page+'"' in src
++E           assert (('"' + 'War Room') + '"') in '"""Single workspace for the complete Anti-Murphy. No information-only landing page."""\nfrom pathlib import Path\nimp..._text(\'utf8\') + \'&lt;/style&gt;\',unsafe_allow_html=True)\nelse:\n    from ui.studio_runner import render\n    render()\n'
++
++tests/test_restauracao_acesso.py:26: AssertionError</failure></testcase><testcase classname="tests.test_restauracao_acesso" name="test_caminho_de_recarregamento_infinito_foi_retirado" time="0.000" /><testcase classname="tests.test_restauracao_acesso" name="test_app_define_configuracao_uma_unica_vez" time="0.053" /><testcase classname="tests.test_restauracao_acesso" name="test_retorno_de_legacy_nao_reentra_em_legacy" time="0.001" /><testcase classname="tests.test_restauracao_acesso" name="test_engine_inalterado_no_pacote_de_restauracao" time="0.000" /><testcase classname="tests.test_restauracao_acesso" name="test_launcher_abre_navegador_sem_npm" time="0.000" /><testcase classname="tests.test_restauracao_acesso" name="test_choose_port_skips_porta_ocupada" time="0.001" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version0-False]" time="0.001" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version1-True]" time="0.001" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version2-True]" time="0.000" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version3-True]" time="0.000" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version4-True]" time="0.000" /><testcase classname="tests.test_startup" name="test_python_versions_are_checked_against_dependency_minimum[version5-True]" time="0.000" /><testcase classname="tests.test_startup" name="test_existing_environment_is_reused_without_global_python_or_reinstallation" time="0.002" /><testcase classname="tests.test_startup" name="test_broken_venv_is_preserved_and_new_one_is_verified" time="0.002" /><testcase classname="tests.test_startup" name="test_pip_failure_keeps_original_error_and_stops_before_launch" time="0.001" /><testcase classname="tests.test_startup" name="test_launch_argument_array_preserves_spaces_without_shell_interpolation" time="0.001" /><testcase classname="tests.test_startup" name="test_diagnostics_checks_project_without_installing_or_starting" time="0.002" /><testcase classname="tests.test_startup" name="test_invalid_or_missing_interpreter_is_reported_cleanly" time="0.021" /><testcase classname="tests.test_startup" name="test_incomplete_project_returns_actionable_error" time="0.001" /><testcase classname="tests.test_startup" name="test_python315_requirements_select_binary_compatible_pandas_profile" time="0.007" /><testcase classname="tests.test_startup" name="test_dependency_installer_forbids_source_builds" time="0.001" /><testcase classname="tests.test_startup" name="test_user_repair_instruction_keeps_requirements_file_valid" time="0.001" /><testcase classname="tests.test_timed_response" name="test_responses_preserve_the_past_and_all_units[action0]" time="0.014" /><testcase classname="tests.test_timed_response" name="test_responses_preserve_the_past_and_all_units[action1]" time="0.014" /><testcase classname="tests.test_timed_response" name="test_responses_preserve_the_past_and_all_units[action2]" time="0.014" /><testcase classname="tests.test_timed_response" name="test_responses_preserve_the_past_and_all_units[action3]" time="0.014" /><testcase classname="tests.test_timed_response" name="test_responses_preserve_the_past_and_all_units[action4]" time="0.014" /><testcase classname="tests.test_timed_response" name="test_express_repair_only_changes_remaining_downtime" time="0.021" /><testcase classname="tests.test_timed_response" name="test_transfer_waits_for_a_free_operator_and_never_double_books" time="0.009" /><testcase classname="tests.test_timed_response" name="test_busy_donor_releases_the_worker_only_after_finishing_work" time="0.001" /><testcase classname="tests.test_timed_response" name="test_cost_integrates_capacity_before_and_after_effective_transfer" time="0.008" /><testcase classname="tests.test_timed_response" name="test_action_after_completion_does_not_extend_the_horizon" time="0.014" /><testcase classname="tests.test_timed_response" name="test_invalid_responses_fail_before_simulation[action0]" time="0.001" /><testcase classname="tests.test_timed_response" name="test_invalid_responses_fail_before_simulation[action1]" time="0.001" /><testcase classname="tests.test_timed_response" name="test_invalid_responses_fail_before_simulation[action2]" time="0.001" /><testcase classname="tests.test_timed_response" name="test_invalid_responses_fail_before_simulation[action3]" time="0.001" /><testcase classname="tests.test_timed_response" name="test_invalid_responses_fail_before_simulation[action4]" time="0.001" /><testcase classname="tests.test_timed_response" name="test_timing_and_paired_sensitivity_use_the_same_response" time="0.372" /><testcase classname="tests.test_v27.TestV27" name="test_absenteeism_total_blocks" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_baseline_completo" time="0.007" /><testcase classname="tests.test_v27.TestV27" name="test_budget_and_infeasible_excluded" time="0.002" /><testcase classname="tests.test_v27.TestV27" name="test_capacity_affects_completion" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_incident_before_release_waits" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_incident_equal_across_options" time="0.002" /><testcase classname="tests.test_v27.TestV27" name="test_incident_lowers_performance_and_busy_time_excludes_pause" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_model_score_not_perfect_with_invalid_route" time="0.000" /><testcase classname="tests.test_v27.TestV27" name="test_outage_after_finishing_does_not_change_makespan" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_paired_runs" time="0.002" /><testcase classname="tests.test_v27.TestV27" name="test_pareto_dominance" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_resilience_decreases_if_penalty_rises" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_same_seed_reproducible_and_scenario_name_neutral" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_signature_and_exports" time="0.002" /><testcase classname="tests.test_v27.TestV27" name="test_staffing_ratio_limits_parallel_resources" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_validation_rejects_missing_station_and_negative_cost" time="0.001" /><testcase classname="tests.test_v27.TestV27" name="test_worker_is_required" time="0.001" /><testcase classname="tests.test_v28_decision_and_ai" name="test_decision_evidence_exposes_verdicts_and_recommendation" time="0.172" /><testcase classname="tests.test_v28_decision_and_ai" name="test_ai_context_has_brief_and_local_answer_uses_it" time="0.281" /><testcase classname="tests.test_v28_decision_and_ai" name="test_blocked_station_fixes_detect_zero_operators" time="0.000" /><testcase classname="tests.test_v291_regressions" name="test_no_chat_background_conflict_from_v22" time="0.001" /><testcase classname="tests.test_v291_regressions" name="test_css_is_injected_last" time="0.001" /><testcase classname="tests.test_v291_regressions" name="test_trust_does_not_render_aggregate_score" time="0.000" /><testcase classname="tests.test_v291_regressions" name="test_stale_ai_data_uses_only_signed_analysis" time="0.001" /><testcase classname="tests.test_v291_regressions" name="test_recovery_not_invented_when_deadline_impossible" time="0.175" /><testcase classname="tests.test_v291_regressions" name="test_normal_baseline_is_reproducible_and_no_stale_signature" time="0.015" /><testcase classname="tests.test_v291_regressions" name="test_local_ai_cannot_claim_performance_without_scenario" time="0.007" /><testcase classname="tests.test_v291_regressions" name="test_explicit_confirmation_for_simulation_proposal" time="0.000" /><testcase classname="tests.test_v291_regressions" name="test_economic_cost_decomposes_capacity_and_penalty" time="0.007" /><testcase classname="tests.test_v291_regressions" name="test_no_blanket_claim_of_100_percent_model_validation" time="0.001" /><testcase classname="tests.test_v291_regressions" name="test_local_ai_creates_real_brief_without_decision_run" time="0.007" /><testcase classname="tests.test_v291_regressions" name="test_local_ai_reads_atlas_leader_instead_of_legacy_field" time="0.183" /><testcase classname="tests.test_v291_regressions" name="test_no_recommendation_when_atlas_rejects_all" time="0.292" /><testcase classname="tests.test_v31_editorial" name="test_editorial_copy_without_promo_headlines" time="0.001" /><testcase classname="tests.test_v31_editorial" name="test_only_one_root_launcher" time="0.001"><failure message="assert 'tools\\start_nexus.py' in '@echo off\nsetlocal\ncd /d &quot;%~dp0&quot;\nset &quot;PYTHONUTF8=1&quot;\nwhere py &gt;nul 2&gt;&amp;1\nif not errorlevel 1 (\n  py -3 start.py\n...xit /b 1\n  )\n)\nif errorlevel 1 (\n  echo O programa foi encerrado com erro. Confira a mensagem acima.\n  pause\n)\n'&#10;[+2 more lines; full report in element text]">def test_only_one_root_launcher():
++        assert [x.name for x in ROOT.glob('*.bat')]==['INICIAR_ANTI_MURPHY.bat']
++&gt;       assert 'tools\\start_nexus.py' in (ROOT/'INICIAR_ANTI_MURPHY.bat').read_text()
++E       assert 'tools\\start_nexus.py' in '@echo off\nsetlocal\ncd /d "%~dp0"\nset "PYTHONUTF8=1"\nwhere py &gt;nul 2&gt;&amp;1\nif not errorlevel 1 (\n  py -3 start.py\n...xit /b 1\n  )\n)\nif errorlevel 1 (\n  echo O programa foi encerrado com erro. Confira a mensagem acima.\n  pause\n)\n'
++E        +  where '@echo off\nsetlocal\ncd /d "%~dp0"\nset "PYTHONUTF8=1"\nwhere py &gt;nul 2&gt;&amp;1\nif not errorlevel 1 (\n  py -3 start.py\n...xit /b 1\n  )\n)\nif errorlevel 1 (\n  echo O programa foi encerrado com erro. Confira a mensagem acima.\n  pause\n)\n' = read_text()
++E        +    where read_text = (PosixPath('/workspace/work/am17/repo/ANTI_MURPHY_FINAL_2026') / 'INICIAR_ANTI_MURPHY.bat').read_text
++
++tests/test_v31_editorial.py:25: AssertionError</failure></testcase><testcase classname="tests.test_v31_editorial" name="test_offline_demo_uses_exact_contract_and_has_separated_futures" time="0.017" /><testcase classname="tests.test_v31_editorial" name="test_preview_has_no_external_script_dependency" time="0.001"><failure message="FileNotFoundError: [Errno 2] No such file or directory: '/workspace/work/am17/repo/ANTI_MURPHY_FINAL_2026/PREVIEW_OPERACAO.html'">def test_preview_has_no_external_script_dependency():
++&gt;       html=(ROOT/'PREVIEW_OPERACAO.html').read_text(encoding='utf8')
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++
++tests/test_v31_editorial.py:36: 
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py:1027: in read_text
++    with self.open(mode='r', encoding=encoding, errors=errors) as f:
++         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++
++self = PosixPath('/workspace/work/am17/repo/ANTI_MURPHY_FINAL_2026/PREVIEW_OPERACAO.html')
++mode = 'r', buffering = -1, encoding = 'utf8', errors = None, newline = None
++
++    def open(self, mode='r', buffering=-1, encoding=None,
++             errors=None, newline=None):
++        """
++        Open the file pointed to by this path and return a file object, as
++        the built-in open() function does.
++        """
++        if "b" not in mode:
++            encoding = io.text_encoding(encoding)
++&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
++               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       FileNotFoundError: [Errno 2] No such file or directory: '/workspace/work/am17/repo/ANTI_MURPHY_FINAL_2026/PREVIEW_OPERACAO.html'
++
++/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py:1013: FileNotFoundError</failure></testcase><testcase classname="tests.test_v31_editorial" name="test_application_files_parse" time="0.003" /><testcase classname="tests.test_war_room_smoke" name="test_war_room_initial_ui_renders_without_typeerror" time="0.072" /><testcase classname="tests.test_war_room_smoke" name="test_war_room_after_simulation_ui_renders" time="0.231" /><testcase classname="tests.test_war_room_smoke" name="test_model_signature_changed_invalidates_old_view" time="0.277" /><testcase classname="tests.test_workspace_bridge" name="test_current_workspace_generates_a_real_bundle" time="1.835" /><testcase classname="tests.test_workspace_bridge" name="test_model_changes_affect_trace" time="3.023" /><testcase classname="contract_tests.test_observer" name="test_observer_emits_absolute_patches_and_terminal_keyframe" time="0.001" /><testcase classname="contract_tests.test_observer" name="test_observer_branch_starts_after_shared_seq" time="0.001" /><testcase classname="contract_tests.test_observer" name="test_observer_rejects_decreasing_time" time="0.001" /><testcase classname="contract_tests.test_observer" name="test_observer_can_verify_engine_state" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_roundtrip_v110" time="0.002" /><testcase classname="contract_tests.test_simulation_contract" name="test_bundle_has_single_shared_prefix" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_no_redundant_prefork_on_branches" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_topology_root_and_coordinates" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_topology_missing_route_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_topology_dangling_edge_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_topology_repeated_edges_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_keyframe_requires_queue_ids" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_queues_have_individual_units_and_order" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_cannot_duplicate_same_unit_in_two_queues" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_seek_identical_until_fork" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_seek_event_at_fork_is_applied_to_b_only" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_seek_diverges_only_after_action" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_fork_without_synthetic_event" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_shared_history_sequence_hole_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_branch_sequence_hole_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_branch_event_before_fork_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_branch_keyframe_must_not_copy_common" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_fork_must_match_common_last_seq" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_seed_difference_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_unknown_constraints_not_feasible" time="0.000" /><testcase classname="contract_tests.test_simulation_contract" name="test_corrupted_common_keyframe_detected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_corrupted_branch_keyframe_detected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_invalid_upsert_rejected" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_export_outputs_aliases_and_parses" time="0.004" /><testcase classname="contract_tests.test_simulation_contract" name="test_schema_regenerated_matches_file" time="0.008" /><testcase classname="contract_tests.test_simulation_contract" name="test_quantization_is_deterministic" time="0.000" /><testcase classname="contract_tests.test_simulation_contract" name="test_snapshot_down_does_not_allow_processing" time="0.001" /><testcase classname="contract_tests.test_simulation_contract" name="test_no_branch_action_before_fork" time="0.001" /><testcase classname="atelier.tests.test_advanced_product.SpecialistWorkflowTests" name="test_evidence_requires_a_written_reason" time="0.406" /><testcase classname="atelier.tests.test_advanced_product.SpecialistWorkflowTests" name="test_no_unverified_zero_cost_assumptions_in_recovery_notes" time="0.221" /><testcase classname="atelier.tests.test_advanced_product.SpecialistWorkflowTests" name="test_six_specialist_modes_stay_in_same_experiment" time="0.774" /><testcase classname="atelier.tests.test_advanced_product.SpecialistWorkflowTests" name="test_unknown_tool_and_invalid_station_are_rejected" time="0.185" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_nominal_and_banca_reference" time="0.277" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am01_reject_invalid_priority_input_without_state_change" time="0.274" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am01_renamed_critical_order_does_not_leave_dangling_id" time="1.139" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am01_reject_missing_operators_and_keep_project" time="0.515" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am01_bad_dispatch_in_existing_storage_recovers_startup" time="0.350" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am01_transaction_rollback_preserves_files_and_memory" time="0.763" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am03_record_is_not_published_when_disk_write_fails" time="0.363" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am03_prior_record_survives_subsequent_failure" time="0.543" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am02_simultaneous_order_permutation_uses_priority[True-EDD]" time="0.001" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am02_simultaneous_order_permutation_uses_priority[True-SPT]" time="0.001" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am02_simultaneous_order_permutation_uses_priority[False-EDD]" time="0.001" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am02_simultaneous_order_permutation_uses_priority[False-SPT]" time="0.001" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am02_fifo_maintains_id_tie_breaker" time="0.001" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am04_modelled_eligibility_is_independent_of_pareto" time="0.194" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am05_stamps_change_with_scenario" time="0.656" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am05_stamps_change_with_selected_action" time="0.225" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am05_stamps_change_with_lab_inputs" time="1.690" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am06_operator_recovery_only_after_action" time="0.200" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am06_recovery_does_not_mutate_initial_capacity" time="0.343" /><testcase classname="atelier.tests.test_am01_am06_reconstruido" name="test_am06_advanced_includes_effective_time_and_cost_basis" time="0.209" /><testcase classname="atelier.tests.test_dashboards" name="test_dashboards_are_live_and_read_only" time="0.205" /><testcase classname="atelier.tests.test_dashboards" name="test_dashboard_updates_on_new_decision" time="0.328" /><testcase classname="atelier.tests.test_dashboards" name="test_dashboard_after_switching_model_changes_reference" time="0.397" /><testcase classname="atelier.tests.test_decision_quality" name="test_dominance_detected_across_three_objectives" time="0.000" /><testcase classname="atelier.tests.test_decision_quality" name="test_tradeoff_does_not_claim_dominance" time="0.001" /><testcase classname="atelier.tests.test_decision_quality" name="test_unverified_or_outside_criteria_rival_not_used" time="0.000" /><testcase classname="atelier.tests.test_decision_quality" name="test_missing_or_nonfinite_data_safe" time="0.000" /><testcase classname="atelier.tests.test_decision_quality" name="test_service_model_integration_and_record_snapshot" time="0.346" /><testcase classname="atelier.tests.test_final_quality" name="test_cost_components_reconcile_with_selected_decision" time="0.184" /><testcase classname="atelier.tests.test_final_quality" name="test_assistant_cost_detail_uses_current_engine_data_and_does_not_modify_selection" time="0.303" /><testcase classname="atelier.tests.test_final_quality" name="test_unmodeled_constraints_not_certified_by_assistant" time="0.161" /><testcase classname="atelier.tests.test_final_quality" name="test_order_specific_answer_does_not_invent_missing_order" time="0.170" /><testcase classname="atelier.tests.test_final_quality" name="test_dashboard_costs_are_read_only_and_consistent" time="0.220" /><testcase classname="atelier.tests.test_prefinal_gate" name="test_murphy_separates_bottleneck_from_longest_wait_and_reports_orders" time="0.291" /><testcase classname="atelier.tests.test_prefinal_gate" name="test_murphy_answer_for_capacity_is_not_an_unexecuted_simulation" time="0.159" /><testcase classname="atelier.tests.test_prefinal_gate" name="test_costs_and_operator_intervention_only_claim_modeled_feasibility" time="0.160" /><testcase classname="atelier.tests.test_prefinal_gate" name="test_decision_validation_persistence_and_readback" time="0.549" /><testcase classname="atelier.tests.test_product_workbench" name="test_project_create_duplicate_reopen_and_persist" time="1.582" /><testcase classname="atelier.tests.test_product_workbench" name="test_project_new_example_is_isolated" time="0.491" /><testcase classname="atelier.tests.test_product_workbench" name="test_project_rejects_invalid_names_ids_and_limit_escape" time="0.324" /><testcase classname="atelier.tests.test_product_workbench" name="test_experiment_archival_compare_reproducible_and_no_state_mutation" time="0.761" /><testcase classname="atelier.tests.test_product_workbench" name="test_experiments_are_scoped_to_project" time="0.794" /><testcase classname="atelier.tests.test_product_workbench" name="test_experiment_comparison_marks_different_models" time="0.547" /><testcase classname="atelier.tests.test_record_integrity" name="test_parse_brazilian_currency_not_plain_numbers" time="0.001" /><testcase classname="atelier.tests.test_record_integrity" name="test_current_result_reference_and_old_run_rejected" time="0.408" /><testcase classname="atelier.tests.test_record_integrity" name="test_unmatched_amount_requires_ack_but_not_prescribed_risks" time="0.242" /><testcase classname="atelier.tests.test_release_studio" name="test_structured_route_change_recalculates_and_persists" time="0.687" /><testcase classname="atelier.tests.test_release_studio" name="test_invalid_route_does_not_replace_model" time="0.287" /><testcase classname="atelier.tests.test_release_studio" name="test_dashboard_is_read_only_and_matches_motor_after_route_edit" time="0.572" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_action_selection_updates_response" time="0.181" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_all_lab_modes" time="1.050" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_assistant_local_without_api" time="0.278" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_bad_model_cannot_overwrite" time="0.190" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_edit_persist_model_and_recalculate" time="0.745" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_existing_motor_and_alternatives" time="0.196" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_record_verifiable_and_persisted" time="0.359" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_reject_invalid_action" time="0.158" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_replay_states_and_same_timeline" time="0.270" /><testcase classname="atelier.tests.test_service.IntegratedWorkflowTests" name="test_reset_keeps_original_examples" time="0.379" /><testcase classname="atelier.tests.test_technical_audit" name="test_evidence_is_derived_from_active_des_not_guessed" time="0.251" /><testcase classname="atelier.tests.test_technical_audit" name="test_cost_anomalies_fail_closed" time="0.153" /><testcase classname="atelier.tests.test_technical_audit" name="test_technical_audit_does_not_change_state_or_persist_files" time="0.194" /><testcase classname="atelier.tests.test_technical_audit" name="test_audit_tracks_selected_response_and_project" time="0.544" /><testcase classname="atelier.tests.test_technical_audit" name="test_structured_decision_requires_ack_when_explicitly_declined" time="0.367" /></testsuite></testsuites>
+--- /dev/null
++++ b/docs/AM17/evidencias/reproduce.py
+@@ -0,0 +1,18 @@
++from pathlib import Path
++from tempfile import TemporaryDirectory
++from unittest.mock import patch
++import json
++from atelier.service import Studio
++
++with TemporaryDirectory() as d:
++    s=Studio(Path(d))
++    station=next(iter(s.state['stations'].values())).copy()
++    station.update(maquinas=1,operadores=1,operadores_por_maquina=1)
++    payload={'stations':{'P':station},'orders':[{'id':'A','quantidade':2500,'prazo_h':100,
++             'multa_hora':10,'route':[['P',1]]*10000}]}
++    previous=s.info()['run_id']
++    with patch('atelier.service.execute',side_effect=RuntimeError('EXECUTION_REACHED_WITHOUT_RUNNING_DES')) as execute:
++        try:s.set_model(payload)
++        except Exception as e:print(type(e).__name__,str(e))
++        print(json.dumps({'json_bytes':len(json.dumps(payload).encode()),'requested_operations':25000000,
++                          'execute_calls':execute.call_count,'previous_run_preserved':s.info()['run_id']==previous}))
+--- /dev/null
++++ b/tests/test_am17_replay.py
+@@ -0,0 +1,60 @@
++import json
++from pathlib import Path
++import subprocess
++
++ROOT=Path(__file__).resolve().parents[1]
++
++JS=r"""
++const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
++const src=fs.readFileSync(process.argv[1],'utf8');
++const ctx={};vm.createContext(ctx);
++vm.runInContext(src.slice(src.indexOf('function _binaryCount('),src.indexOf('const positions =')),ctx);
++function reference(p,idx,t){
++ const s=p.stations[idx],n=arr=>arr.filter(x=>x<=t).length;
++ let workers=s.workers,machines=s.machines;
++ for(const c of s.changes||[])if(c.time<=t){workers=c.workers_after;machines=c.machines_after;}
++ const active=p.operations.filter(o=>o[0]===idx&&o[2]<=t&&t<o[3]);
++ const live=active.filter(o=>o[8].some(([a,b])=>a<=t&&t<b));
++ const wait=p.operations.filter(o=>o[0]===idx&&o[1]<=t&&t<o[2]);
++ return {id:s.id,name:s.name,queued:Math.max(0,n(s.arrivals)-n(s.starts)),active:Math.max(0,n(s.starts)-n(s.ends)),processing:live.length,
++  paused:active.length-live.length,finished:n(s.ends),down:!!(p.outage&&p.outage.station===s.id&&t>=p.outage.start&&t<p.outage.end),
++  workers,machines,queue:wait.map(o=>`${o[4]} · ${o[5]}`),working:live.map(o=>`${o[4]} · ${o[5]}`),operations:active,raw:s};
++}
++function referenceEvents(p,t){
++ const events=[];
++ for(const o of p.operations)for(const [i,kind] of [[2,'Início'],[3,'Conclusão']])if(o[i]<=t+1e-9)
++  events.push({t:o[i],kind,station:p.stations[o[0]].id,order:String(o[4]||'—'),unit:String(o[5]||'')});
++ if(p.outage)for(const [i,kind] of [['start','Parada'],['end','Fim da parada']])if(p.outage[i]<=t+1e-9)
++  events.push({t:p.outage[i],kind,station:p.outage.station,order:'—',unit:''});
++ return events.sort((a,b)=>a.t-b.t||a.kind.localeCompare(b.kind,'pt-BR')).slice(-6).reverse();
++}
++const p={stations:[],operations:[],outage:{station:'P0',start:1,end:2}};
++for(let j=0;j<6;j++)p.stations.push({id:'P'+j,name:'Posto '+j,workers:2,machines:2,changes:[{time:3,workers_after:3,machines_after:3}],arrivals:[],starts:[],ends:[]});
++for(let i=0;i<800;i++){
++ const station=i%6,start=Math.floor(i/6)*.1,end=start+.25+(i%5)*.01,arrival=Math.max(0,start-.15);
++ const op=[station,arrival,start,end,'OP-'+i,1,0,0,[[start,start+.08],[start+.12,end]]];
++ p.operations.unshift(op); // Completion/input order differs from start order.
++ const s=p.stations[station];s.arrivals.push(arrival);s.starts.push(start);s.ends.push(end);
++}
++for(const s of p.stations)for(const field of ['arrivals','starts','ends'])s[field].sort((a,b)=>a-b);
++const before=JSON.stringify(p),times=[0,1,2,3,.08,.12,.25,1-1e-10,-1,100];
++for(let i=0;i<150;i++)times.push((i*73%150)/10);
++let queries=0;
++for(const t of times){
++ for(let j=0;j<6;j++){assert.equal(JSON.stringify(ctx.machineState(p,j,t)),JSON.stringify(reference(p,j,t)));queries++;}
++ assert.equal(JSON.stringify(ctx.recentReplayEvents(p,t)),JSON.stringify(referenceEvents(p,t)));
++}
++assert.equal(JSON.stringify(p),before);
++assert.equal(ctx.replayIndex(p),ctx.replayIndex(p));
++assert.notEqual(ctx.replayIndex(p),ctx.replayIndex(JSON.parse(before)));
++const reduced=JSON.parse(before);reduced.operations=[];reduced.details_omitted=true;
++assert.equal(ctx.machineState(reduced,0,1).processing,0); // AM07 stays explicit and separate.
++assert.ok(ctx.machineState(reduced,0,1).active>0);
++process.stdout.write(JSON.stringify({queries,event_queries:times.length,unchanged:true}));
++"""
++
++
++def test_index_preserves_states_events_order_segments_and_seeks():
++    run=subprocess.run(['node','-e',JS,str(ROOT/'atelier/web/app.js')],text=True,capture_output=True,check=True)
++    result=json.loads(run.stdout)
++    assert result=={'queries':960,'event_queries':160,'unchanged':True}
+--- /dev/null
++++ b/tests/test_am17_workload.py
+@@ -0,0 +1,141 @@
++from copy import deepcopy
++import json
++from pathlib import Path
++from unittest.mock import patch
++
++import pytest
++
++from atelier.service import Studio, WorkloadLimitError
++from atelier.workload import operations, profile, response_scenarios
++from simulation.factory import build_scenario
++from simulation.response import timed_candidates
++from simulation.atlas import DecisionPolicy, scenario_from_incident
++
++
++def model(quantity=10, stages=1):
++    station = {'nome':'P','maquinas':1,'operadores':1,'operadores_por_maquina':1,
++               'eficiencia_operador':1,'disponibilidade':1,'custo_maquina_h':10,
++               'custo_operador_h':10,'setup_min':0}
++    return {'stations':{'P':station},'orders':[{'id':'A','quantidade':quantity,
++            'prazo_h':100,'multa_hora':10,'route':[['P',1]]*stages}]}
++
++
++def files(folder):
++    return {str(p.relative_to(folder)):p.read_bytes() for p in folder.rglob('*.json')}
++
++
++@pytest.mark.parametrize('quantity,multiplier,expected', [(1,.1,2),(5,1.3,12),(5,1.5,16),(4,1.6,12)])
++def test_count_uses_per_order_des_rounding(quantity, multiplier, expected):
++    assert operations(model(quantity,2)['orders'],multiplier)==expected
++
++
++@pytest.mark.parametrize('automated,spare', [(False,False),(False,True),(True,False),(True,True)])
++def test_main_scenario_count_matches_real_candidate_enumeration(automated, spare):
++    m=model()
++    m['stations']['Q']=deepcopy(m['stations']['P'])
++    m['stations']['Q'].update(operadores=2 if spare else 1,automatizada=automated)
++    m['orders'][0]['route'].append(['Q',1])
++    cfg=build_scenario('N',m['stations'],m['orders'])
++    crisis=scenario_from_incident(cfg,'P',1,2)
++    assert response_scenarios(m['stations'],m['orders'])==2+len(timed_candidates(crisis,2,DecisionPolicy()))
++
++
++def test_scenario_and_analysis_limits_are_inclusive_and_independent():
++    m=model(2500,10)
++    assert profile(**m)['within_limits']
++    assert not profile(**model(2500,11))['within_limits']
++    m=model(2000,10)
++    p=profile(**m,scope='advanced',mode='uncertainty')
++    assert p['max_scenario_operations']==20000 and p['operation_upper_bound']==260000
++    assert not p['within_limits']
++    assert profile(**m,scope='lab',mode='goal')['within_limits']
++
++
++def test_excessive_import_is_rejected_before_engine_or_disk_change(tmp_path):
++    s=Studio(tmp_path);before=files(tmp_path);run=s.info()['run_id']
++    with patch('atelier.service.execute') as execute:
++        with pytest.raises(WorkloadLimitError,match='Nenhum resultado foi substituído'):
++            s.set_model(model(2500,10000))
++    execute.assert_not_called()
++    assert files(tmp_path)==before and s.info()['run_id']==run
++
++
++@pytest.mark.parametrize('mode', ['duration','dispatch','robustness','stress','capacity'])
++def test_all_simulating_labs_check_budget_before_cloning_or_running(tmp_path,mode):
++    s=Studio(tmp_path);s.state.update(model(2500,11))
++    with patch('atelier.service.current_analysis',return_value={'rows':[]}),patch('atelier.service.base_config') as cfg:
++        with pytest.raises(WorkloadLimitError):s.lab({'mode':mode})
++    cfg.assert_not_called()
++
++
++@pytest.mark.parametrize('mode', ['diagnostic','opportunities','sensitivity','demand','uncertainty','recovery'])
++def test_all_advanced_tools_check_budget_before_nominal_calculation(tmp_path,mode):
++    s=Studio(tmp_path);s.state.update(model(2500,11))
++    with patch('atelier.service.current_analysis',return_value={'rows':[]}),patch('atelier.service.nominal') as nominal:
++        with pytest.raises(WorkloadLimitError):s.advanced({'mode':mode})
++    nominal.assert_not_called()
++
++
++def test_demand_growth_and_capacity_candidates_are_included():
++    m=model(2000,8)
++    assert not profile(**m,scope='advanced',mode='demand')['within_limits']  # 1.6 × demand
++    p=profile(**m,scope='lab',mode='stress')
++    assert p['max_scenario_operations']==19200 and p['scenario_upper_bound']==16
++    assert not p['within_limits']
++    capacity=profile(**m,scope='lab',mode='capacity')
++    assert capacity['scenario_upper_bound']==6  # five candidates + optional nominal
++
++
++def test_large_saved_project_opens_for_editing_without_rewrite_then_recovers(tmp_path):
++    s=Studio(tmp_path)
++    path=tmp_path/'projetos/principal.json'
++    data=json.loads(path.read_text());data.update(model(2500,11));data['spec']['station']='P';path.write_text(json.dumps(data))
++    before=files(tmp_path)
++    with patch('atelier.service.execute') as execute:
++        reopened=Studio(tmp_path)
++    assert execute.call_count==0
++    info=reopened.info()
++    assert info['calculation_blocked'] and info['run_id'] is None and info['metrics'] is None
++    assert info['orders']==data['orders'] and info['replay']=={}
++    assert 'aberto para edição' in info['recovery_warning']
++    assert files(tmp_path)==before
++    reduced=reopened.set_model(model(10,2))
++    assert not reduced['calculation_blocked'] and reduced['run_id'] and reduced['recovery_warning'] is None
++
++
++def test_switch_to_large_project_preserves_its_archived_bytes(tmp_path):
++    s=Studio(tmp_path);data=json.loads((tmp_path/'projetos/principal.json').read_text())
++    data.update(model(2500,11));data.update(id='grande',name='Grande');data['spec']['station']='P'
++    path=tmp_path/'projetos/grande.json';path.write_text(json.dumps(data))
++    s=Studio(tmp_path);before=files(tmp_path)
++    with patch('atelier.service.execute') as execute:info=s.open_project('grande')
++    execute.assert_not_called()
++    assert info['active_project_id']=='grande' and info['calculation_blocked']
++    assert files(tmp_path)==before
++
++
++def test_opportunities_do_not_clone_discarded_candidates():
++    from simulation.decisions import generate_opportunities
++    m=model();cfg=build_scenario('N',m['stations'],m['orders'])
++    original=cfg.clone
++    with patch.object(cfg,'clone',wraps=original) as clone,patch('simulation.decisions.run_simulation',return_value={'feasible':False}):
++        assert generate_opportunities(cfg,{},max_candidates=1)==[]
++    assert clone.call_count==1
++
++
++@pytest.mark.parametrize('scope,mode', [('lab',m) for m in ('duration','dispatch','robustness','stress','capacity')]
++                         + [('advanced',m) for m in ('diagnostic','opportunities','sensitivity','demand','uncertainty','recovery')])
++def test_declared_tool_bound_covers_actual_des_calls_and_operations(tmp_path,monkeypatch,scope,mode):
++    import importlib
++    from simulation.engine import run_simulation
++    s=Studio(tmp_path);calls=[]
++    def measured(config,*args,**kwargs):
++        calls.append(operations(config.orders,config.demand_multiplier))
++        return run_simulation(config,*args,**kwargs)
++    for name in ['atelier.service','simulation.nexus','simulation.response','simulation.advanced','simulation.innovation','simulation.decisions']:
++        monkeypatch.setattr(importlib.import_module(name),'run_simulation',measured)
++    expected=profile(s.state['stations'],s.state['orders'],scope,mode)
++    getattr(s,scope)({'mode':mode})
++    assert len(calls)<=expected['scenario_upper_bound']
++    assert sum(calls)<=expected['operation_upper_bound']
++    assert max(calls,default=0)<=expected['max_scenario_operations']

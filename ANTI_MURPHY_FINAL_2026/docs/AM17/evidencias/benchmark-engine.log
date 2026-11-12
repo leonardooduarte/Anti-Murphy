@@ -1,0 +1,3 @@
+{"operations": 400, "seconds": 0.00747233399306424, "peak_process_rss_kib": 14336}
+{"operations": 6000, "seconds": 0.1433006099978229, "peak_process_rss_kib": 19328}
+{"operations": 25000, "seconds": 0.4350177820015233, "peak_process_rss_kib": 35328}

@@ -1084,7 +1084,8 @@ function renderModelWorkload(){
  }
  const over=valid&&operations>limit.per_scenario;
  el.classList.toggle('workload-over',over);
- el.innerHTML=`<div><span class="eyebrow">DIMENSÃO DO MODELO</span><strong>${valid?integer(operations):'—'} <small>operações por cenário</small></strong><span>${valid?integer(units):'—'} unidades · ${integer(Object.keys(m.stations).length)} postos</span></div><p role="status">${!valid?'Complete quantidades e roteiros para conferir o volume.':over?`Volume acima do limite de ${integer(limit.per_scenario)} operações por cenário. Reduza quantidades ou etapas antes de aplicar; o projeto salvo permanece preservado.`:`Limites: ${integer(limit.per_scenario)} operações por cenário e ${integer(limit.per_analysis)} por análise. A conferência considera todos os cenários do ensaio antes de simular.`}</p>`;
+ const posts=Object.keys(m.stations).length;
+ el.innerHTML=`<div><span class="eyebrow">DIMENSÃO DO MODELO</span><strong>${valid?integer(operations):'—'} <small>operações por cenário</small></strong><span>${valid?integer(units):'—'} ${units===1?'unidade':'unidades'} · ${integer(posts)} ${posts===1?'posto':'postos'}</span></div><p role="status">${!valid?'Complete quantidades e roteiros para conferir o volume.':over?`Volume acima do limite de ${integer(limit.per_scenario)} operações por cenário. Reduza quantidades ou etapas antes de aplicar; o projeto salvo permanece preservado.`:`Limites: ${integer(limit.per_scenario)} operações por cenário e ${integer(limit.per_analysis)} por análise. A conferência considera todos os cenários do ensaio antes de simular.`}</p>`;
 }
 function renderStationsTable(stations){
  const cols=[['nome','Posto','text'],['maquinas','Máquinas','number'],['operadores','Operadores','number'],
