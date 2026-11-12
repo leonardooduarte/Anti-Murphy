@@ -403,7 +403,7 @@ const positions = n => {
   return pts;
 };
 function factoryLayoutHeight(n){return n<=5?600:Math.max(600,Math.ceil(n/3)*260+80);}
-function factoryOverview(replay){return `0 0 1200 ${factoryLayoutHeight(replay?.stations?.length||0)}`;}
+function factoryOverview(replay){const n=replay?.stations?.length||0;return `0 0 1200 ${Math.ceil(factoryLayoutHeight(n)*(n>5?1.25:1))}`;}
 function factoryViewBox(replay){
  if(!st.focus||!replay)return factoryOverview(replay);
  const i=replay.stations.findIndex(x=>x.id===st.station);if(i<0)return factoryOverview(replay);
@@ -416,7 +416,7 @@ function renderFactoryReadout(replay){
  const key=replay.stations.map(x=>x.id).join('|');
  if(box.dataset.model!==key){box.dataset.model=key;box.open=replay.stations.length>5;}
  const rows=replay.stations.map((station,i)=>{const x=machineState(replay,i,st.t);return {id:x.id,name:x.name,processing:x.processing,paused:x.paused,queued:x.queued,down:x.down};});
- box.querySelector('summary').textContent=`Leitura dos postos · ${rows.length} · nomes e estados no instante ${time(st.t)}`;
+ box.querySelector('summary').textContent=`Leitura dos postos · ${st.scene==='split'?'A · sem intervenção':st.scene==='normal'?'Plano original':st.scene==='response'?'Resposta selecionada':'Sem intervenção'} · ${rows.length} · nomes e estados no instante ${time(st.t)}`;
  const signature=JSON.stringify([rows,st.station,st.focus]);if(box.dataset.signature===signature)return;box.dataset.signature=signature;
  box.querySelector('div').innerHTML=rows.map(x=>`<button type="button" data-readable-station="${esc(x.id)}" aria-pressed="${x.id===st.station&&st.focus}"><strong>${esc(x.id)} · ${esc(x.name)}</strong><span>${x.down?'Parado':x.processing?'Processando':x.paused?'Operação suspensa':'Disponível'} · ${integer(x.processing)} processando · ${integer(x.queued)} em fila</span><small>Focar no mapa →</small></button>`).join('');
  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{st.station=b.dataset.readableStation;st.focus=true;st.lastInspectorPaint=0;renderScene();renderStationInspector();$('factory-viewport').scrollIntoView({block:'center',behavior:'smooth'});});
@@ -599,7 +599,7 @@ function renderScene(force=false){
  for(const svg of [$('factory-a'),$('factory-b')]){
   const view=svg.viewBox.baseVal,rect=svg.getBoundingClientRect();
   const scale=Math.min(rect.width/(view.width||1200),rect.height/(view.height||600));
-  svg.style.setProperty('--factory-label-factor',String(scale>0?Math.max(1,Math.min(1.5,.65/scale)):1));
+  svg.style.setProperty('--factory-label-factor',String(scale>0?Math.max(1,Math.min(1.6,.65/scale)):1));
   svg.classList.toggle('map-overview-small',scale>0&&scale<.8);
  }
  renderEventBookmarks();

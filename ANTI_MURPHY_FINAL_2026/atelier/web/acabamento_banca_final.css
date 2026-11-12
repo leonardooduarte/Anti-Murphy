@@ -86,3 +86,6 @@ body.eng-chart-zoom-active{overflow:hidden!important;}
 .map-overview-small [data-k=workers],.map-overview-small .station-description{visibility:hidden;}
 
 .factory-readable-list{max-height:360px;overflow:auto;}.presentation-mode .factory-readout{display:none;}
+
+.factory-readout{order:4;}
+#view-simulacao .factory-viewport .station-job-line text,#view-simulacao .factory-viewport .machine-telemetry{font-size:14px;}

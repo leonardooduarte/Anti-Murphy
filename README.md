@@ -1,3 +1,10 @@
+# Versão atual AM15 sobre AM14
+
+[Aplicativo completo](ENTREGAS/AM15/ANTI_MURPHY_AM15_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM15/ANTI_MURPHY_PATCH_AM15_2026.zip) · [Relatório](ENTREGAS/AM15/RELATORIO_AM15_2026.md).
+
+Fábrica tem enquadramento para mais postos, foco por posto e leitura textual com nomes e estados. Extraia em pasta nova. Windows/projetor pendentes.
+
+---
 # Versão atual AM14 sobre AM13
 
 [Aplicativo completo](ENTREGAS/AM14/ANTI_MURPHY_AM14_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM14/ANTI_MURPHY_PATCH_AM14_2026.zip) · [Relatório](ENTREGAS/AM14/RELATORIO_AM14_2026.md).

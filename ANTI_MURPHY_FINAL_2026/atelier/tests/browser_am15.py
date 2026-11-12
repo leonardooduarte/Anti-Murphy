@@ -35,9 +35,14 @@ with sync_playwright() as pw:
      expect(p.locator('#factory-a')).to_have_attribute('viewBox',__import__('re').compile(r'.*400 320$'))
      px=p.locator('#factory-a .station-name').last.evaluate('(e)=>parseFloat(getComputedStyle(e).fontSize)*e.getScreenCTM().a')
      assert px>=12,(w,n,px)
+     if n==9:
+      p.locator('#factory-viewport').screenshot(path=str(out/f'foco9_{w}.png'));p.locator('#factory-readout').screenshot(path=str(out/f'leitura9_{w}.png'))
      assert p.locator('[data-readable-station] strong').last.evaluate('(e)=>parseFloat(getComputedStyle(e).fontSize)')>=14
      p.locator('[data-inspect-focus]').click()
      expect(p.locator('#factory-a')).not_to_have_attribute('viewBox',__import__('re').compile(r'.*400 320$'))
+     bottom=p.locator('.factory-bottom').bounding_box()['y']
+     bounds=p.locator('#factory-a .selection-halo').evaluate_all('es=>es.map(e=>e.getBoundingClientRect().bottom)')
+     assert max(bounds)<=bottom+2,(w,n,max(bounds),bottom)
      assert not errors and s.info()['run_id']==before,errors
      if n==9:
       p.locator('#factory-viewport').scroll_into_view_if_needed();p.screenshot(path=str(out/f'planta9_{w}.png'))
