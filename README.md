@@ -1,3 +1,10 @@
+# Versão atual AM16 sobre AM17
+
+[Aplicativo completo](ENTREGAS/AM16/ANTI_MURPHY_AM16_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM16/ANTI_MURPHY_PATCH_AM16_2026.zip) · [Relatório](ENTREGAS/AM16/RELATORIO_AM16_2026.md).
+
+Monte Carlo impede submissões duplicadas na mesma página e sinaliza execução entre telas. Extraia em pasta nova. Windows/projetor pendentes.
+
+---
 # Versão atual AM07 sobre AM17
 
 [Aplicativo completo](ENTREGAS/AM07/ANTI_MURPHY_AM07_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM07/ANTI_MURPHY_PATCH_AM07_2026.zip) · [Relatório](ENTREGAS/AM07/RELATORIO_AM07_2026.md).
