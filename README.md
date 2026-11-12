@@ -1,3 +1,10 @@
+# Versão atual AM14 sobre AM13
+
+[Aplicativo completo](ENTREGAS/AM14/ANTI_MURPHY_AM14_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM14/ANTI_MURPHY_PATCH_AM14_2026.zip) · [Relatório](ENTREGAS/AM14/RELATORIO_AM14_2026.md).
+
+Registros exibem o projeto de origem e distinguem nome arquivado de nome atual do cadastro. Extraia em pasta nova. Windows/projetor pendentes.
+
+---
 # Versão atual AM13 sobre AM16
 
 [Aplicativo completo](ENTREGAS/AM13/ANTI_MURPHY_AM13_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM13/ANTI_MURPHY_PATCH_AM13_2026.zip) · [Relatório](ENTREGAS/AM13/RELATORIO_AM13_2026.md).
