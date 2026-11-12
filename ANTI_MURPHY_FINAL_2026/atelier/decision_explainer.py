@@ -28,7 +28,10 @@ def explain(question: str, analysis: dict | None, selected: dict | None, order_i
     q=norm(question)
     incident=analysis.get('incident') or {}
     impacts=(selected or {}).get('order_impacts') or []
-    wanted=next((x for x in order_ids if norm(x) in q),None)
+    matches=[x for x in order_ids if re.search(r'(?<![\w./-])'+re.escape(norm(x))+r'(?![\w-]|[./][\w-])',q)]
+    if len(matches)>1:
+        return {'label':'MURPHY · RASTREIO DO PEDIDO','text':'Há mais de um identificador possível: '+', '.join(sorted(matches))+'. Informe um único pedido completo para consultar seus tempos sem confundir as origens.'}
+    wanted=matches[0] if matches else None
     unknown=re.search(r'\bop-?\d+[a-z0-9-]*\b',q)
     if unknown and not wanted and any(k in q for k in ('pedido','op-','atras','prazo')):
         return {'label':'MURPHY · RASTREIO DO PEDIDO', 'text':f'O pedido {unknown.group(0).upper()} não existe no modelo atual. Confira o identificador em Modelo → Ordens de produção ou selecione um pedido na simulação.'}
@@ -128,10 +131,19 @@ def explain(question: str, analysis: dict | None, selected: dict | None, order_i
         rows=[r for r in analysis.get('rows',[]) if r.get('feasible') and r.get('decision_cost') is not None and r.get('within_budget') and r.get('meets_sla')]
         if not rows:
             return {'label':'MURPHY · ALTERNATIVAS', 'text':'Nenhuma resposta enumerada atende simultaneamente às metas e às restrições já representadas. Revise as metas ou compare cenários; não há solução industrial validada.'}
-        rows.sort(key=lambda r:(float(r['decision_cost']),-float(r.get('sla_pct',0))))
-        best=rows[0]
+        objective=analysis.get('objective','cost')
+        leader=analysis.get('leader')
+        best=next((r for r in rows if leader and r.get('signature')==leader.get('signature')),None)
+        criterion={'cost':'menor custo total','delivery':'entregas no prazo','critical':'pedido prioritário'}.get(objective,'critério do experimento')
+        if best is None and objective!='cost':
+            return {'label':'MURPHY · ALTERNATIVAS','text':f'Prioridade ativa: {criterion}. O motor não apontou uma resposta recomendada para esse objetivo. Consulte a comparação e os impactos por pedido; uma alternativa de menor custo não substitui esse critério.'}
+        if best is None:
+            best=min(rows,key=lambda r:(float(r['decision_cost']),-float(r.get('sla_pct',0))))
+            basis='Comparação descritiva por menor custo entre alternativas elegíveis; o motor não apontou uma recomendação.'
+        else:
+            basis='Resposta apontada pelo motor para a prioridade ativa: '+criterion+'. '+str(analysis.get('selection_reason') or '')
         return {'label':'MURPHY · ALTERNATIVAS', 'text':(
-            f'Dentro do conjunto enumerado que atende às metas do estudo, a opção de menor custo calculado é "{best.get("action")}" '
+            basis+'\n'+f'Alternativa: "{best.get("action")}" '
             f'({money(best.get("decision_cost"))}; entregas no prazo: {fmt(best.get("sla_pct"),"%")} ).\n'
             'Este é um resultado do modelo, não a melhor solução global nem autorização para executar. '
             'Confirme as limitações industriais e compare impactos por pedido antes de registrar a decisão.')}
