@@ -398,10 +398,30 @@ const positions = n => {
   if(n<=3)return Array.from({length:n},(_,i)=>({x:(i+.5)*1200/n,y:275}));
   if(n===4)return [{x:230,y:190},{x:610,y:170},{x:980,y:190},{x:610,y:420}];
   if(n===5)return [{x:200,y:190},{x:600,y:168},{x:1000,y:190},{x:410,y:416},{x:838,y:420}];
-  const rows=Math.ceil(n/4);const pts=[];
-  for(let r=0;r<rows;r++){const count=Math.min(4,n-r*4);for(let c=0;c<count;c++)pts.push({x:(c+.5)*1200/count,y:(r+.5)*560/rows});}
+  const rows=Math.ceil(n/3),height=factoryLayoutHeight(n);const pts=[];
+  for(let r=0;r<rows;r++){const count=Math.min(3,n-r*3);for(let c=0;c<count;c++)pts.push({x:(c+.5)*1200/count,y:40+(r+.5)*(height-100)/rows});}
   return pts;
 };
+function factoryLayoutHeight(n){return n<=5?600:Math.max(600,Math.ceil(n/3)*260+80);}
+function factoryOverview(replay){return `0 0 1200 ${factoryLayoutHeight(replay?.stations?.length||0)}`;}
+function factoryViewBox(replay){
+ if(!st.focus||!replay)return factoryOverview(replay);
+ const i=replay.stations.findIndex(x=>x.id===st.station);if(i<0)return factoryOverview(replay);
+ const p=positions(replay.stations.length)[i];return `${p.x-200} ${p.y-160} 400 320`;
+}
+function renderFactoryReadout(replay){
+ if(!replay)return;
+ let box=$('factory-readout');
+ if(!box){box=document.createElement('details');box.id='factory-readout';box.className='factory-readout';box.innerHTML='<summary>Leitura dos postos</summary><div class="factory-readable-list"></div>';$('factory-viewport').after(box);}
+ const key=replay.stations.map(x=>x.id).join('|');
+ if(box.dataset.model!==key){box.dataset.model=key;box.open=replay.stations.length>5;}
+ const rows=replay.stations.map((station,i)=>{const x=machineState(replay,i,st.t);return {id:x.id,name:x.name,processing:x.processing,paused:x.paused,queued:x.queued,down:x.down};});
+ box.querySelector('summary').textContent=`Leitura dos postos · ${rows.length} · nomes e estados no instante ${time(st.t)}`;
+ const signature=JSON.stringify([rows,st.station,st.focus]);if(box.dataset.signature===signature)return;box.dataset.signature=signature;
+ box.querySelector('div').innerHTML=rows.map(x=>`<button type="button" data-readable-station="${esc(x.id)}" aria-pressed="${x.id===st.station&&st.focus}"><strong>${esc(x.id)} · ${esc(x.name)}</strong><span>${x.down?'Parado':x.processing?'Processando':x.paused?'Operação suspensa':'Disponível'} · ${integer(x.processing)} processando · ${integer(x.queued)} em fila</span><small>Focar no mapa →</small></button>`).join('');
+ box.querySelectorAll('button').forEach(b=>b.onclick=()=>{st.station=b.dataset.readableStation;st.focus=true;st.lastInspectorPaint=0;renderScene();renderStationInspector();$('factory-viewport').scrollIntoView({block:'center',behavior:'smooth'});});
+}
+
 function equipment(name,active){
  const nameUpper=name.toUpperCase(),running=active?'':' paused';
  const monitor='<rect x="44" y="-23" width="25" height="23" rx="2" fill="#0C262E" stroke="#85A9A8"/><path d="M48-13h17M48-8h11" stroke="#73B1A6" stroke-width="2"/>';
@@ -413,7 +433,7 @@ function equipment(name,active){
 }
 function buildFactory(svg,p,suffix){
  if(!p){svg.innerHTML='';return;}
- svg.setAttribute('viewBox','0 0 1200 600');
+ svg.setAttribute('viewBox',factoryOverview(p));
  const pos=positions(p.stations.length), selectedOrder=st.data.orders.find(o=>o.id===st.order);
  const selectedRoute=(selectedOrder?.route||[]).map(r=>r[0]);
  const edges=(p.edges||[]).map(([ia,ib],idx)=>{const a=pos[ia],b=pos[ib];if(!a||!b)return '';
@@ -424,8 +444,8 @@ function buildFactory(svg,p,suffix){
  const floor=`<g transform="translate(0 17) skewY(-2)"><rect x="-40" y="50" width="1280" height="550" fill="url(#g-${suffix})" opacity=".35"/></g>
  <path d="M22 540H1178M40 563H1160" stroke="#40666E" stroke-width="1" opacity=".7"/>
  <path d="M28 66v-18h18M1172 66v-18h-18M28 524v18h18M1172 524v18h-18" stroke="#63878D" stroke-width="2" opacity=".55" fill="none"/>
- <text x="38" y="566" class="factory-label">LAYOUT LÓGICO · EQUIPAMENTOS E FILAS</text>
- <text x="1160" y="566" text-anchor="end" class="factory-label">TEMPOS DEFINIDOS PELO SIMULADOR</text>`;
+ <text x="38" y="${factoryLayoutHeight(p.stations.length)-34}" class="factory-label">LAYOUT LÓGICO · EQUIPAMENTOS E FILAS</text>
+ <text x="1160" y="${factoryLayoutHeight(p.stations.length)-34}" text-anchor="end" class="factory-label">TEMPOS DEFINIDOS PELO SIMULADOR</text>`;
  const equipmentSvg=p.stations.map((s,i)=>{
   const {x,y}=pos[i];const working=true;
   return `<g class="station-group" data-station="${esc(s.id)}" id="${suffix}-station-${i}" transform="translate(${x} ${y})" tabindex="0" role="button" aria-label="Inspecionar ${esc(s.name)}">
@@ -441,7 +461,7 @@ function buildFactory(svg,p,suffix){
    <circle class="state-light" cx="-124" cy="-65" r="4.6"/><text x="-112" y="-61" class="machine-telemetry">POSTO DE PRODUÇÃO</text>
    <g class="station-machine" transform="translate(0 -5) scale(1.10)">${equipment(s.id,working)}</g>
    <g class="workcell-activity" aria-hidden="true"><path d="M-98 40L-76 48H80L101 40" fill="none" stroke-width="1.8"/><circle cx="101" cy="40" r="3.8"/></g>
-   <text x="-122" y="52" class="station-caption station-description">${esc(s.name.length>30?s.name.slice(0,29)+'…':s.name)}</text>
+   <text x="-122" y="52" class="station-caption station-description">${esc(s.name.length>24?s.name.slice(0,23)+'…':s.name)}</text>
    <rect x="-122" y="61" width="244" height="5" class="station-track"/>
    <rect x="-122" y="61" width="0" height="5" class="processing-bar" data-k="load"/>
    <text x="-122" y="85" class="station-caption" data-k="queue">Fila · 0</text><text x="122" y="85" text-anchor="end" class="station-caption" data-k="workers">0 oper.</text>
@@ -479,6 +499,7 @@ function frameStation(svg,p,t,drawQueue=true){
   const obj=machineState(p,i,t);const g=svg.querySelector(`#${svg.id}-station-${i}`);if(!g)return;
   g.classList.toggle('down',obj.down);g.classList.toggle('selected',obj.id===st.station);g.classList.toggle('is-processing',obj.processing>0);
   g.dataset.currentOperation=obj.working?.[0]||'';
+  g.querySelector('.station-name').textContent=st.focus?obj.id:(obj.id.length>6?obj.id.slice(0,5)+'…':obj.id);
   g.classList.toggle('has-queue',obj.queued>0);
   g.dataset.state=obj.down?'down':obj.processing?'processing':obj.paused?'paused':'idle';
   g.classList.toggle('is-paused',obj.paused>0&&!obj.down);
@@ -531,7 +552,7 @@ function renderPresentationCompare(){
  panel.innerHTML=chip('A','SEM INTERVENÇÃO',a)+`<div class="presentation-live-time"><span>MESMO INSTANTE</span><strong>${time(st.t)}</strong><small>Estados extraídos dos replays</small></div>`+chip('B',selected?.action==='Não intervir'?'NÃO INTERVIR':'COM RESPOSTA',b);
 }
 function presentationCompareViewBox(replay){
- if(!presentationCompareEnabled()||st.presentationOverview||!replay)return '0 0 1200 600';
+ if(!presentationCompareEnabled()||st.presentationOverview||!replay)return factoryOverview(replay);
  const idx=replay.stations?.findIndex(x=>x.id===(st.data?.spec?.station||st.station))??-1;
  const position=positions(replay.stations?.length||0)[Math.max(0,idx)]||{x:600,y:300};
  const w=530,h=370;
@@ -558,8 +579,8 @@ function renderScene(force=false){
  $('split-divider').style.left=`${st.wipe}%`;
  $('scene-a').style.clipPath=mode==='split'&&!comparePanels?`inset(0 ${100-st.wipe}% 0 0)`:'none';
  $('scene-b').style.clipPath=mode==='split'&&!comparePanels?`inset(0 0 0 ${st.wipe}%)`:'none';
- $('factory-a').setAttribute('viewBox',comparePanels?presentationCompareViewBox(p1):'0 0 1200 600');
- $('factory-b').setAttribute('viewBox',comparePanels?presentationCompareViewBox(p2):'0 0 1200 600');
+ $('factory-a').setAttribute('viewBox',comparePanels?presentationCompareViewBox(p1):factoryViewBox(p1));
+ $('factory-b').setAttribute('viewBox',comparePanels?presentationCompareViewBox(p2):factoryViewBox(p2));
  $('chip-left').textContent=mode==='split'?'A · SEM INTERVENÇÃO':mode==='normal'?'PLANO ORIGINAL':mode==='response'?'COM INTERVENÇÃO':'SEM INTERVENÇÃO';
  $('chip-right').hidden=mode!=='split';$('chip-right').textContent=st.data?.alternatives?.find(row=>row.signature===st.data.selected)?.action==='Não intervir'?'B · NÃO INTERVIR':'B · COM RESPOSTA';$('split-control').hidden=mode!=='split'||comparePanels;
  $$('#scene-tabs button').forEach(button=>{button.classList.toggle('active',button.dataset.scene===mode);
@@ -569,12 +590,18 @@ function renderScene(force=false){
  $('stage-subtitle').textContent=mode==='split'?(st.presentation?`Mesmo instante ${time(st.t)} · cenários A e B`:'Mesmo instante · dois cenários'):'Fluxo lógico por posto';
  const point=(p1?.stations||[]).findIndex(x=>x.id===st.station);
  const center=positions(p1?.stations.length||0)[Math.max(0,point)]||{x:600,y:300};
- const origin=st.focus&&!comparePanels?`${center.x/12}% ${center.y/6}%`:'50% 50%';
+ const origin='50% 50%';
  for(const svg of [$('factory-a'),$('factory-b')]){
   svg.style.transformOrigin=origin;
-  svg.style.transform=comparePanels?'none':`scale(${st.focus?Math.max(1.38,st.zoom):st.zoom})`;
+  svg.style.transform=comparePanels?'none':`scale(${st.zoom})`;
  }
  $('factory-viewport').classList.toggle('focus-active',st.focus);
+ for(const svg of [$('factory-a'),$('factory-b')]){
+  const view=svg.viewBox.baseVal,rect=svg.getBoundingClientRect();
+  const scale=Math.min(rect.width/(view.width||1200),rect.height/(view.height||600));
+  svg.style.setProperty('--factory-label-factor',String(scale>0?Math.max(1,Math.min(1.5,.65/scale)):1));
+  svg.classList.toggle('map-overview-small',scale>0&&scale<.8);
+ }
  renderEventBookmarks();
  updateScene();renderMetrics();renderSchedule(true);
  renderPresentationGuide();renderPresentationCompare();
@@ -617,6 +644,7 @@ function renderEventLog(){
 function updateScene(){
  const p1=replayFor(st.scene==='split'?'incident':st.scene)||replayFor('incident')||replayFor('normal'),p2=replayFor('response');
  if(!p1)return;
+ renderFactoryReadout(p1);
  frameStation($('factory-a'),p1,st.t);
  if(st.scene==='split')frameStation($('factory-b'),p2,st.t);
  $('factory-viewport').dataset.playing=String(st.playing);

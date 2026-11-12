@@ -70,3 +70,19 @@ body.eng-chart-zoom-active{overflow:hidden!important;}
 .eng-selected>p{font-size:10px;color:#5F7872;margin:0;line-height:1.45;}
 @media(max-width:1080px){.eng-selection-values{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:530px){.eng-selection-values{grid-template-columns:1fr;}}
+
+/* AM15: readable labels and a textual counterpart to the logical plant. */
+#view-simulacao .factory-viewport .station-name{font-size:calc(26px * var(--factory-label-factor,1));letter-spacing:0;}
+#view-simulacao .factory-viewport .station-status{font-size:calc(16px * var(--factory-label-factor,1));letter-spacing:0;}
+#view-simulacao .factory-viewport .station-caption{font-size:calc(18px * var(--factory-label-factor,1));}
+.map-overview-small .machine-telemetry,.map-overview-small .station-job-line,.map-overview-small .factory-label{visibility:hidden;}
+.factory-readout{border:1px solid #cedbd7;background:#f7faf8;margin-top:12px;color:#244b45;padding:12px 14px;}
+.factory-readout summary{font-size:13px;font-weight:700;cursor:pointer;}
+.factory-readable-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px;margin-top:12px;}
+.factory-readable-list button{text-align:left;padding:12px;background:#fff;border:1px solid #c9dcd5;color:#244b45;display:grid;gap:7px;min-width:0;}
+.factory-readable-list strong{font-size:14px;overflow-wrap:anywhere;}.factory-readable-list span{font-size:13px;line-height:1.5;}.factory-readable-list small{font-size:12px;color:#436f64;}
+.factory-readable-list button[aria-pressed=true]{border-color:#d96c2f;}.factory-readable-list button:focus-visible{outline:3px solid #e2783d;outline-offset:2px;}
+
+.map-overview-small [data-k=workers],.map-overview-small .station-description{visibility:hidden;}
+
+.factory-readable-list{max-height:360px;overflow:auto;}.presentation-mode .factory-readout{display:none;}
