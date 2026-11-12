@@ -1,0 +1,8 @@
+{
+  "files": 518,
+  "zip_patch_identical": true,
+  "tests_passed": 520,
+  "preexisting_failures": 5,
+  "official_experiments": 3,
+  "browser_resolutions": 3
+}

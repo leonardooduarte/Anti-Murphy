@@ -1,3 +1,10 @@
+# Versão atual AM07 sobre AM17
+
+[Aplicativo completo](ENTREGAS/AM07/ANTI_MURPHY_AM07_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM07/ANTI_MURPHY_PATCH_AM07_2026.zip) · [Relatório](ENTREGAS/AM07/RELATORIO_AM07_2026.md).
+
+Modo reduzido agora preserva processamento agregado exato e informa detalhes omitidos. Extraia em pasta nova. Windows/projetor pendentes.
+
+---
 # Versão atual: AM17-2026.1
 
 Continuação do complemento AM04 sobre AM10. Preserva AM09/AM08/AM12/AM05/AM11 e a base reconstruída AM01–AM06.
