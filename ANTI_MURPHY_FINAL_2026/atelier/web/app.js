@@ -895,9 +895,28 @@ function renderDashboards(){
  $$('#dash-tabs button').forEach(btn=>{const active=btn.dataset.dashTab===dashUI.tab;btn.classList.toggle('active',active);btn.setAttribute('aria-selected',String(active));});
  $('dash-scenario').value=dashUI.scenario;
  const body={operacao:dashUtilization,desempenho:dashPerformance,cenarios:dashScenarios,otimizacao:dashOptimize,robustez:dashRobust,auditoria:dashAudit};
- $('dash-body').innerHTML=body[dashUI.tab]();
+ $('dash-body').innerHTML=body[dashUI.tab]();syncMonteCarloControls();
+}
+let monteCarloPending=false;
+function syncMonteCarloControls(){
+ const buttons=[...document.querySelectorAll('[data-dash-robust-run]')];
+ if(st.advanced==='uncertainty'){if($('advanced-run'))buttons.push($('advanced-run'));buttons.push(...document.querySelectorAll('[data-run-context="advanced"]'));}
+ for(const button of buttons){
+  if(monteCarloPending){
+   if(!button.dataset.mcIdleText)button.dataset.mcIdleText=button.textContent;
+   button.disabled=true;button.setAttribute('aria-busy','true');button.textContent='Monte Carlo em andamento…';
+  }else{
+   button.disabled=false;button.removeAttribute('aria-busy');
+   if(button.dataset.mcIdleText){button.textContent=button.dataset.mcIdleText;delete button.dataset.mcIdleText;}
+  }
+ }
+ // The advanced action can be reused for other tools while Monte Carlo runs.
+ const action=$('advanced-run');
+ if(st.advanced!=='uncertainty'&&action?.dataset.mcIdleText){action.disabled=false;action.removeAttribute('aria-busy');action.textContent=action.dataset.mcIdleText;delete action.dataset.mcIdleText;}
 }
 async function dashRunRobustness(){
+ if(monteCarloPending)return;
+ monteCarloPending=true;syncMonteCarloControls();
  const id=analysisHistory.begin();
  try{
   const result=await api('/api/advanced','POST',{mode:'uncertainty'});
@@ -907,6 +926,7 @@ async function dashRunRobustness(){
   if(st.view==='paineis'&&dashUI.data)renderDashboards();
   notify('Monte Carlo preservado com projeto e configuração de origem.');
  }catch(e){notify(e.message||'Erro no experimento.',true);if(st.view==='paineis'&&dashUI.data)renderDashboards();}
+ finally{monteCarloPending=false;syncMonteCarloControls();}
 }
 function dashBindEvents(){
  $$('#dash-tabs button').forEach(b=>b.onclick=()=>{dashUI.tab=b.dataset.dashTab;if(dashUI.tab==='auditoria')loadAudit();else renderDashboards();});
@@ -1205,6 +1225,7 @@ function renderAdvancedInfo(){
  const entries=analysisHistory.list('advanced',st.advanced);
  const entry=entries.find(e=>e.id===st.advancedVisible)||entries[0];
  if(entry){renderAdvanced(entry.result);}else{st.advancedResult=null;$('advanced-export').disabled=true;$('advanced-result-count').textContent='Nenhuma análise';$('advanced-results').innerHTML=analysisHistoryMarkup('advanced',st.advanced,'data-advanced-history')+advancedEmptyState();}
+ syncMonteCarloControls();
 }
 const showVal=(v)=>v===null||v===undefined?'—':typeof v==='number'?h(Math.abs(v)<.0001?0:v):typeof v==='boolean'?(v?'Sim':'Não'):String(v);
 const fieldName={
@@ -1276,6 +1297,9 @@ function renderAdvanced(result){
  }));
 }
 async function runAdvanced(){
+ const mc=st.advanced==='uncertainty';
+ if(mc&&monteCarloPending)return;
+ if(mc){monteCarloPending=true;syncMonteCarloControls();}
  const mode=st.advanced,id=analysisHistory.begin(),intent=st.advancedIntent||0;
  try{
   $('advanced-result-count').textContent='Calculando…';
@@ -1284,6 +1308,7 @@ async function runAdvanced(){
   if(mode===st.advanced&&intent===(st.advancedIntent||0)&&id>(st.advancedVisible||0))st.advancedVisible=id;
   renderAdvancedInfo();notify('Análise preservada com seus parâmetros de origem.');
  }catch(e){if(mode===st.advanced)$('advanced-result-count').textContent='Erro na análise';}
+ finally{if(mc){monteCarloPending=false;syncMonteCarloControls();}}
 }
 /* Editable engineering-language suggestion derived only from the current run.
  * The operator still has to verify the reasoning and acknowledge real constraints. */
