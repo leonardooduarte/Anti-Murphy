@@ -1489,7 +1489,7 @@ function historyProjectOrigin(record){
 async function loadHistory(){
  try{
   const all=await api('/api/history');$('history-count').textContent=`${all.length} registros · todos os projetos`;
-  $('history-list').innerHTML=all.length?all.map(r=>`<button class="history-item" data-file="${esc(r.filename)}"><strong>${esc(r.action||'Decisão')}</strong><small>${esc(historyProjectOrigin(r))}</small><small>${esc(localTimestamp(r.utc))} · ${esc(r.run_id||'')}</small><small>Economia prevista: ${brl(r.savings)} · SLA ${h(r.sla_pct)}%</small></button>`).join(''):'<div class="empty-state">Nenhuma decisão registrada ainda.</div>';
+  $('history-list').innerHTML=all.length?all.map(r=>`<button class="history-item" data-file="${esc(r.filename)}"><strong>${esc(r.action||'Decisão')}</strong><small style="display:block">${esc(historyProjectOrigin(r))}</small><small style="display:block">${esc(localTimestamp(r.utc))} · ${esc(r.run_id||'')}</small><small style="display:block">Economia prevista: ${brl(r.savings)} · SLA ${h(r.sla_pct)}%</small></button>`).join(''):'<div class="empty-state">Nenhuma decisão registrada ainda.</div>';
   $$('#history-list .history-item').forEach(btn=>btn.onclick=()=>openHistory(btn.dataset.file));
  }catch(e){notify(e.message,true)}
 }
