@@ -386,8 +386,11 @@ function machineState(p,idx,t){
   const ops=intervalsAt(index.active,t);
   const live=ops.filter(op=>((op[8]||[[op[2],op[3]]]).some(seg=>seg[0]<=t&&t<seg[1])));
   const waiting=intervalsAt(index.waiting,t);
-  return {id:s.id,name:s.name,queued:Math.max(0,a-b),active:Math.max(0,b-c),processing:live.length,
-    paused:ops.length-live.length,finished:c,down:!!outage,workers,machines,
+  const reduced=p.details_omitted===true;
+  const processing=reduced&&s.processing_starts&&s.processing_ends?
+    Math.max(0,_binaryCount(s.processing_starts,t)-_binaryCount(s.processing_ends,t)):live.length;
+  return {id:s.id,name:s.name,queued:Math.max(0,a-b),active:Math.max(0,b-c),processing,
+    paused:reduced?Math.max(0,b-c-processing):ops.length-live.length,finished:c,down:!!outage,workers,machines,
     queue:waiting.map(op=>`${op[4]} · ${op[5]}`),working:live.map(op=>`${op[4]} · ${op[5]}`),
     operations:ops,raw:s};
 }
@@ -488,7 +491,7 @@ function frameStation(svg,p,t,drawQueue=true){
   g.querySelector('[data-k=load]').setAttribute('width', String(Math.min(232,232*obj.processing/Math.max(1,obj.machines))));
   g.querySelector('[data-k=load]').classList.toggle('down',obj.down);
   const job=operationDisplay(obj.operations,t);
-  g.querySelector('[data-k=job]').textContent=job?job.id:(obj.down?'CICLO INTERROMPIDO':obj.paused?'OPERAÇÃO SUSPENSA':'SEM OPERAÇÃO ATIVA');
+  g.querySelector('[data-k=job]').textContent=job?job.id:(obj.down?'CICLO INTERROMPIDO':obj.paused?'OPERAÇÃO SUSPENSA':(p.details_omitted?'DETALHES POR PEÇA OMITIDOS':'SEM OPERAÇÃO ATIVA'));
   g.querySelector('[data-k=progress]').textContent=job?`${Math.round(job.elapsed*60)} min decorridos`:' ';
   g.querySelector('[data-k=load]').setAttribute('width',String(job?244*job.fraction:Math.min(244,244*obj.processing/Math.max(1,obj.machines))));
   if(drawQueue){
@@ -603,6 +606,7 @@ function renderEventBookmarks(){
  * Only completed/started operations already known to the DES are listed. */
 function renderEventLog(){
  const payload=currentReplay(), el=$('event-log');if(!payload||!el)return;
+ if(payload.details_omitted){el.dataset.signature='';el.innerHTML='<p class="event-log-empty">Modo reduzido: eventos por peça omitidos. Estados agregados e linha do tempo preservados.</p>';return;}
  const recent=recentReplayEvents(payload,st.t);
  const signature=st.scene+'|'+recent.map(x=>[x.t,x.kind,x.station,x.order,x.unit].join(':')).join('|');
  if(el.dataset.signature===signature)return;
@@ -699,7 +703,7 @@ function renderStationInspector(){
 </div>
 <div class="inspector-quick-actions"><button type="button" class="inspect-focus-button" data-inspect-focus="1">${st.focus?'Exibir planta inteira':'Focar neste posto'}</button><button type="button" class="inspect-inspect-button" data-open-schedule="1">Ver programação</button><button type="button" class="inspect-inspect-button" data-inspect-murphy="1">Consultar Murphy</button></div>
  ${sb?`<div class="inspect-compare"><div class="inspect-compare-head">COMPARAÇÃO NO INSTANTE ${time(st.t)}</div><div class="inspect-compare-columns"><div><small>SEM RESPOSTA · A</small><strong>${s.down?'Parado':s.processing?'Processando':'Disponível'}</strong><span>Fila: ${integer(s.queued)} un.</span></div><div><small>COM RESPOSTA · B</small><strong>${sb.down?'Parado':sb.processing?'Processando':'Disponível'}</strong><span>Fila: ${integer(sb.queued)} un.</span></div></div><p>Diferença de fila (B − A): <b>${sb.queued-s.queued>0?'+':''}${integer(sb.queued-s.queued)}</b> unidade(s).</p></div>`:''}
- <div class="inspect-data"><div class="inspect-row"><span>Máquinas</span><b>${integer(s.machines)}</b></div><div class="inspect-row"><span>Operadores</span><b>${integer(s.workers)}</b></div><div class="inspect-row"><span>Fila no instante</span><b>${integer(s.queued)}</b></div><div class="inspect-row"><span>Processando</span><b>${integer(s.processing)}</b></div><div class="inspect-row"><span>Suspensas</span><b>${integer(s.paused)}</b></div></div><p class="inspector-foot">${s.working.length?esc(s.working.slice(0,4).join(' · ')):'Nenhuma operação em processamento neste instante.'}</p>
+ <div class="inspect-data"><div class="inspect-row"><span>Máquinas</span><b>${integer(s.machines)}</b></div><div class="inspect-row"><span>Operadores</span><b>${integer(s.workers)}</b></div><div class="inspect-row"><span>Fila no instante</span><b>${integer(s.queued)}</b></div><div class="inspect-row"><span>Processando</span><b>${integer(s.processing)}</b></div><div class="inspect-row"><span>Suspensas</span><b>${integer(s.paused)}</b></div></div><p class="inspector-foot">${s.working.length?esc(s.working.slice(0,4).join(' · ')):(p.details_omitted?'Modo reduzido: estados agregados exatos; identificação por peça omitida.':'Nenhuma operação em processamento neste instante.')}</p>
  ${s.queue.length?`<div class="inspection-queue"><strong>Unidades aguardando</strong><div>${s.queue.slice(0,5).map(label=>{
    const orderId=String(label).split(' · ')[0];const usable=d.orders.some(o=>o.id===orderId);
    return `<button type="button" class="queue-pick" ${usable?`data-inspect-order="${esc(orderId)}"`:'disabled'} title="${esc(label)}">${esc(label)}</button>`;
@@ -1482,6 +1486,7 @@ async function importModel(file){
 function renderSchedule(force=false){
  const svg=$('schedule-chart');if(!svg||!st.data)return;
  const p=currentReplay();if(!p)return;
+ if(p.details_omitted){svg.innerHTML='<text x="20" y="35">Modo reduzido: cronograma por peça omitido; estados agregados preservados.</text>';st.scheduleKey='';return;}
  const key=`${st.data.run_id}:${st.scene}:${st.data.selected}:${st.order||''}`;
  if(!force&&st.scheduleKey===key)return;
  st.scheduleKey=key;
