@@ -38,8 +38,13 @@ from .experiment_economics import snapshot as economic_snapshot, normalize as ec
 from .persistence import atomic_bundle
 from .workspace_guard import workspace_lock, project_revision
 from .analysis_provenance import contexts as experiment_contexts, inputs as experiment_inputs, signature as experiment_signature
+from .workload import profile as workload_profile, limit_message as workload_message
 
 class StudioError(Exception):
+    pass
+
+
+class WorkloadLimitError(StudioError):
     pass
 
 
@@ -116,6 +121,7 @@ class Studio:
         self._lab={}
         self._last_config=None
         self._recovery_warning=None
+        self._workload_blocked=False
         p=storage/'projeto.json'
         if p.exists():
             try:
@@ -178,7 +184,10 @@ class Studio:
                 startup_spec=asdict(ExperimentSpec())
             self._recovery_warning='Configuração inválida na abertura; recuperada a última versão confirmada ou o exemplo padrão.'
         startup_spec['station']=startup_spec['station'] if startup_spec['station'] in self.state['stations'] else next(iter(self.state['stations']))
-        self.calculate(startup_spec,initial=True)
+        try:
+            self.calculate(startup_spec,initial=True)
+        except WorkloadLimitError as exc:
+            self._open_without_calculation(self.state, startup_spec, self.project_id, str(exc))
 
     def _project_file(self, project_id):
         if not isinstance(project_id,str) or not re.fullmatch(r'[a-z0-9_-]{1,48}',project_id):
@@ -295,7 +304,10 @@ class Studio:
             payload=dict(data.get('spec') or {})
             payload['station']=payload.get('station') if payload.get('station') in candidate['stations'] else next(iter(candidate['stations']))
             payload['delay_h']=data.get('delay_h',2.)
-            self._commit_calculation(candidate,payload,project_id=project_id,project_name=data['name'])
+            try:
+                self._commit_calculation(candidate,payload,project_id=project_id,project_name=data['name'])
+            except WorkloadLimitError as exc:
+                self._open_without_calculation(candidate,payload,project_id,str(exc))
             return self.info()
 
     def rename_project(self,name):
@@ -377,6 +389,25 @@ class Studio:
     def _rebuild_replays(self):
         self._replays=self._prepared_replays(self.state)
 
+    def _check_workload(self, stations, orders, scope='model', mode=''):
+        p=workload_profile(stations,orders,scope,mode)
+        if not p['within_limits']:
+            raise WorkloadLimitError(workload_message(p))
+        return p
+
+    def _open_without_calculation(self, candidate, payload, project_id, message):
+        """Keep a large saved model editable without calculating or rewriting it."""
+        invalidate_model(candidate)
+        candidate['nx_spec']=asdict(replace(ExperimentSpec(**candidate['nx_spec']),
+            **{k:v for k,v in payload.items() if k in asdict(ExperimentSpec())}))
+        candidate['op_delay']=payload.get('delay_h',candidate.get('op_delay',2.))
+        self.state=candidate
+        self.project_id=project_id
+        self._replays={}
+        self._last_config=None
+        self._workload_blocked=True
+        self._recovery_warning='Projeto aberto para edição, sem simular. '+message
+
     def _commit_calculation(self, candidate, payload, *, project_id=None, project_name=None, initial=False):
         """Compute and persist candidate before replacing the visible state."""
         old=ExperimentSpec(**candidate['nx_spec'])
@@ -400,6 +431,11 @@ class Studio:
         if spec.objective=='critical' and spec.critical_order not in {o['id'] for o in candidate['orders']}:
             raise StudioError('O pedido prioritário não existe no modelo atual. Escolha um pedido válido.')
         try:
+            spec.validate(candidate['stations'])
+        except (ValueError,TypeError) as exc:
+            raise StudioError(str(exc)) from exc
+        self._check_workload(candidate['stations'],candidate['orders'])
+        try:
             execute(candidate,spec,source='Interface integrada')
             replays=self._prepared_replays(candidate)
         except (ValueError,OverflowError,TypeError,KeyError,IndexError) as exc:
@@ -414,6 +450,9 @@ class Studio:
         self.state=candidate
         self._replays=replays
         self.project_id=project_id or self.project_id
+        if self._workload_blocked:
+            self._workload_blocked=False
+            self._recovery_warning=None
         self._last_config=_json_safe({'spec':asdict(spec),'delay_h':candidate['op_delay']})
         return self.info()
 
@@ -461,6 +500,8 @@ class Studio:
                 'projects':self.projects(),
                 'experiment_count':len(self.experiment_list()),
                 'stations':self.state['stations'],'orders':self.state['orders'],
+                'workload':workload_profile(self.state['stations'],self.state['orders']),
+                'calculation_blocked':self._workload_blocked,
                 'rule':self.state.get('nx_rule','EDD'),
                 'run_id':a.get('run_id') if a else None,
                 'analysis_signature':self._analysis_signature(),
@@ -563,6 +604,7 @@ class Studio:
             if errors:raise StudioError(' | '.join(errors[:10]))
             if len(stations)>50 or len(orders)>200 or sum(int(o['quantidade']) for o in orders)>2500:
                 raise StudioError('Modelo excede os limites desta estação (50 postos, 200 ordens, 2.500 unidades).')
+            self._check_workload(stations,orders)
             candidate=deepcopy(self.state)
             candidate.update(stations=deepcopy(stations),orders=deepcopy(orders),
                              nx_source='Modelo editado pelo usuário')
@@ -666,6 +708,7 @@ class Studio:
             a=current_analysis(self.state)
             if not a:raise StudioError('Execute uma simulação antes de abrir o laboratório.')
             mode=str(payload.get('mode') or '')
+            self._check_workload(self.state['stations'],self.state['orders'],'lab',mode)
             cfg=base_config(self.state)
             spec=ExperimentSpec(**self.state['nx_spec'])
             points=[];notes=[]
@@ -743,6 +786,7 @@ class Studio:
             a=current_analysis(self.state)
             if not a:
                 raise StudioError('Execute uma simulação antes de usar esta análise.')
+            self._check_workload(self.state['stations'],self.state['orders'],'advanced',mode)
             cfg=base_config(self.state)
             nominal_result=nominal(self.state)
             incident=a['incident']

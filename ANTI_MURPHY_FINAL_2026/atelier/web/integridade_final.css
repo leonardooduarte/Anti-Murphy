@@ -54,3 +54,6 @@
 .history-economic-evidence>div{display:flex;justify-content:space-between;gap:16px;padding:5px 0;border-bottom:1px solid #D4E0D9;font-size:11px;}
 .history-economic-evidence>div b{font-variant-numeric:tabular-nums;white-space:nowrap;}
 .history-economic-evidence>small{display:block;color:#56736A;margin-top:8px;line-height:1.4;}
+.model-workload{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:18px 22px;margin:0 0 16px;border:1px solid #cbded9;border-left:4px solid #407f70;background:#f4f8f6;border-radius:8px;color:#244b42}
+.model-workload[hidden]{display:none}.model-workload>div{display:grid;gap:5px;min-width:235px}.model-workload strong{font-size:24px}.model-workload strong small{font-size:13px;font-weight:500}.model-workload p{max-width:620px;font-size:13px;line-height:1.6;margin:0}.model-workload.workload-over{border-left-color:#bd622b;background:#fff7ed;color:#7a431e}
+@media(max-width:900px){.model-workload{align-items:flex-start;flex-direction:column;gap:12px}}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from itertools import islice
 from typing import Dict, Any, List, Tuple
 
 from simulation.factory import ScenarioConfig
@@ -8,21 +9,17 @@ from simulation.engine import run_simulation
 from simulation.metrics import compare_results
 
 
-def generate_opportunities(base_config: ScenarioConfig, base_result: Dict[str, Any], max_candidates: int = 36) -> List[Dict[str, Any]]:
-    """Explora microdecisões de baixo esforço e ordena pelo ganho operacional/econômico.
-
-    A função não 'decide' pelo gestor; apenas quantifica alternativas comparáveis.
-    """
-    candidates: List[Tuple[str, ScenarioConfig, str]] = []
+def _opportunity_candidates(base_config):
+    """Build only candidates requested by the caller, in the historical order."""
 
     for sid in base_config.stations:
         c = base_config.clone(name=f"+1 operador em {sid}")
         c.stations[sid]["operadores"] += 1
-        candidates.append((c.name, c, f"Adicionar 1 operador em {sid}"))
+        yield c.name, c, f"Adicionar 1 operador em {sid}"
 
         c2 = base_config.clone(name=f"+1 máquina em {sid}")
         c2.stations[sid]["maquinas"] += 1
-        candidates.append((c2.name, c2, f"Adicionar 1 posto/máquina em {sid}"))
+        yield c2.name, c2, f"Adicionar 1 posto/máquina em {sid}"
 
     # Realocações: tira 1 operador de um posto com folga e leva a outro.
     for src in base_config.stations:
@@ -34,7 +31,7 @@ def generate_opportunities(base_config: ScenarioConfig, base_result: Dict[str, A
             c = base_config.clone(name=f"Realocar {src} → {dst}")
             c.stations[src]["operadores"] -= 1
             c.stations[dst]["operadores"] += 1
-            candidates.append((c.name, c, f"Realocar 1 operador de {src} para {dst}"))
+            yield c.name, c, f"Realocar 1 operador de {src} para {dst}"
 
 
     # Melhorias de processo: reduzir setup em 25% quando houver setup relevante.
@@ -43,17 +40,21 @@ def generate_opportunities(base_config: ScenarioConfig, base_result: Dict[str, A
         if setup >= 4:
             c = base_config.clone(name=f"-25% setup em {sid}")
             c.stations[sid]["setup_min"] = max(0.0, setup * 0.75)
-            candidates.append((c.name, c, f"Reduzir setup em 25% em {sid}"))
+            yield c.name, c, f"Reduzir setup em 25% em {sid}"
 
     # Regras de despacho são contrafactuais de baixo custo e alto valor gerencial.
     for rule in ["EDD", "SPT", "FIFO"]:
         if rule != base_config.dispatch_rule:
             c = base_config.clone(name=f"Despacho {rule}")
             c.dispatch_rule = rule
-            candidates.append((c.name, c, f"Alterar regra de despacho para {rule}"))
+            yield c.name, c, f"Alterar regra de despacho para {rule}"
 
+def generate_opportunities(base_config: ScenarioConfig, base_result: Dict[str, Any], max_candidates: int = 36) -> List[Dict[str, Any]]:
+    """Quantify the same finite candidates without constructing discarded models."""
+    candidates = _opportunity_candidates(base_config)
+    selected = islice(candidates, max_candidates) if max_candidates >= 0 else list(candidates)[:max_candidates]
     rows = []
-    for name, cfg, action in candidates[:max_candidates]:
+    for name, cfg, action in selected:
         r = run_simulation(cfg)
         if not r.get("feasible",True):
             continue  # Sem postos funcionais, não existem métricas econômicas para ranquear.

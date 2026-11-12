@@ -343,14 +343,49 @@ function informativeComparisonTime(){
  return bestScore>0?Math.min(finish,best):start;
 }
 function _binaryCount(arr,t){let l=0,r=arr.length;while(l<r){const m=(l+r)>>1;if(arr[m]<=t)l=m+1;else r=m;}return l;}
+const replayIndexes=new WeakMap();
+function intervalIndex(entries,start,end){
+ const sorted=entries.slice().sort((a,b)=>a.op[start]-b.op[start]||a.order-b.order);
+ const starts=[],maxEnds=[];let max=-Infinity;
+ for(const entry of sorted){starts.push(entry.op[start]);max=Math.max(max,entry.op[end]);maxEnds.push(max);}
+ return {sorted,starts,maxEnds,end};
+}
+function intervalsAt(index,t){
+ const found=[];
+ for(let i=_binaryCount(index.starts,t)-1;i>=0&&index.maxEnds[i]>t;i--){
+  const entry=index.sorted[i];if(entry.op[index.end]>t)found.push(entry);
+ }
+ return found.sort((a,b)=>a.order-b.order).map(x=>x.op);
+}
+function replayIndex(payload){
+ let index=replayIndexes.get(payload);if(index)return index;
+ const groups=payload.stations.map(()=>[]),events=[];
+ (payload.operations||[]).forEach((op,order)=>{
+  if(groups[op[0]])groups[op[0]].push({op,order});
+  const station=payload.stations[Number(op[0])]?.id||'POSTO';
+  for(const [field,kind] of [[2,'Início'],[3,'Conclusão']])events.push({t:Number(op[field]),kind,station,order:String(op[4]||'—'),unit:String(op[5]||'')});
+ });
+ if(payload.outage){const o=payload.outage;
+  events.push({t:Number(o.start),kind:'Parada',station:o.station,order:'—',unit:''},
+              {t:Number(o.end),kind:'Fim da parada',station:o.station,order:'—',unit:''});
+ }
+ events.sort((a,b)=>a.t-b.t||a.kind.localeCompare(b.kind,'pt-BR'));
+ index={stations:groups.map(g=>({active:intervalIndex(g,2,3),waiting:intervalIndex(g,1,2)})),events,eventTimes:events.map(e=>e.t)};
+ replayIndexes.set(payload,index);return index;
+}
+function recentReplayEvents(payload,t){
+ const index=replayIndex(payload),end=_binaryCount(index.eventTimes,t+1e-9);
+ return index.events.slice(Math.max(0,end-6),end).reverse();
+}
 function machineState(p,idx,t){
   const s=p.stations[idx]; const a=_binaryCount(s.arrivals,t),b=_binaryCount(s.starts,t),c=_binaryCount(s.ends,t);
   let workers=s.workers,machines=s.machines;
   for(const change of s.changes||[]){if(change.time<=t){workers=change.workers_after;machines=change.machines_after}}
   const outage=p.outage && p.outage.station===s.id && t>=p.outage.start && t<p.outage.end;
-  const ops=(p.operations||[]).filter(op=>op[0]===idx && op[2]<=t && t<op[3]);
+  const index=replayIndex(p).stations[idx];
+  const ops=intervalsAt(index.active,t);
   const live=ops.filter(op=>((op[8]||[[op[2],op[3]]]).some(seg=>seg[0]<=t&&t<seg[1])));
-  const waiting=(p.operations||[]).filter(op=>op[0]===idx && op[1]<=t && t<op[2]);
+  const waiting=intervalsAt(index.waiting,t);
   return {id:s.id,name:s.name,queued:Math.max(0,a-b),active:Math.max(0,b-c),processing:live.length,
     paused:ops.length-live.length,finished:c,down:!!outage,workers,machines,
     queue:waiting.map(op=>`${op[4]} · ${op[5]}`),working:live.map(op=>`${op[4]} · ${op[5]}`),
@@ -568,20 +603,7 @@ function renderEventBookmarks(){
  * Only completed/started operations already known to the DES are listed. */
 function renderEventLog(){
  const payload=currentReplay(), el=$('event-log');if(!payload||!el)return;
- const events=[];
- for(const op of (payload.operations||[])){
-   const sid=payload.stations[Number(op[0])]?.id||'POSTO';
-   const order=String(op[4]||'—');const unit=String(op[5]||'');
-   if(Number(op[2])<=st.t+1e-9)events.push({t:Number(op[2]),kind:'Início',station:sid,order,unit});
-   if(Number(op[3])<=st.t+1e-9)events.push({t:Number(op[3]),kind:'Conclusão',station:sid,order,unit});
- }
- const outage=payload.outage;
- if(outage){
-   if(Number(outage.start)<=st.t+1e-9)events.push({t:Number(outage.start),kind:'Parada',station:outage.station,order:'—',unit:''});
-   if(Number(outage.end)<=st.t+1e-9)events.push({t:Number(outage.end),kind:'Fim da parada',station:outage.station,order:'—',unit:''});
- }
- events.sort((a,b)=>a.t-b.t||a.kind.localeCompare(b.kind,'pt-BR'));
- const recent=events.slice(-6).reverse();
+ const recent=recentReplayEvents(payload,st.t);
  const signature=st.scene+'|'+recent.map(x=>[x.t,x.kind,x.station,x.order,x.unit].join(':')).join('|');
  if(el.dataset.signature===signature)return;
  el.dataset.signature=signature;
@@ -1027,6 +1049,7 @@ function renderModel(){
  const m=st.editing;
  $('count-stations').textContent=Object.keys(m.stations).length;
  $('count-orders').textContent=m.orders.length;
+ renderModelWorkload();
  $$('#model-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.modelTab===st.modelTab));
  const body=st.modelTab==='stations'?renderStationsTable(m.stations):renderOrdersTable(m.orders);
  $('model-table').innerHTML=body;
@@ -1036,9 +1059,10 @@ function renderModel(){
    const original=st.modelTab==='stations'?m.stations[idx]:m.orders[Number(idx)];
    if(!original)return;
    if(field==='route'){
-    original.route=inp.value;return;
+    original.route=inp.value;renderModelWorkload();return;
    }
    original[field]=inp.dataset.numeric==='1'? Number(inp.value):inp.value;
+   renderModelWorkload();
   });
  });
  $$('#model-table button[data-route-edit]').forEach(btn=>btn.onclick=()=>openRouteEditor(Number(btn.dataset.routeEdit)));
@@ -1047,6 +1071,20 @@ function renderModel(){
   else m.orders.splice(Number(btn.dataset.remove),1);
   renderModel();
  });
+}
+function renderModelWorkload(){
+ const el=$('model-workload'),m=st.editing;if(!el||!m)return;
+ const limit=st.data?.workload?.limits;if(!limit){el.hidden=true;return;}
+ el.hidden=false;
+ let units=0,operations=0,valid=true;
+ for(const o of m.orders){const q=Number(o.quantidade);let route=o.route;
+  if(typeof route==='string')route=route.split(';').map(s=>s.trim()).filter(Boolean);
+  if(!Number.isSafeInteger(q)||q<=0||!Array.isArray(route)||!route.length){valid=false;continue;}
+  units+=q;operations+=q*route.length;
+ }
+ const over=valid&&operations>limit.per_scenario;
+ el.classList.toggle('workload-over',over);
+ el.innerHTML=`<div><span class="eyebrow">DIMENSÃO DO MODELO</span><strong>${valid?integer(operations):'—'} <small>operações por cenário</small></strong><span>${valid?integer(units):'—'} unidades · ${integer(Object.keys(m.stations).length)} postos</span></div><p role="status">${!valid?'Complete quantidades e roteiros para conferir o volume.':over?`Volume acima do limite de ${integer(limit.per_scenario)} operações por cenário. Reduza quantidades ou etapas antes de aplicar; o projeto salvo permanece preservado.`:`Limites: ${integer(limit.per_scenario)} operações por cenário e ${integer(limit.per_analysis)} por análise. A conferência considera todos os cenários do ensaio antes de simular.`}</p>`;
 }
 function renderStationsTable(stations){
  const cols=[['nome','Posto','text'],['maquinas','Máquinas','number'],['operadores','Operadores','number'],

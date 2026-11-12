@@ -87,6 +87,7 @@
   <div class="section-intro"><div><div class="eyebrow">02 / CONFIGURAÇÃO</div><h1>Modelo produtivo</h1><p>Postos, equipes, roteiros e pedidos utilizados em todos os experimentos.</p></div><div class="intro-tools"><button id="model-import-button" class="subtle-button">Importar JSON</button><button id="model-save" class="primary-button">Aplicar alterações <svg><use href="#ico-arrow"/></svg></button></div></div>
   <div class="editor-note"><span class="editor-mark"></span><span>Alterar o modelo recalcula a simulação e invalida comparações anteriores. Os dados são armazenados apenas neste computador.</span></div>
   <div class="model-toolbar"><div class="tab-buttons" id="model-tabs"><button data-model-tab="stations" class="active">Postos e recursos <span id="count-stations"></span></button><button data-model-tab="orders">Ordens de produção <span id="count-orders"></span></button></div><div class="model-actions"><button id="add-model-row" class="subtle-button">+ Adicionar</button><button id="reset-model" class="text-link danger">Restaurar exemplo</button></div></div>
+  <div id="model-workload" class="model-workload" hidden></div>
   <div id="model-table" class="table-container"></div>
   <div class="model-assistant"><h3>Roteiros de produção</h3><p>Utilize <strong>Editar etapas</strong> no pedido para incluir, reordenar ou remover operações. O editor verifica a existência dos postos e os tempos em minutos por unidade. Alterações são aplicadas à simulação somente quando você escolher <strong>Aplicar alterações</strong>.</p></div>
  </section>
