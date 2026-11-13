@@ -1,15 +1,16 @@
 
 import asyncio,json
 from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
 from playwright.async_api import async_playwright
 async def main():
  async with async_playwright() as pw:
   browser=await pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox','--disable-dev-shm-usage'])
-  for width,height in [(1366,768),(1920,1080)]:
+  for width,height in [(1280,720),(1366,768),(1920,1080)]:
    page=await browser.new_page(viewport={'width':width,'height':height})
    errors=[]
    page.on('pageerror',lambda e:errors.append(str(e)))
-   await page.set_content(Path('/mnt/data/ANTI_MURPHY_V31_OPERACAO/PREVIEW_OPERACAO.html').read_text(), wait_until='domcontentloaded')
+   await page.set_content((ROOT/'PREVIEW_OPERACAO.html').read_text('utf8'), wait_until='domcontentloaded')
    await page.wait_for_timeout(400)
    assert await page.locator('h1').inner_text() == 'Análise de impacto'
    statuses=await page.evaluate('''() => {

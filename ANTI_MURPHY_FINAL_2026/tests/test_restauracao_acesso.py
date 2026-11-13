@@ -9,21 +9,29 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 def test_inicio_prioriza_o_workspace_original_e_nao_o_mapa():
-    src=(ROOT/'app.py').read_text(encoding='utf-8')
-    assert 'CORE = "Operação e decisões"' in src
-    assert 'SECTIONS = [CORE, TOOLS, MAP]' in src
-    assert 'initial_sidebar_state="expanded"' in src
-    assert 'from app_classico import main' in src
-    assert 'runpy.run_path(str(ROOT / "legacy_app.py")' in src
-    assert 'from ui.studio_runner import render' in src
+    from streamlit.testing.v1 import AppTest
+    app=AppTest.from_file(str(ROOT/'app.py'),default_timeout=30).run()
+    assert not list(app.exception)
+    assert app.session_state['am_area']=='Operação'
+    for area in ('Modelo','Registros','Mapa comparativo','Operação'):
+        app.button(key='am_area_'+area).click().run()
+        assert not list(app.exception)
+        assert app.session_state['am_area']==area
+    app.button(key='am_home').click().run()
+    assert app.session_state['am_area']=='Operação'
 
 
 def test_modulos_importantes_tem_atendimento_direto():
-    src=(ROOT/'app.py').read_text(encoding='utf-8')
+    from streamlit.testing.v1 import AppTest
     for page in ['War Room','Murphy AI','Decision Evidence','Murphy Lab',
                  'Optimization Hub','Stress Lab','Opportunity Engine',
                  'Scenario Portfolio','Operations Studio','Trust Center']:
-        assert '"'+page+'"' in src
+        # Each tool must be reachable directly from a fresh public home.
+        app=AppTest.from_file(str(ROOT/'app.py'),default_timeout=30).run()
+        app.button(key='am_tool_'+page).click().run()
+        assert not list(app.exception),page
+        assert app.session_state['active_page']==page
+        assert app.session_state['am_area']=='Análises'
 
 
 def test_caminho_de_recarregamento_infinito_foi_retirado():

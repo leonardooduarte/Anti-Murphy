@@ -23,14 +23,30 @@ def test_blocked_resources_show_an_error_instead_of_a_production_forecast():
     assert any('Modelo bloqueado' in x.value for x in a.error)
 
 
-def test_evidence_exports_the_current_timed_experiment(tmp_path):
+def test_evidence_exports_the_current_timed_experiment(tmp_path,monkeypatch):
     a=app();state={};initialize_operation(state)
     # AppTest cannot operate an iframe; execute the same serialized user command
     # tested in Chromium, then verify the native export view.
     handle_command(state,{'id':'ui-demo','token':state['op_token'],'kind':'demo','body':{}})
     for key,value in state.items():a.session_state[key]=value
     a.session_state['op_store_dir']=str(tmp_path)
-    a.session_state['op_page']='Registros';a.run()
+    # Navigate through the public shell; op_page is owned by that shell.
+    import streamlit as st
+    import json
+    from simulation.nexus import current_analysis,selected_action
+    captured={};original=st.download_button
+    def capture(label,data,*args,**kwargs):
+        captured[label]=data
+        return original(label,data,*args,**kwargs)
+    monkeypatch.setattr(st,'download_button',capture)
+    a.button(key='am_area_Registros').click().run()
     assert not list(a.exception)
     assert len(a.get('download_button'))==3
-    assert any('6,00 h' in x.value for x in a.caption)
+    assert a.session_state['am_area']=='Registros'
+    data=current_analysis(state);row=selected_action(state,data)
+    exported=json.loads(captured['Memorando JSON'])
+    assert exported['run_id']==data['run_id']
+    assert exported['examined_action']['signature']==row['signature']
+    assert exported['examined_action']['requested_h']==row['requested_h']
+    assert row['action'] in captured['Relatório HTML'].decode('utf-8')
+    assert row['action'] in captured['Matriz CSV'].decode('utf-8-sig')
