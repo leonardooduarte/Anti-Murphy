@@ -304,8 +304,88 @@ function renderMetrics(){
   renderImpactInterpretation();
   renderIncidentWorkflow();
   renderCostReconciliation();
+  renderExperienceStory();
 }
 
+
+/* EXPERIÊNCIA VISUAL 01 ---------------------------------------------------
+ * Read-only storytelling built exclusively from current DES state.
+ * Navigation selects existing scenes, seeks recorded time, or opens existing views.
+ * No causal attribution, fabricated event, optimizer or simulation is introduced.
+ */
+const amChosen=()=>st.data?.alternatives?.find(a=>a.signature===st.data.selected)||null;
+const amNumber=(n)=>n==null||n===''?null:Number.isFinite(Number(n))?Number(n):null;
+const amPrecise=(obj,key)=>amNumber(obj?.precise?.[key]??obj?.[key]);
+function amOrderState(o){
+ if(o.late_before&&!o.late_after)return {label:'Prazo recuperado',tone:'recover'};
+ if(!o.late_before&&o.late_after)return {label:'Novo atraso',tone:'risk'};
+ if(o.late_after)return {label:'Permanece em atraso',tone:'risk'};
+ return {label:'No prazo',tone:'stable'};
+}
+function renderExperienceStory(){
+ const el=$('experience-story'),d=st.data;if(!el||!d)return;
+ const outage=replayFor('incident')?.outage;
+ const a=d.metrics?.incident,b=d.metrics?.response,chosen=amChosen();
+ const late=amNumber(a?.late_orders),slaB=amNumber(b?.sla_pct);
+ const impacted=chosen?.order_impacts?.filter(o=>o.late_before).length??null;
+ const step=(mode,index,title,description,sub)=>`<button class="am-story-step ${st.scene===mode?'am-story-active':''}" data-experience-scene="${mode}" type="button" aria-pressed="${st.scene===mode}" ${mode==='split'&&!replayFor('response')?'disabled':''}><span class="am-story-index">0${index}</span><span class="am-story-body"><strong>${title}</strong><small>${description}</small><span class="am-story-fact">${sub}</span></span><span class="am-story-arrow" aria-hidden="true">↗</span></button>`;
+ el.innerHTML=`<div class="am-story-header"><div><span class="am-overline">TRAJETÓRIA DO EXPERIMENTO</span><h2>Da operação à decisão</h2><p>Explore as três leituras do mesmo experimento.</p></div><div class="am-story-live"><span class="am-live-dot" aria-hidden="true"></span><span>REPLAY DO MODELO</span><strong data-am-live-clock>${time(st.t)}</strong></div></div>
+ <div class="am-story-steps" role="group" aria-label="Navegação pelos cenários">
+ ${step('normal',1,'Operação planejada','Referência sem incidente',`${h(amPrecise(d.metrics?.normal,'sla_pct'))}% no prazo`)}
+ ${step('incident',2,`Incidente em ${esc(d.spec?.station||outage?.station||'posto')}`,'Parada a partir de '+time(outage?.start??d.spec?.start_h),`${late===null?'—':integer(late)} pedido(s) em atraso`)}
+ ${step('split',3,'Decisão em comparação','A e B no mesmo instante',chosen&&chosen.feasible!==false?`${slaB===null?'—':h(slaB)+'%'} no prazo com resposta`:'Selecione uma resposta simulável')}
+ </div><div class="am-story-footer"><span>Estados e horários do motor de eventos discretos. A representação é lógica, sem transporte físico.</span><span>${impacted===null?'':integer(impacted)+' pedido(s) com atraso na referência'}</span></div>`;
+ updateExperienceMoment();
+}
+function updateExperienceMoment(){
+ const el=$('experience-story');if(!el||!st.data)return;
+ const clock=el.querySelector('[data-am-live-clock]');if(clock)clock.textContent=time(st.t);
+ el.dataset.moment=st.scene==='normal'?'normal':st.scene==='split'?'comparison':st.t>=(Number(replayFor(st.scene)?.outage?.start)||0)&&st.t<(Number(replayFor(st.scene)?.outage?.end)||0)?'outage':'inspection';
+}
+function amCostParts(cost,showInvestment=0){
+ const operational=amPrecise(cost,'operating_cost');
+ const penalties=amPrecise(cost,'penalty_total');
+ if(operational===null||penalties===null||operational<0||penalties<0||showInvestment<0)return null;
+ return [{label:'Operação',amount:operational,tone:'work'},{label:'Multas',amount:penalties,tone:'penalty'},{label:'Intervenção',amount:showInvestment,tone:'investment'}].filter(v=>v.amount>0);
+}
+function renderExperienceBrief(){
+ const el=$('experience-brief'),d=st.data;if(!el||!d)return;
+ const a=d.metrics?.incident,b=d.metrics?.response,c=amChosen();
+ if(!a||!b||!c){el.innerHTML='<div class="am-brief-empty">Execute um cenário e selecione uma resposta para visualizar a comparação econômica.</div>';return;}
+ const savings=amPrecise(c,'savings');
+ const decisionCost=amPrecise(c,'decision_cost');
+ const incidentCost=amPrecise(a,'total_cost');
+ const source=amCostParts(a,0),target=amCostParts(b,amNumber(c.investment)||0);
+ const validBars=source&&target&&incidentCost!==null&&decisionCost!==null;
+ const cap=validBars?Math.max(incidentCost,decisionCost,1):1;
+ const row=(name,total,parts,type)=>`<div class="am-cost-row"><div class="am-cost-label"><span>${name}</span><strong>${brlExact(total)}</strong></div><div class="am-cost-track" role="img" aria-label="${esc(name)}: ${brlExact(total)}">${parts.map(v=>`<span class="am-cost-segment ${v.tone}" style="width:${Math.max(0,(v.amount/cap)*100).toFixed(4)}%" title="${esc(v.label)}: ${brlExact(v.amount)}"></span>`).join('')}</div></div>`;
+ const ordersBefore=amNumber(a.late_orders),ordersAfter=amNumber(c.late_orders);
+ const gain=savings===null?'Variação indisponível':savings>=0?'Diferença favorável simulada':'Custo adicional simulado';
+ const changes=Array.isArray(c.order_impacts)?c.order_impacts:null;
+ const recovered=changes?changes.filter(o=>o.late_before&&!o.late_after).length:null;
+ const newLate=changes?changes.filter(o=>!o.late_before&&o.late_after).length:null;
+ const orderOutcome=recovered===null?'O efeito por pedido não está disponível':recovered>0?`${integer(recovered)} ${recovered===1?'pedido volta':'pedidos voltam'} ao prazo`:newLate>0?`${integer(newLate)} ${newLate===1?'pedido passa':'pedidos passam'} a atrasar`:'O número de pedidos atrasados não aumenta';
+ const moneyOutcome=savings===null?'não há valor econômico disponível':savings>=0?`o custo total simulado cai ${brlExact(savings)}`:`o custo total simulado sobe ${brlExact(-savings)}`;
+ const statement=`${esc(c.action)}: ${orderOutcome}${newLate>0&&recovered>0?`, mas ${integer(newLate)} pedido(s) passa(m) a atrasar`:''}; ${moneyOutcome}.`;
+ const study=`Execução ${esc(String(d.run_id||'—').slice(0,36))} · ${esc(d.spec?.station||'—')} · início ${time(d.spec?.start_h)} · duração ${h(d.spec?.duration_h)} h`;
+ el.innerHTML=`<div class="am-brief-identity"><div class="am-brief-flag">DECISÃO EM ANÁLISE · MODELO SINTÉTICO</div><h2>${statement}</h2><p>${study} · alternativa selecionada: <strong>${esc(c.action)}</strong>.</p></div>
+ <div class="am-brief-main"><div class="am-brief-highlight ${savings!==null&&savings<0?'is-negative':''}"><span>${gain}</span><strong>${savings===null?'—':brlExact(Math.abs(savings))}</strong><small>${savings===null?'Sem estimativa econômica disponível.':'Diferença calculada pelo motor com valores não arredondados.'}</small></div>
+ <div class="am-brief-facts"><div><span>Pedidos atrasados</span><strong>${ordersBefore===null?'—':integer(ordersBefore)} <i aria-hidden="true">→</i> ${ordersAfter===null?'—':integer(ordersAfter)}</strong><small>Sem resposta / resposta</small></div><div><span>SLA</span><strong>${h(a.sla_pct)}% <i aria-hidden="true">→</i> ${h(c.sla_pct)}%</strong><small>Pedidos no prazo</small></div><div><span>Conclusão</span><strong>${h(a.makespan_h)} h <i aria-hidden="true">→</i> ${h(c.makespan_h)} h</strong><small>Tempo total simulado</small></div></div></div>
+ ${validBars?`<div class="am-brief-costs"><div class="am-brief-chart-head"><h3>Composição do custo da decisão</h3><span>R$ · operação, multas e investimento</span></div>${row('A · Falha sem intervenção',incidentCost,source,'incident')}${row('B · Com resposta',decisionCost,target,'response')}<div class="am-cost-legend"><span><i class="work"></i> Operação</span><span><i class="penalty"></i> Multas</span><span><i class="investment"></i> Intervenção</span></div></div>`:''}
+ <div class="am-brief-footer"><p>Estimativas do cenário configurado. Não representam economia industrial observada; os rótulos monetários são arredondados para apresentação.</p><div class="am-brief-actions"><button type="button" data-experience-go="factory">Explorar A/B na fábrica ↗</button><button type="button" data-experience-go="decisions">Examinar decisão →</button></div></div>`;
+}
+function renderExperienceOrders(){
+ const el=$('experience-orders'),c=amChosen();if(!el)return;
+ const items=c?.order_impacts||[];
+ if(!items.length){el.hidden=true;el.innerHTML='';return;}
+ el.hidden=false;
+ const relevant=items.filter(x=>x.late_before||x.late_after||(amNumber(x.before_h)!==amNumber(x.after_h)));
+ const list=relevant.length?relevant:items;
+ const recovered=items.filter(x=>x.late_before&&!x.late_after).length;
+ el.innerHTML=`<div class="am-orders-heading"><div><span class="am-overline">RASTRO DOS PEDIDOS</span><h2>Como os prazos mudam</h2><p>Comparação dos mesmos pedidos no cenário sem intervenção e na resposta examinada.</p></div><span class="am-order-summary">${integer(recovered)} prazo(s) recuperado(s)</span></div>
+ <div class="am-orders-list">${list.slice(0,8).map(o=>{const status=amOrderState(o);return `<button class="am-order-card am-order-${status.tone}" type="button" data-experience-order="${esc(o.id)}"><span class="am-order-top"><strong>${esc(o.id)}</strong><span class="am-order-status">${status.label}</span></span><span class="am-order-times"><span><small>Antes</small><b>${h(o.before_h)} h</b></span><span aria-hidden="true" class="am-order-to">→</span><span><small>Depois</small><b>${h(o.after_h)} h</b></span></span><span class="am-order-due">Prazo contratado do modelo: ${h(o.due_h)} h · Inspecionar pedido ↗</span></button>`}).join('')}</div>
+ <p class="am-orders-foot">As comparações são feitas sobre os mesmos pedidos do modelo. Diferenças de conclusão não provam, por si só, causalidade física ou viabilidade industrial.</p>`;
+}
 
 /* Incident workstation: one investigated model and actionable links, not a separate dashboard. */
 function renderIncidentWorkflow(){
@@ -458,13 +538,14 @@ function buildFactory(svg,p,suffix){
    <path class="station-face" d="M-127 -73 H127"/>
    <path class="machine-operating-glow" d="M-87 32 Q0 63 88 32" stroke-width="3" fill="none"/>
    <text x="-122" y="-88" class="station-name">${esc(s.id)}</text><text x="122" y="-88" text-anchor="end" class="station-status" data-k="status">—</text>
-   <circle class="state-light" cx="-124" cy="-65" r="4.6"/><text x="-112" y="-61" class="machine-telemetry">POSTO DE PRODUÇÃO</text>
-   <g class="station-machine" transform="translate(0 -5) scale(1.10)">${equipment(s.id,working)}</g>
+   <circle class="state-light" cx="-120" cy="-68" r="4.6"/><text x="-106" y="-64" class="machine-telemetry">RESUMO OPERACIONAL</text>
+   <g class="station-machine" transform="translate(0 -7) scale(.78)">${equipment(s.id,working)}</g>
    <g class="workcell-activity" aria-hidden="true"><path d="M-98 40L-76 48H80L101 40" fill="none" stroke-width="1.8"/><circle cx="101" cy="40" r="3.8"/></g>
-   <text x="-122" y="52" class="station-caption station-description">${esc(s.name.length>24?s.name.slice(0,23)+'…':s.name)}</text>
-   <rect x="-122" y="61" width="244" height="5" class="station-track"/>
-   <rect x="-122" y="61" width="0" height="5" class="processing-bar" data-k="load"/>
-   <text x="-122" y="85" class="station-caption" data-k="queue">Fila · 0</text><text x="122" y="85" text-anchor="end" class="station-caption" data-k="workers">0 oper.</text>
+   <rect class="station-footer-panel" x="-132" y="43" width="264" height="56" rx="3"/>
+   <text x="-122" y="57" class="station-caption station-description">${esc(s.name.length>28?s.name.slice(0,27)+'…':s.name)}</text>
+   <rect x="-122" y="66" width="244" height="5" class="station-track"/>
+   <rect x="-122" y="66" width="0" height="5" class="processing-bar" data-k="load"/>
+   <text x="-122" y="91" class="station-caption station-queue-value" data-k="queue">Fila · 0</text><text x="122" y="91" text-anchor="end" class="station-caption station-work-value" data-k="workers">0 oper.</text>
    <g data-k="queue-units"></g>
    <g class="station-job-line"><text x="-120" y="-47" data-k="job">—</text><text x="120" y="-47" text-anchor="end" data-k="progress">—</text></g>
    <g class="station-outage-badge" aria-hidden="true"><rect x="-133" y="-114" width="266" height="21" rx="3"/><text x="0" y="-99" text-anchor="middle">PARADA SIMULADA · POSTO INDISPONÍVEL</text></g>
@@ -473,8 +554,9 @@ function buildFactory(svg,p,suffix){
  svg.innerHTML=`${grid}${floor}<g opacity=".66">${edges}</g>${equipmentSvg}`;
  svg.querySelectorAll('.station-group').forEach(g=>{
   const sid=g.dataset.station;
-  g.addEventListener('click',()=>{st.station=sid;st.focus=false;st.lastInspectorPaint=0;updateScene();renderStationInspector()});
-  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();st.station=sid;updateScene();renderStationInspector()}});
+  const inspect=()=>{st.station=sid;st.focus=true;st.lastInspectorPaint=0;renderScene();renderStationInspector();};
+  g.addEventListener('click',inspect);
+  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inspect();}});
  });
 }
 function operationDisplay(ops,t){
@@ -499,12 +581,12 @@ function frameStation(svg,p,t,drawQueue=true){
   const obj=machineState(p,i,t);const g=svg.querySelector(`#${svg.id}-station-${i}`);if(!g)return;
   g.classList.toggle('down',obj.down);g.classList.toggle('selected',obj.id===st.station);g.classList.toggle('is-processing',obj.processing>0);
   g.dataset.currentOperation=obj.working?.[0]||'';
-  g.querySelector('.station-name').textContent=st.focus?obj.id:(obj.id.length>6?obj.id.slice(0,5)+'…':obj.id);
+  g.querySelector('.station-name').textContent=st.focus?obj.id:(obj.id.length>13?obj.id.slice(0,12)+'…':obj.id);
   g.classList.toggle('has-queue',obj.queued>0);
   g.dataset.state=obj.down?'down':obj.processing?'processing':obj.paused?'paused':'idle';
   g.classList.toggle('is-paused',obj.paused>0&&!obj.down);
   g.querySelectorAll('.machine-activity,.machine-spindle,.machine-spark').forEach(item=>item.classList.toggle('paused',!obj.processing));
-  const status=obj.down?'PARADO':obj.processing?`${obj.processing} ATIVO${obj.processing>1?'S':''}`:obj.paused?'SUSPENSO':'DISPONÍVEL';
+  const status=obj.down?'■ PARADO':obj.processing?'▶ EM USO':obj.paused?'Ⅱ SUSPENSO':'○ LIVRE';
   g.querySelector('[data-k=status]').textContent=status;
   g.querySelector('[data-k=queue]').textContent=`Fila · ${obj.queued}`;
   g.querySelector('[data-k=workers]').textContent=`${obj.workers} oper.`;
@@ -588,6 +670,8 @@ function renderScene(force=false){
     button.title=button.disabled?'Selecione uma alternativa com simulação disponível.':'';
  });
  $('stage-subtitle').textContent=mode==='split'?(st.presentation?`Mesmo instante ${time(st.t)} · cenários A e B`:'Mesmo instante · dois cenários'):'Fluxo lógico por posto';
+ const context=$('am-scene-context');
+ if(context){const side=mode==='normal'?'Plano sem incidente':mode==='split'?'A/B no mesmo instante':mode==='response'?'Resposta modelada':'Falha sem intervenção'; const spec=d.spec||{};context.innerHTML=`<span class="am-context-marker" aria-hidden="true"></span><strong>${esc(side)}</strong><span>${esc(spec.station||'Posto não especificado')} · parada de ${h(spec.duration_h)} h · início ${time(spec.start_h)}</span><small>Execução ${esc(String(d.run_id||'—').slice(0,24))} · dados sintéticos</small>`;}
  const point=(p1?.stations||[]).findIndex(x=>x.id===st.station);
  const center=positions(p1?.stations.length||0)[Math.max(0,point)]||{x:600,y:300};
  const origin='50% 50%';
@@ -596,6 +680,7 @@ function renderScene(force=false){
   svg.style.transform=comparePanels?'none':`scale(${st.zoom})`;
  }
  $('factory-viewport').classList.toggle('focus-active',st.focus);
+ $('factory-viewport').dataset.density=(p1?.stations?.length||0)>5?'dense':'standard';
  for(const svg of [$('factory-a'),$('factory-b')]){
   const view=svg.viewBox.baseVal,rect=svg.getBoundingClientRect();
   const scale=Math.min(rect.width/(view.width||1200),rect.height/(view.height||600));
@@ -686,6 +771,7 @@ function updateScene(){
   renderStationInspector();renderOrders();renderEventLog();st.lastInspectorPaint=now;
  }
  updateScheduleCursor();
+ updateExperienceMoment();
  if(presentationCompareEnabled())renderPresentationCompare();
 }
 function renderOrders(){
@@ -990,7 +1076,7 @@ function renderAnalysis(){
  }).join('')}</tbody></table>`;
  $$('#alternatives-table tr[data-signature]').forEach(tr=>tr.onclick=()=>selectAlternative(tr.dataset.signature));
  const chosen=d.alternatives.find(a=>a.signature===d.selected) || d.alternatives[0];
- if(!chosen){$('alternative-detail').innerHTML='Nenhuma alternativa disponível.';return}
+ if(!chosen){$('alternative-detail').innerHTML='Nenhuma alternativa disponível.';renderExperienceBrief();renderExperienceOrders();return}
  const issue=chosen.restriction_reasons?.length?chosen.restriction_reasons.join(' · '):'Competências individuais e capacidade de buffers ainda não têm verificação completa no modelo.';
  $('alternative-detail').innerHTML=`${decisionReviewMarkup()}<h3 class="alt-name">${esc(chosen.action)}</h3><span class="tiny-tag ${chosen.feasible?'':'caution'}">${chosen.feasible?'Simulada':'Não simulável'}</span><p class="alt-description">${esc(chosen.rationale||chosen.verdict_reason||'Resposta enumerada pelo motor.')}</p>
  <div class="alt-metrics"><div><small>Pedidos no prazo</small><strong>${h(chosen.sla_pct)}%</strong></div><div><small>Término previsto</small><strong>${h(chosen.makespan_h)} h</strong></div><div><small>Investimento</small><strong>${brl(chosen.investment)}</strong></div><div><small>Economia líquida</small><strong>${brl(chosen.savings)}</strong></div></div>
@@ -999,6 +1085,8 @@ function renderAnalysis(){
  $('alt-choose').onclick=()=>navigate('decisoes');
  bindReviewButtons($('alternative-detail'));
  renderFrontier();
+ renderExperienceBrief();
+ renderExperienceOrders();
  $('impact-orders').innerHTML=`<table class="data-table"><thead><tr><th>Pedido</th><th>Prazo</th><th>Sem resposta</th><th>Com resposta</th><th>Condição</th></tr></thead><tbody>${(chosen.order_impacts||[]).map(o=>`<tr><td>${esc(o.id)}</td><td>${h(o.due_h)} h</td><td>${h(o.before_h)} h</td><td>${h(o.after_h)} h</td><td><span class="tiny-tag ${o.late_after?'caution':''}">${o.late_after?'Atraso previsto':'No prazo'}</span></td></tr>`).join('')}</tbody></table>`;
  $('impact-orders').insertAdjacentHTML('beforeend','<button id="explain-impact" class="subtle-button explanation-action">Entender os atrasos e diferenças</button>');
  $('explain-impact').onclick=()=>openHelp('impact');
@@ -1873,6 +1961,34 @@ function bindEvents(){
    st.order=imp.find(x=>x.late_before)?.id||st.data.orders[0]?.id||null;st.scene='incident';st.playing=false;renderScene(true);$('orders-row').scrollIntoView({block:'center',behavior:'smooth'});
   }
  };
+ // Presentation-only navigation. No simulation, cost or persistence mutation.
+ $('experience-story').addEventListener('click',event=>{
+  const button=event.target.closest('[data-experience-scene]');if(!button||!st.data)return;
+  const mode=button.dataset.experienceScene;
+  if(!['normal','incident','split'].includes(mode))return;
+  if(mode==='split'&&!replayFor('response')){navigate('analise');return;}
+  st.playing=false;st.scene=mode;st.focus=mode!=='normal';
+  st.station=st.data.spec?.station||st.station;
+  const outage=replayFor('incident')?.outage;
+  st.t=mode==='normal'?0:mode==='incident'?(Number(outage?.start)||0):informativeComparisonTime();
+  renderScene(true);
+  $('factory-viewport').scrollIntoView({block:'center',behavior:'smooth'});
+ });
+ $('experience-brief').addEventListener('click',event=>{
+  const button=event.target.closest('[data-experience-go]');if(!button)return;
+  if(button.dataset.experienceGo==='factory'){
+   st.scene='split';st.playing=false;st.t=informativeComparisonTime();navigate('simulacao');
+   $('factory-viewport').scrollIntoView({block:'center',behavior:'smooth'});
+  }else if(button.dataset.experienceGo==='decisions')navigate('decisoes');
+ });
+ $('experience-orders').addEventListener('click',event=>{
+  const button=event.target.closest('[data-experience-order]');if(!button||!st.data)return;
+  const order=button.dataset.experienceOrder;
+  if(!st.data.orders.some(o=>o.id===order))return;
+  st.order=order;st.scene='incident';st.playing=false;st.focus=true;
+  st.t=Math.min(horizon(),Math.max(0,Number(st.data.spec?.start_h)||0));
+  navigate('simulacao');$('orders-row').scrollIntoView({block:'center',behavior:'smooth'});
+ });
  $('event-log').addEventListener('click',event=>{
   const item=event.target.closest('[data-event-time]');if(!item)return;
   const t=Number(item.dataset.eventTime);if(!Number.isFinite(t))return;

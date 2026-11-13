@@ -71,21 +71,36 @@ body.eng-chart-zoom-active{overflow:hidden!important;}
 @media(max-width:1080px){.eng-selection-values{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:530px){.eng-selection-values{grid-template-columns:1fr;}}
 
-/* AM15: readable labels and a textual counterpart to the logical plant. */
-#view-simulacao .factory-viewport .station-name{font-size:calc(26px * var(--factory-label-factor,1));letter-spacing:0;}
-#view-simulacao .factory-viewport .station-status{font-size:calc(16px * var(--factory-label-factor,1));letter-spacing:0;}
-#view-simulacao .factory-viewport .station-caption{font-size:calc(18px * var(--factory-label-factor,1));}
-.map-overview-small .machine-telemetry,.map-overview-small .station-job-line,.map-overview-small .factory-label{visibility:hidden;}
+/* AM15 / EV02 — cartão de posto em três níveis: SVG = estado essencial,
+   inspetor = operação, leitura textual = nomes completos. Alteração da
+   camada existente, sem criar outra folha de estilo ou modelo de dados. */
+#view-simulacao .factory-viewport .station-name{font-size:23px;letter-spacing:0;font-weight:840;}
+#view-simulacao .factory-viewport .station-status{font-size:13px;letter-spacing:0;font-weight:850;}
+#view-simulacao .factory-viewport .station-caption{font-size:17px;}
+#view-simulacao .factory-viewport .station-description{font-weight:740;fill:#F2F6F2;}
+#view-simulacao .factory-viewport .station-footer-panel{fill:#15313A;stroke:#4E7476;stroke-width:0.9;fill-opacity:.98;}
+#view-simulacao .factory-viewport .station-group.down .station-footer-panel{fill:#352925;stroke:#A8663A;}
+/* Telemetria sobre a máquina e barras de operações eram ilegíveis no mapa:
+   os dados permanecem no inspetor e na leitura textual da AM15. */
+#view-simulacao .factory-viewport .machine-telemetry,
+#view-simulacao .factory-viewport .station-job-line,
+#view-simulacao .factory-viewport [data-k=queue-units]{display:none;}
+#view-simulacao .factory-viewport .station-work-value{fill:#BDE6DB;}
+#view-simulacao .factory-viewport .station-group.down .station-work-value{fill:#FFC6A5;}
+#view-simulacao .factory-viewport .station-group.selected:not(.down) .selection-halo{opacity:1;stroke:#9DE8D1;stroke-width:2.4;stroke-dasharray:8 6;}
+#view-simulacao .factory-viewport .station-group.selected:not(.down) .station-base{stroke:#A9E9D8;stroke-width:2.4;}
+#view-simulacao .factory-viewport .station-group.down .station-base{stroke:#FF681B;stroke-width:2.7;}
+#view-simulacao .factory-viewport .station-group.down .station-status{fill:#FFC49D;}
+#view-simulacao .factory-viewport .station-group:focus-visible .selection-halo{opacity:1;stroke:#FCFAED;stroke-width:3.2;stroke-dasharray:0;}
+.map-overview-small .factory-label{visibility:hidden;}
 .factory-readout{border:1px solid #cedbd7;background:#f7faf8;margin-top:12px;color:#244b45;padding:12px 14px;}
 .factory-readout summary{font-size:13px;font-weight:700;cursor:pointer;}
-.factory-readable-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px;margin-top:12px;}
+.factory-readable-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px;margin-top:12px;max-height:360px;overflow:auto;}
 .factory-readable-list button{text-align:left;padding:12px;background:#fff;border:1px solid #c9dcd5;color:#244b45;display:grid;gap:7px;min-width:0;}
-.factory-readable-list strong{font-size:14px;overflow-wrap:anywhere;}.factory-readable-list span{font-size:13px;line-height:1.5;}.factory-readable-list small{font-size:12px;color:#436f64;}
-.factory-readable-list button[aria-pressed=true]{border-color:#d96c2f;}.factory-readable-list button:focus-visible{outline:3px solid #e2783d;outline-offset:2px;}
-
-.map-overview-small [data-k=workers],.map-overview-small .station-description{visibility:hidden;}
-
-.factory-readable-list{max-height:360px;overflow:auto;}.presentation-mode .factory-readout{display:none;}
-
+.factory-readable-list strong{font-size:14px;overflow-wrap:anywhere;}
+.factory-readable-list span{font-size:13px;line-height:1.5;}
+.factory-readable-list small{font-size:12px;color:#436f64;}
+.factory-readable-list button[aria-pressed=true]{border-color:#d96c2f;}
+.factory-readable-list button:focus-visible{outline:3px solid #e2783d;outline-offset:2px;}
+.presentation-mode .factory-readout{display:none;}
 .factory-readout{order:4;}
-#view-simulacao .factory-viewport .station-job-line text,#view-simulacao .factory-viewport .machine-telemetry{font-size:14px;}
