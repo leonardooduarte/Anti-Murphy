@@ -1,0 +1,3 @@
+Base ZIP visual SHA256 4908c612fd98c2b8a8bc4e3e102089ee985e7f97b22ed675cbc4489fe0954bec
+AM15 c7e132d changes: ['atelier/web/acabamento_banca_final.css', 'atelier/web/index.html', 'atelier/web/app.js']
+New: ['atelier/web/experience_v01.css']

@@ -1,0 +1,40 @@
+{
+  "version": "AM19-2026.1",
+  "branch": "correcao-am19-contratos",
+  "base_kind": "uploaded_visual_zip",
+  "base_zip_sha256": "4908c612fd98c2b8a8bc4e3e102089ee985e7f97b22ed675cbc4489fe0954bec",
+  "base_visual_checkpoint": "8000e8d33470a6167a6e2c669f80f1d4df0b9de5",
+  "upstream_am15_commit": "c7e132da54a4f398df13fcdbac6152f41971f922",
+  "base_files_retained": 576,
+  "project_files": 602,
+  "changed_existing_files": [
+    "README.md",
+    "tests/test_operation_ui.py",
+    "tests/test_restauracao_acesso.py",
+    "tests/test_v31_editorial.py",
+    "tools/qa_editorial_browser.py"
+  ],
+  "zip_integrity": true,
+  "patch_matches_full_zip_sha256": true,
+  "regression_passed": 556,
+  "regression_failed": 0,
+  "resolved_preexisting_failures": 5,
+  "subtests_passed": 10,
+  "new_distribution_tests_passed": 3,
+  "extracted_directed_tests_passed": 19,
+  "primary_launcher_real_http_no_site_packages": true,
+  "visual_sources_identical_to_received_zip": true,
+  "engine_identical_to_received_zip": true,
+  "official_experiments_passed": 3,
+  "browser_resolutions": [
+    "1280x720",
+    "1366x768",
+    "1920x1080"
+  ],
+  "offline_contract_comparisons_passed": 16,
+  "native_windows_validated": false,
+  "not_homologated": [
+    "tools/browser_offline.js requires DEMO_NEXUS_V30.html absent from input"
+  ],
+  "classic_navigation_coverage": "public areas continuous; ten tools direct entry in separate AppTest sessions"
+}

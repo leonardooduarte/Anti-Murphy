@@ -1,0 +1,12 @@
+{
+  "version": "AM19-2026.1",
+  "base_kind": "uploaded_visual_zip",
+  "base_zip_sha256": "4908c612fd98c2b8a8bc4e3e102089ee985e7f97b22ed675cbc4489fe0954bec",
+  "base_commit": "8000e8d33470a6167a6e2c669f80f1d4df0b9de5",
+  "upstream_commit": "c7e132da54a4f398df13fcdbac6152f41971f922",
+  "branch": "correcao-am19-contratos",
+  "passed": 556,
+  "failed": 0,
+  "resolved_preexisting_failures": 5,
+  "subtests_passed": 10
+}

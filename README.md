@@ -1,3 +1,19 @@
+# Versão atual: AM19-2026.1 sobre Evolução Visual 02
+
+Base recebida: `ANTI_MURPHY_EVOLUCAO_VISUAL_02_COMPLETO.zip`, preservando AM15 e as correções anteriores. A evolução visual do pacote permanece byte a byte igual; esta etapa trata testes e distribuição.
+
+[Baixar aplicativo completo](ENTREGAS/AM19/ANTI_MURPHY_AM19_COMPLETO_2026.zip) · [Patch sobre o ZIP visual](ENTREGAS/AM19/ANTI_MURPHY_PATCH_AM19_2026.zip) · [Relatório](ENTREGAS/AM19/RELATORIO_AM19_2026.md) · [Continuidade](ENTREGAS/AM19/CONTINUIDADE_AM19_2026.md) · [Entradas do programa](ENTREGAS/AM19/ENTRADAS_AM19_2026.md) · [ZIP-base recebido](ENTREGAS/AM19/ANTI_MURPHY_EVOLUCAO_VISUAL_02_COMPLETO.zip).
+
+Abra o ZIP e clique em **Download raw file**. Extraia em pasta nova e execute `ANTI_MURPHY_FINAL_2026/INICIAR_ANTI_MURPHY.bat`. Preserve a instalação anterior e seus projetos. As prévias HTML restauradas são exemplos estáticos; o aplicativo atual é aberto pelo BAT/start.py.
+
+As cinco falhas anteriores foram resolvidas sem apagar ou desativar testes. Regressão: **556 aprovados, zero falhas e dez subtestes aprovados**. Três experimentos oficiais e navegador nas três resoluções passaram. Partida real sem pacotes de site verificada. ZIP e patch reproduzem 602 arquivos; 19 testes direcionados passaram novamente após extração.
+
+Windows/BAT/projetor aguardam homologação nativa. Um runner Node opcional antigo depende de `DEMO_NEXUS_V30.html`, ausente da base; não foi homologado. Leia as limitações do harness e da cobertura histórica no relatório. As versões e branches anteriores permanecem preservadas.
+
+---
+
+Histórico das versões anteriores:
+
 # Versão atual AM15 sobre AM14
 
 [Aplicativo completo](ENTREGAS/AM15/ANTI_MURPHY_AM15_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM15/ANTI_MURPHY_PATCH_AM15_2026.zip) · [Relatório](ENTREGAS/AM15/RELATORIO_AM15_2026.md).
