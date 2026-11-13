@@ -1,3 +1,15 @@
+# Anti-Murphy — distribuição AM19 sobre Evolução Visual 02
+
+Para iniciar o aplicativo atual no Windows, execute **INICIAR_ANTI_MURPHY.bat**. Ele abre `start.py` e a interface web local em `atelier`; não exige Node ou Streamlit nesse caminho. Python 3.10+ é o requisito declarado desse launcher; esta sessão validou Python 3.12 no Linux, sem homologação nativa no Windows.
+
+`app.py` e `tools/start_nexus.py` preservam a interface histórica Streamlit e dependem de suas bibliotecas. As prévias `PREVIEW_OPERACAO.html` e `PREVIEW_FACTORY_COMMAND.html` são demonstrações estáticas, não o projeto ativo. Consulte `ENTRADAS_AM19_2026.md`, `RELATORIO_AM19_2026.md` e `CONTINUIDADE_AM19_2026.md`.
+
+Extraia em pasta nova, preserve seus projetos e a instalação anterior. A evolução visual recebida foi mantida; esta etapa não altera motor, fórmulas ou telas.
+
+---
+
+Documentação anterior preservada:
+
 # ANTI-MURPHY — VERSÃO CANDIDATA À BANCA (2026)
 
 **Comece por [`LEIA_PRIMEIRO_VERSAO_FINAL.md`](LEIA_PRIMEIRO_VERSAO_FINAL.md).** O modo de apresentação e os três experimentos estão descritos em `docs/`. O código do motor e o inicializador principal foram preservados.

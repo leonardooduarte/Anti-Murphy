@@ -60,10 +60,10 @@ def test_retorno_de_legacy_nao_reentra_em_legacy():
 
 def test_engine_inalterado_no_pacote_de_restauracao():
     from hashlib import sha256
-    original=Path('/mnt/data/ANTI_MURPHY_V31_OPERACAO/simulation/engine.py')
-    restored=ROOT/'simulation/engine.py'
-    if original.is_file():
-        assert sha256(original.read_bytes()).digest()==sha256(restored.read_bytes()).digest()
+    import json
+    expected=json.loads((ROOT/'docs/AM19/base-reference.json').read_text('utf-8'))['sha256']['simulation/engine.py']
+    assert sha256((ROOT/'simulation/engine.py').read_bytes()).hexdigest()==expected
+
 
 
 def test_launcher_abre_navegador_sem_npm():

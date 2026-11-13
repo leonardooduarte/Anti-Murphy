@@ -1,0 +1,10 @@
+{
+  "source": "ANTI_MURPHY_EVOLUCAO_VISUAL_02_COMPLETO.zip",
+  "sha256": {
+    "simulation/engine.py": "83b436fe095a76d6eece7090a7af57856c3cd09ba8102bfd72dd473601ce6ac7",
+    "atelier/web/app.js": "65357247765a9cf596f6fd3bc301226ec3d2311bc0680c79e311b0df2f8e27c9",
+    "atelier/web/index.html": "f3afb755d19101641158f6c8e58697c42d4f8389b15d0b2c1d92d7d81f9aa61e",
+    "atelier/web/acabamento_banca_final.css": "f1aa7179e14936cb08bbcf8ff8e2e90d5dae40563664f457d05873a24c25858c",
+    "atelier/web/experience_v01.css": "e71f33b3ef8ee79e888ae8a12b3c091ff50ed01fa9e732eff875b883bdfb3db3"
+  }
+}
