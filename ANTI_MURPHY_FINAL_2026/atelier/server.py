@@ -5,13 +5,28 @@ from __future__ import annotations
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, unquote
-import json, mimetypes, os, sys, threading, traceback, webbrowser
+import json, mimetypes, os, re, sys, threading, traceback, webbrowser
 
 from atelier.service import Studio, StudioError
 
 ROOT=Path(__file__).resolve().parents[1]
 WEB=Path(__file__).resolve().parent/'web'
 STUDIO=None
+
+
+def _local_authority(value, port):
+    """Accept only explicit loopback names at this HTTP listener's port.
+
+    No DNS lookup: a remote name resolving to loopback is still untrusted.
+    localhost and numeric loopback remain distinct browser origins.
+    """
+    match=re.fullmatch(r'(localhost|127\.0\.0\.1|\[::1\])(?::([0-9]{1,5}))?',value,re.IGNORECASE)
+    if match is None:
+        return None
+    effective_port=int(match.group(2)) if match.group(2) else 80
+    if effective_port!=port:
+        return None
+    return match.group(1).lower(),effective_port
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -36,7 +51,25 @@ class Handler(BaseHTTPRequestHandler):
     def _fail(self,error,status=400):
         self.send_json({'error':str(error)},status)
 
+    def _allow_local_request(self):
+        hosts=self.headers.get_all('Host',[])
+        origins=self.headers.get_all('Origin',[])
+        authority=_local_authority(hosts[0],self.server.server_port) if len(hosts)==1 else None
+        if authority is None or not self.path.startswith('/'):
+            self._fail('Endereço da requisição não autorizado. Use o endereço local exibido na inicialização.',403)
+            return False
+        if origins:
+            origin=origins[0]
+            # Serialized browser origins contain only scheme and authority.
+            origin_authority=(_local_authority(origin[7:],self.server.server_port)
+                              if origin.startswith('http://') else None)
+            if len(origins)!=1 or origin_authority!=authority:
+                self._fail('Origem da requisição não autorizada.',403)
+                return False
+        return True
+
     def do_GET(self):
+        if not self._allow_local_request():return
         try:
             path=unquote(urlparse(self.path).path)
             if path=='/api/state':return self.send_json(STUDIO.info())
@@ -65,10 +98,7 @@ class Handler(BaseHTTPRequestHandler):
             traceback.print_exc();return self._fail('Falha interna. Consulte o registro de inicialização.',500)
 
     def do_POST(self):
-        origin=self.headers.get('Origin')
-        host=self.headers.get('Host','')
-        if origin and urlparse(origin).netloc != host:
-            return self._fail('Origem da requisição não autorizada.',403)
+        if not self._allow_local_request():return
         if self.headers.get('Content-Type','').split(';',1)[0].strip()!='application/json':
             return self._fail('Envie dados em JSON.',415)
         try:
