@@ -122,68 +122,79 @@ class Studio:
         self._last_config=None
         self._recovery_warning=None
         self._workload_blocked=False
-        p=storage/'projeto.json'
-        if p.exists():
-            try:
-                data=json.loads(p.read_text('utf-8'))
-                if not validate_model(data['stations'],data['orders']):
-                    self.state['stations']=data['stations']; self.state['orders']=data['orders']
-                    self.state['nx_source']='Projeto local recuperado'
-                    self.state['nx_rule']=data.get('dispatch_rule','EDD')
-            except (OSError,ValueError,KeyError,TypeError):pass
         self.project_id='principal'
         self.projects_dir=self.storage/'projetos'
         self.experiments_dir=self.storage/'experimentos'
         self.projects_dir.mkdir(parents=True,exist_ok=True)
         self.experiments_dir.mkdir(parents=True,exist_ok=True)
-        active=self.storage/'projeto_ativo.json'
-        startup_spec={'station':'CNC' if 'CNC' in self.state['stations'] else next(iter(self.state['stations'])),
-                      'start_h':4,'duration_h':8,'budget':10000,'min_sla':80,'delay_h':2}
+        startup_spec={'station':'CNC','start_h':4,'duration_h':8,
+                      'budget':10000,'min_sla':80,'delay_h':2}
+        issues=[]
+
+        def read(path):
+            data=json.loads(path.read_text('utf-8'))
+            if not isinstance(data,dict):
+                raise ValueError('documento deve ser um objeto JSON')
+            return data
+
+        def validated(data, pid):
+            # Validate the entire candidate before publishing any part of it.
+            self._project_file(pid)
+            errors=validate_model(data['stations'],data['orders'])
+            if errors or _operability_errors(data['stations'],data['orders']):
+                raise ValueError('modelo inválido')
+            rule=data.get('dispatch_rule','EDD')
+            if rule not in ('EDD','SPT','FIFO'):
+                raise ValueError('regra de despacho inválida')
+            if 'spec' in data and not isinstance(data['spec'],dict):
+                raise ValueError('configuração do experimento inválida')
+            spec={**asdict(ExperimentSpec()),**data.get('spec',{})}
+            if 'spec' not in data:
+                spec.update({k:v for k,v in startup_spec.items() if k in spec})
+                spec['station']='CNC' if 'CNC' in data['stations'] else next(iter(data['stations']))
+            ExperimentSpec(**spec).validate(data['stations'])
+            if spec['objective']=='critical' and spec['critical_order'] not in {o['id'] for o in data['orders']}:
+                raise ValueError('pedido prioritário inexistente')
+            delay=float(data.get('delay_h',2.))
+            if not 0<=delay<=168:
+                raise ValueError('espera da intervenção inválida')
+            return data,pid,{**spec,'delay_h':delay},rule
+
+        failures=(OSError,ValueError,TypeError,KeyError,AttributeError,IndexError,OverflowError,StudioError)
+        candidate=None
+        active=storage/'projeto_ativo.json'
         if active.exists():
             try:
-                selected=json.loads(active.read_text('utf-8')).get('id','')
-                project=self._project_file(selected)
-                if project.is_file():
-                    data=json.loads(project.read_text('utf-8'))
-                    if not validate_model(data['stations'],data['orders']):
-                        self.project_id=selected
-                        self.state['stations']=data['stations']
-                        self.state['orders']=data['orders']
-                        self.state['nx_rule']=data.get('dispatch_rule','EDD')
-                        startup_spec.update(data.get('spec') or {})
-                        startup_spec['delay_h']=data.get('delay_h',startup_spec['delay_h'])
-            except (OSError,ValueError,TypeError,KeyError):pass
-        # Recover a previously confirmed model if the current active pointer or
-        # project carries a stale/invalid priority or an incomplete write.
-        try:
-            ExperimentSpec(**{**asdict(ExperimentSpec()), **{k:v for k,v in startup_spec.items() if k in asdict(ExperimentSpec())}}).validate(self.state['stations'])
-            if _operability_errors(self.state['stations'],self.state['orders']):
-                raise ValueError('Projeto contém posto sem equipe para os pedidos.')
-            if self.state.get('nx_rule') not in ('EDD','SPT','FIFO'):
-                raise ValueError('Regra de despacho persistida inválida.')
-            if (startup_spec.get('objective')=='critical' and startup_spec.get('critical_order') not in {o['id'] for o in self.state['orders']}):
-                raise ValueError('Prioridade persistida faz referência a pedido inexistente.')
-        except (ValueError,TypeError,KeyError) as exc:
-            checkpoint=self.storage/'projeto_confirmado.json'
-            recovered=False
-            if checkpoint.exists():
-                try:
-                    saved=json.loads(checkpoint.read_text('utf-8'))
-                    if not (validate_model(saved['stations'],saved['orders'])+_operability_errors(saved['stations'],saved['orders'])):
-                        candidate_spec={**asdict(ExperimentSpec()),**(saved.get('spec') or {})}
-                        ExperimentSpec(**candidate_spec).validate(saved['stations'])
-                        self.state['stations']=saved['stations'];self.state['orders']=saved['orders']
-                        self.state['nx_rule']=saved.get('dispatch_rule','EDD')
-                        startup_spec=candidate_spec;self.project_id=saved.get('id','principal')
-                        recovered=True
-                except (OSError,ValueError,TypeError,KeyError):pass
-            if not recovered:
-                self.state['stations']=deepcopy(STATIONS_BASE)
-                self.state['orders']=deepcopy(ORDERS_BASE)
-                self.state['nx_rule']='EDD';self.project_id='principal'
-                startup_spec=asdict(ExperimentSpec())
-            self._recovery_warning='Configuração inválida na abertura; recuperada a última versão confirmada ou o exemplo padrão.'
-        startup_spec['station']=startup_spec['station'] if startup_spec['station'] in self.state['stations'] else next(iter(self.state['stations']))
+                pid=read(active)['id']
+                candidate=validated(read(self._project_file(pid)),pid)
+            except failures:
+                issues.append('projeto ativo inválido ou indisponível')
+        # A confirmed document includes the complete model and experiment.
+        # Prefer it to projeto.json, which intentionally stores only the model.
+        checkpoint=storage/'projeto_confirmado.json'
+        if candidate is None and checkpoint.exists():
+            try:
+                data=read(checkpoint)
+                candidate=validated(data,data.get('id','principal'))
+                if not active.exists():issues.append('referência do projeto ativo ausente')
+            except failures:
+                issues.append('última versão confirmada inválida ou indisponível')
+        basic=storage/'projeto.json'
+        if candidate is None and basic.exists():
+            try:
+                candidate=validated(read(basic),'principal')
+            except failures:
+                issues.append('modelo local inválido ou indisponível')
+        if candidate is not None:
+            data,self.project_id,startup_spec,rule=candidate
+            self.state['stations']=data['stations'];self.state['orders']=data['orders']
+            self.state['nx_rule']=rule
+            self.state['nx_source']='Projeto local recuperado'
+        if issues:
+            origin='última configuração local válida' if candidate else 'exemplo padrão'
+            self._recovery_warning=('Abertura com recuperação: '+ '; '.join(issues)+
+                '. Exibindo '+origin+'. Arquivos originais preservados; nenhuma gravação automática foi realizada. '
+                'Confira os dados antes de aplicar ou salvar alterações.')
         try:
             self.calculate(startup_spec,initial=True)
         except WorkloadLimitError as exc:
@@ -222,10 +233,12 @@ class Studio:
             paths=[self.storage/'projeto.json',self._project_file(pid),
                    self.storage/'projeto_ativo.json',self.storage/'projeto_confirmado.json']
             # A second reader must not change revisions merely by starting.
-            if self._initializing and not self._recovery_warning and all(p.is_file() for p in paths):
+            if self._initializing and (self._recovery_warning or all(p.is_file() for p in paths)):
                 return
             self._persist_model_locked(state,project_id,name)
             self._storage_revision=project_revision(self.storage)
+            if not self._initializing:
+                self._recovery_warning=None
 
     def _persist_model_locked(self, state=None, project_id=None, name=None):
         """Stage all local model files; publish no memory until disk confirms."""
