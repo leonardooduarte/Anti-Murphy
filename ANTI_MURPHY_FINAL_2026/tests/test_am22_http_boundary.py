@@ -44,7 +44,7 @@ def test_untrusted_host_rejected_before_service(endpoint,method,bad):
     headers=[] if host is None else [('Host',host)]
     if method=='POST' and host:headers.append(('Origin','http://'+host))
     before=(studio.storage/'projeto_confirmado.json').read_bytes()
-    status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+    status,_,_=request(port,method,path='/api/run' if method=='POST' else '/api/state',headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
     assert status==403
     assert not spy.method_calls
     assert (studio.storage/'projeto_confirmado.json').read_bytes()==before
@@ -59,7 +59,7 @@ def test_untrusted_host_rejected_before_service(endpoint,method,bad):
 ])
 def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
     port,_,spy=endpoint
-    status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+    status,_,_=request(port,method,path='/api/run' if method=='POST' else '/api/state',headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
     assert status==403
     assert not spy.method_calls
 

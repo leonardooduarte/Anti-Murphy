@@ -1,0 +1,1079 @@
+FFFFFFFFFFFFFFFFFFF.FFFFFFF.FFF.F.F.F.FFFFFFFFFF........FF               [100%]
+=================================== FAILURES ===================================
+___ test_untrusted_host_rejected_before_service[external.example:{port}-GET] ___
+
+endpoint = (45819, <atelier.service.Studio object at 0x7fa18dcda090>, <Mock id='140331841163328'>)
+method = 'GET', bad = 'external.example:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+__ test_untrusted_host_rejected_before_service[external.example:{port}-POST] ___
+
+endpoint = (36239, <atelier.service.Studio object at 0x7fa18dd47800>, <Mock id='140331841163472'>)
+method = 'POST', bad = 'external.example:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+_ test_untrusted_host_rejected_before_service[127.0.0.1.external.example:{port}-GET] _
+
+endpoint = (42429, <atelier.service.Studio object at 0x7fa18d8b03b0>, <Mock id='140331841106960'>)
+method = 'GET', bad = '127.0.0.1.external.example:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_host_rejected_before_service[127.0.0.1.external.example:{port}-POST] _
+
+endpoint = (33251, <atelier.service.Studio object at 0x7fa18dcb4f50>, <Mock id='140331841269840'>)
+method = 'POST', bad = '127.0.0.1.external.example:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+_ test_untrusted_host_rejected_before_service[localhost.external.example:{port}-GET] _
+
+endpoint = (35527, <atelier.service.Studio object at 0x7fa18d8a1f70>, <Mock id='140331845577200'>)
+method = 'GET', bad = 'localhost.external.example:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_host_rejected_before_service[localhost.external.example:{port}-POST] _
+
+endpoint = (37689, <atelier.service.Studio object at 0x7fa18d8a2f90>, <Mock id='140331841171920'>)
+method = 'POST', bad = 'localhost.external.example:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+______ test_untrusted_host_rejected_before_service[127.0.0.2:{port}-GET] _______
+
+endpoint = (39651, <atelier.service.Studio object at 0x7fa18d8b0e90>, <Mock id='140331841098656'>)
+method = 'GET', bad = '127.0.0.2:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+______ test_untrusted_host_rejected_before_service[127.0.0.2:{port}-POST] ______
+
+endpoint = (39453, <atelier.service.Studio object at 0x7fa18dcd9f70>, <Mock id='140331841106576'>)
+method = 'POST', bad = '127.0.0.2:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+_______ test_untrusted_host_rejected_before_service[0.0.0.0:{port}-GET] ________
+
+endpoint = (39565, <atelier.service.Studio object at 0x7fa18d8a0500>, <Mock id='140331845969024'>)
+method = 'GET', bad = '0.0.0.0:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_______ test_untrusted_host_rejected_before_service[0.0.0.0:{port}-POST] _______
+
+endpoint = (36589, <atelier.service.Studio object at 0x7fa18d89e4b0>, <Mock id='140331845520704'>)
+method = 'POST', bad = '0.0.0.0:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+______ test_untrusted_host_rejected_before_service[localhost.:{port}-GET] ______
+
+endpoint = (37919, <atelier.service.Studio object at 0x7fa18dcdb830>, <Mock id='140331846922752'>)
+method = 'GET', bad = 'localhost.:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_____ test_untrusted_host_rejected_before_service[localhost.:{port}-POST] ______
+
+endpoint = (37627, <atelier.service.Studio object at 0x7fa18d963fe0>, <Mock id='140331841162320'>)
+method = 'POST', bad = 'localhost.:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+____ test_untrusted_host_rejected_before_service[user@localhost:{port}-GET] ____
+
+endpoint = (34377, <atelier.service.Studio object at 0x7fa18d8b28d0>, <Mock id='140331842517568'>)
+method = 'GET', bad = 'user@localhost:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+___ test_untrusted_host_rejected_before_service[user@localhost:{port}-POST] ____
+
+endpoint = (43285, <atelier.service.Studio object at 0x7fa18d89fe90>, <Mock id='140331841891376'>)
+method = 'POST', bad = 'user@localhost:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+_________ test_untrusted_host_rejected_before_service[localhost:1-GET] _________
+
+endpoint = (38681, <atelier.service.Studio object at 0x7fa18d963890>, <Mock id='140331845973920'>)
+method = 'GET', bad = 'localhost:1'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+________ test_untrusted_host_rejected_before_service[localhost:1-POST] _________
+
+endpoint = (45843, <atelier.service.Studio object at 0x7fa18d962f30>, <Mock id='140331841088368'>)
+method = 'POST', bad = 'localhost:1'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+_______ test_untrusted_host_rejected_before_service[localhost:65536-GET] _______
+
+endpoint = (42401, <atelier.service.Studio object at 0x7fa18d89f620>, <Mock id='140331841896416'>)
+method = 'GET', bad = 'localhost:65536'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+______ test_untrusted_host_rejected_before_service[localhost:65536-POST] _______
+
+endpoint = (43151, <atelier.service.Studio object at 0x7fa18d8b3e30>, <Mock id='140331841893536'>)
+method = 'POST', bad = 'localhost:65536'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+______ test_untrusted_host_rejected_before_service[localhost:{port}/-GET] ______
+
+endpoint = (35725, <atelier.service.Studio object at 0x7fa18d962c90>, <Mock id='140331841548560'>)
+method = 'GET', bad = 'localhost:{port}/'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_host_rejected_before_service[localhost:{port},external.example-GET] _
+
+endpoint = (40499, <atelier.service.Studio object at 0x7fa18dcc6750>, <Mock id='140331847468864'>)
+method = 'GET', bad = 'localhost:{port},external.example'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_host_rejected_before_service[localhost:{port},external.example-POST] _
+
+endpoint = (35779, <atelier.service.Studio object at 0x7fa18d8b16d0>, <Mock id='140331845374928'>)
+method = 'POST', bad = 'localhost:{port},external.example'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+______________ test_untrusted_host_rejected_before_service[-GET] _______________
+
+endpoint = (40483, <atelier.service.Studio object at 0x7fa18d90ef00>, <Mock id='140331845970416'>)
+method = 'GET', bad = ''
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+______________ test_untrusted_host_rejected_before_service[-POST] ______________
+
+endpoint = (43265, <atelier.service.Studio object at 0x7fa18d962b10>, <Mock id='140331845531648'>)
+method = 'POST', bad = ''
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+____________ test_untrusted_host_rejected_before_service[None-GET] _____________
+
+endpoint = (42931, <atelier.service.Studio object at 0x7fa18d8b07a0>, <Mock id='140331845975648'>)
+method = 'GET', bad = None
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+____________ test_untrusted_host_rejected_before_service[None-POST] ____________
+
+endpoint = (38175, <atelier.service.Studio object at 0x7fa18dd47ce0>, <Mock id='140331845965664'>)
+method = 'POST', bad = None
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('bad',[
+        'external.example:{port}','127.0.0.1.external.example:{port}',
+        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
+        'localhost.:{port}','user@localhost:{port}','localhost:1',
+        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
+        '',None,
+    ])
+    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
+        port,studio,spy=endpoint
+        host=bad.format(port=port) if bad else bad
+        headers=[] if host is None else [('Host',host)]
+        if method=='POST' and host:headers.append(('Origin','http://'+host))
+        before=(studio.storage/'projeto_confirmado.json').read_bytes()
+        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:48: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+___________ test_untrusted_origin_rejected_before_service[null-GET] ____________
+
+endpoint = (33245, <atelier.service.Studio object at 0x7fa18dcb5c70>, <Mock id='140331841169664'>)
+method = 'GET', origin = 'null'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_origin_rejected_before_service[https://127.0.0.1:{port}-GET] __
+
+endpoint = (40129, <atelier.service.Studio object at 0x7fa18dd50bc0>, <Mock id='140331846010496'>)
+method = 'GET', origin = 'https://127.0.0.1:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_origin_rejected_before_service[https://127.0.0.1:{port}-POST] _
+
+endpoint = (45379, <atelier.service.Studio object at 0x7fa18dcd9e50>, <Mock id='140331849821040'>)
+method = 'POST', origin = 'https://127.0.0.1:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+_ test_untrusted_origin_rejected_before_service[http://external.example:{port}-GET] _
+
+endpoint = (36621, <atelier.service.Studio object at 0x7fa18d90f1d0>, <Mock id='140331845376896'>)
+method = 'GET', origin = 'http://external.example:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+__ test_untrusted_origin_rejected_before_service[http://localhost:{port}-GET] __
+
+endpoint = (34453, <atelier.service.Studio object at 0x7fa18d963320>, <Mock id='140331841174752'>)
+method = 'GET', origin = 'http://localhost:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+____ test_untrusted_origin_rejected_before_service[http://127.0.0.1:1-GET] _____
+
+endpoint = (42453, <atelier.service.Studio object at 0x7fa18dcdbd10>, <Mock id='140331845957152'>)
+method = 'GET', origin = 'http://127.0.0.1:1'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_origin_rejected_before_service[http://user@127.0.0.1:{port}-GET] _
+
+endpoint = (33119, <atelier.service.Studio object at 0x7fa18dcb4e30>, <Mock id='140331845443392'>)
+method = 'GET', origin = 'http://user@127.0.0.1:{port}'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}/-GET] __
+
+endpoint = (35153, <atelier.service.Studio object at 0x7fa18dcc6480>, <Mock id='140331841894448'>)
+method = 'GET', origin = 'http://127.0.0.1:{port}/'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}/-POST] _
+
+endpoint = (40177, <atelier.service.Studio object at 0x7fa18dcc66f0>, <Mock id='140331859686944'>)
+method = 'POST', origin = 'http://127.0.0.1:{port}/'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}?x=1-GET] _
+
+endpoint = (34287, <atelier.service.Studio object at 0x7fa18d90caa0>, <Mock id='140331845523824'>)
+method = 'GET', origin = 'http://127.0.0.1:{port}?x=1'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}?x=1-POST] _
+
+endpoint = (38357, <atelier.service.Studio object at 0x7fa18dcd8da0>, <Mock id='140331845523440'>)
+method = 'POST', origin = 'http://127.0.0.1:{port}?x=1'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}#fragment-GET] _
+
+endpoint = (35739, <atelier.service.Studio object at 0x7fa18d963320>, <Mock id='140331841172352'>)
+method = 'GET', origin = 'http://127.0.0.1:{port}#fragment'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}#fragment-POST] _
+
+endpoint = (39355, <atelier.service.Studio object at 0x7fa18dcc7380>, <Mock id='140331841573936'>)
+method = 'POST', origin = 'http://127.0.0.1:{port}#fragment'
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+_____________ test_untrusted_origin_rejected_before_service[-GET] ______________
+
+endpoint = (37929, <atelier.service.Studio object at 0x7fa18d9176b0>, <Mock id='140331847468864'>)
+method = 'GET', origin = ''
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_____________ test_untrusted_origin_rejected_before_service[-POST] _____________
+
+endpoint = (42977, <atelier.service.Studio object at 0x7fa18d915940>, <Mock id='140331845445744'>)
+method = 'POST', origin = ''
+
+    @pytest.mark.parametrize('method',['GET','POST'])
+    @pytest.mark.parametrize('origin',[
+        'null','https://127.0.0.1:{port}','http://external.example:{port}',
+        'http://localhost:{port}','http://127.0.0.1:1',
+        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
+        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
+    ])
+    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
+        port,_,spy=endpoint
+        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
+>       assert status==403
+E       assert 404 == 403
+
+tests/test_am22_http_boundary.py:63: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "POST /api/state HTTP/1.1" 404 -
+________________ test_duplicate_boundary_headers_rejected[Host] ________________
+
+endpoint = (39969, <atelier.service.Studio object at 0x7fa18d89fce0>, <Mock id='140331841574656'>)
+header = 'Host'
+
+    @pytest.mark.parametrize('header',['Host','Origin'])
+    def test_duplicate_boundary_headers_rejected(endpoint,header):
+        port,_,spy=endpoint;host=f'127.0.0.1:{port}'
+        headers=[('Host',host),('Origin','http://'+host)]
+        headers.append((header,host if header=='Host' else 'http://'+host))
+>       assert request(port,headers=headers)[0]==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:72: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_______________ test_duplicate_boundary_headers_rejected[Origin] _______________
+
+endpoint = (39179, <atelier.service.Studio object at 0x7fa18dcc7920>, <Mock id='140331841582768'>)
+header = 'Origin'
+
+    @pytest.mark.parametrize('header',['Host','Origin'])
+    def test_duplicate_boundary_headers_rejected(endpoint,header):
+        port,_,spy=endpoint;host=f'127.0.0.1:{port}'
+        headers=[('Host',host),('Origin','http://'+host)]
+        headers.append((header,host if header=='Host' else 'http://'+host))
+>       assert request(port,headers=headers)[0]==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:72: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET /api/state HTTP/1.1" 200 -
+_______________ test_static_files_and_exports_require_local_host _______________
+
+endpoint = (39283, <atelier.service.Studio object at 0x7fa18dcc6fc0>, <Mock id='140331841169664'>)
+
+    def test_static_files_and_exports_require_local_host(endpoint):
+        port,_,spy=endpoint
+        for path in ['/','/app.js','/api/model/export','/api/record/export']:
+>           assert request(port,path=path,headers=[('Host',f'external.example:{port}')])[0]==403
+E           assert 200 == 403
+
+tests/test_am22_http_boundary.py:89: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET / HTTP/1.1" 200 -
+___________________ test_absolute_request_target_is_rejected ___________________
+
+endpoint = (39803, <atelier.service.Studio object at 0x7fa18d8b0920>, <Mock id='140331844589600'>)
+
+    def test_absolute_request_target_is_rejected(endpoint):
+        port,_,spy=endpoint
+>       assert request(port,path=f'http://external.example:{port}/api/state',headers=[('Host',f'localhost:{port}')])[0]==403
+E       assert 200 == 403
+
+tests/test_am22_http_boundary.py:95: AssertionError
+----------------------------- Captured stdout call -----------------------------
+[http] "GET http://external.example:39803/api/state HTTP/1.1" 200 -
+=============================== warnings summary ===============================
+../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[external.example:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[external.example:{port}-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[127.0.0.1.external.example:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[127.0.0.1.external.example:{port}-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost.external.example:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost.external.example:{port}-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[127.0.0.2:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[127.0.0.2:{port}-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[0.0.0.0:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[0.0.0.0:{port}-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost.:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost.:{port}-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[user@localhost:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[user@localhost:{port}-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:1-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:1-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:65536-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:65536-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:{port}/-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:{port},external.example-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:{port},external.example-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[None-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[None-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[null-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[https://127.0.0.1:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[https://127.0.0.1:{port}-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://external.example:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://localhost:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:1-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://user@127.0.0.1:{port}-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}/-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}/-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}?x=1-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}?x=1-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}#fragment-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}#fragment-POST]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[-GET]
+FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[-POST]
+FAILED tests/test_am22_http_boundary.py::test_duplicate_boundary_headers_rejected[Host]
+FAILED tests/test_am22_http_boundary.py::test_duplicate_boundary_headers_rejected[Origin]
+FAILED tests/test_am22_http_boundary.py::test_static_files_and_exports_require_local_host
+FAILED tests/test_am22_http_boundary.py::test_absolute_request_target_is_rejected
+44 failed, 14 passed, 1 warning in 39.61s

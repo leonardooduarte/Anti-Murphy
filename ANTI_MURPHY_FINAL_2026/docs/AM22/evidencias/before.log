@@ -1,0 +1,4 @@
+[http] "GET /api/state HTTP/1.1" 200 -
+GET external.example:46449 None status 200 min_sla 80
+[http] "POST /api/run HTTP/1.1" 200 -
+POST external.example:46449 http://external.example:46449 status 200 min_sla 71

@@ -1,0 +1,4 @@
+[http] "GET /api/state HTTP/1.1" 403 -
+GET external.example:36427 None status 403 min_sla 80
+[http] "POST /api/run HTTP/1.1" 403 -
+POST external.example:36427 http://external.example:36427 status 403 min_sla 80

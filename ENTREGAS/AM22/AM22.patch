@@ -1,0 +1,1673 @@
+--- a/atelier/server.py
++++ b/atelier/server.py
+@@ -5,13 +5,28 @@
+ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+ from pathlib import Path
+ from urllib.parse import urlparse, unquote
+-import json, mimetypes, os, sys, threading, traceback, webbrowser
++import json, mimetypes, os, re, sys, threading, traceback, webbrowser
+ 
+ from atelier.service import Studio, StudioError
+ 
+ ROOT=Path(__file__).resolve().parents[1]
+ WEB=Path(__file__).resolve().parent/'web'
+ STUDIO=None
++
++
++def _local_authority(value, port):
++    """Accept only explicit loopback names at this HTTP listener's port.
++
++    No DNS lookup: a remote name resolving to loopback is still untrusted.
++    localhost and numeric loopback remain distinct browser origins.
++    """
++    match=re.fullmatch(r'(localhost|127\.0\.0\.1|\[::1\])(?::([0-9]{1,5}))?',value,re.IGNORECASE|re.ASCII)
++    if match is None:
++        return None
++    effective_port=int(match.group(2)) if match.group(2) else 80
++    if effective_port!=port:
++        return None
++    return match.group(1).lower(),effective_port
+ 
+ 
+ class Handler(BaseHTTPRequestHandler):
+@@ -36,7 +51,25 @@
+     def _fail(self,error,status=400):
+         self.send_json({'error':str(error)},status)
+ 
++    def _allow_local_request(self):
++        hosts=self.headers.get_all('Host',[])
++        origins=self.headers.get_all('Origin',[])
++        authority=_local_authority(hosts[0],self.server.server_port) if len(hosts)==1 else None
++        if authority is None or not self.path.startswith('/'):
++            self._fail('Endereço da requisição não autorizado. Use o endereço local exibido na inicialização.',403)
++            return False
++        if origins:
++            origin=origins[0]
++            # Serialized browser origins contain only scheme and authority.
++            origin_authority=(_local_authority(origin[7:],self.server.server_port)
++                              if origin.startswith('http://') else None)
++            if len(origins)!=1 or origin_authority!=authority:
++                self._fail('Origem da requisição não autorizada.',403)
++                return False
++        return True
++
+     def do_GET(self):
++        if not self._allow_local_request():return
+         try:
+             path=unquote(urlparse(self.path).path)
+             if path=='/api/state':return self.send_json(STUDIO.info())
+@@ -65,10 +98,7 @@
+             traceback.print_exc();return self._fail('Falha interna. Consulte o registro de inicialização.',500)
+ 
+     def do_POST(self):
+-        origin=self.headers.get('Origin')
+-        host=self.headers.get('Host','')
+-        if origin and urlparse(origin).netloc != host:
+-            return self._fail('Origem da requisição não autorizada.',403)
++        if not self._allow_local_request():return
+         if self.headers.get('Content-Type','').split(';',1)[0].strip()!='application/json':
+             return self._fail('Envie dados em JSON.',415)
+         try:
+--- /dev/null
++++ b/CONTINUIDADE_AM22_2026.md
+@@ -0,0 +1,9 @@
++# Continuidade — AM22-2026.1
++
++Base RECUPERACAO-2026.1, e52b245. Branch correcao-am22-host-origin; checkpoints 6dbca22 e db66668. Somente atelier/server.py foi alterado em produção: GET/POST exigem Host local na porta ativa; Origin, quando presente, deve corresponder à origem HTTP local. Ausência de Origin continua permitida para clientes locais; Host ausente/duplicado/externo e Origin inválido são recusados antes de acessar o serviço. Lançamento, bind, navegação, interface e motor preservados.
++
++664 testes aprovados, zero falhas, dez subtestes, 67 casos novos. Três experimentos preservados. Navegador com 127.0.0.1 e localhost em três resoluções; Modo Banca, gráficos e exportações conferidos. ZIP/patch extraídos e comparados; publicação recuperada do GitHub antes da conclusão. Instale em pasta nova e preserve versões e projetos anteriores.
++
++Próxima etapa: auditoria integrada da versão efetivamente entregue, sem modificar código inicialmente. Conferir simulação, A/B, rastreabilidade econômica, ensaios, dados locais, recuperação, decisões/relatórios, interface e desempenho em fluxos completos. Separar defeitos confirmados de suspeitas. Usar os documentos mais recentes e o código, pois quadros antigos de status têm pendências já resolvidas. Não iniciar novos recursos ou redesenho antes de avaliar os resultados.
++
++Ainda pendente: validação real no Windows/BAT/projetor, a ser executada no computador da apresentação; avaliação visual dos componentes recebidos. AM18 é organização gradual; AM20/21 são caminhos históricos cuja prioridade depende de uso. Não foram corrigidos nesta etapa. Continuar sem agentes paralelos, com checkpoints, branch própria, ZIP, patch e downloads verificados para correções futuras.
+--- /dev/null
++++ b/LEIA_AM22_2026.md
+@@ -0,0 +1 @@
++AM22-2026.1 sobre RECUPERACAO/PRIORIDADE/AM19. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve versões e projetos anteriores. Leia RELATORIO_AM22_2026.md e CONTINUIDADE_AM22_2026.md. Utilize o endereço local mostrado na inicialização; Host e Origin são validados. Windows nativo pendente.
+--- /dev/null
++++ b/RELATORIO_AM22_2026.md
+@@ -0,0 +1,39 @@
++# AM22 — validação local de Host e Origin
++
++## Base e escopo
++
++Base exata e52b2456043ec53d6be00f938032f8907f35c955, RECUPERACAO-2026.1 sobre PRIORIDADE/AM19. Branch correcao-am22-host-origin. Checkpoints 6dbca22 e db66668 (validação ASCII). Trabalhado sem agentes paralelos. Único arquivo de produção alterado: atelier/server.py. Os recursos visuais, editor, DES, fórmulas, decisões, relatórios e dados-base permanecem idênticos. Não foi iniciada auditoria integrada ou correção de outro achado.
++
++## Reprodução anterior à alteração
++
++before.log demonstra, com servidor HTTP real em diretório temporário, GET /api/state com Host external.example:porta retornando 200 e POST /api/run com Host e Origin externos coincidentes retornando 200 e alterando min_sla de 80 para 71. O código anterior verificava apenas a igualdade entre Origin e Host no POST; GET não verificava nenhum dos dois. O bind em 127.0.0.1 não constituía validação da autoridade solicitada.
++
++after.log repete as mesmas requisições na versão corrigida: ambas retornam 403 e a meta permanece 80.
++
++Os primeiros 58 casos automatizados produziram 44 falhas e 14 aprovações na base original; before-tests.log registra a reprodução. Depois foram adicionados nove casos de sintaxe/porta padrão, totalizando 67 novos testes. Foi demonstrada a aceitação indevida dos cabeçalhos por conexão HTTP local; não foi executado um ataque completo com domínio público e mudança real de DNS.
++
++## Contrato implementado
++
++_local_authority aceita somente localhost, 127.0.0.1 e [::1], com a porta efetiva do servidor. Não faz resolução DNS nem confia em Forwarded/X-Forwarded-Host. Nomes externos que resolvam para loopback continuam inválidos. Porta omitida equivale à porta HTTP 80 e só é aceita quando o servidor efetivamente está nessa porta. Outros endereços do bloco 127/8, nomes com ponto final, userinfo, listas, caminhos, sufixos externos e sintaxe inválida são recusados. Maiúsculas em localhost são normalizadas; a comparação é estritamente ASCII para não aceitar caracteres Unicode semelhantes.
++
++Handler._allow_local_request é chamado no início de GET e POST, antes de rotas, leitura de corpo, acesso ao Studio, arquivos estáticos ou exportações. Host ausente, vazio, duplicado ou fora da lista retorna 403. Requisições em formato de URL absoluta também são recusadas; a aplicação usa caminhos locais normais.
++
++Quando Origin está presente, deve existir exatamente um cabeçalho com origem HTTP local, mesma autoridade e porta do Host. null, vazio, esquema diferente, credenciais, caminho, consulta, fragmento e outra porta são recusados com 403. localhost e 127.0.0.1 são origens distintas, como no navegador. Origin ausente continua permitido com Host local válido, preservando clientes locais que não enviam esse cabeçalho; a ausência não é tratada como origem externa nem autenticação. Navegadores serializam origens sem barra final, conforme o contrato aceito. O serviço não é um servidor HTTPS/proxy público.
++
++O lançamento principal continua escutando em 127.0.0.1 com porta dinâmica ou configurada. A aceitação do cabeçalho [::1] não muda o bind nem comprova uma conexão IPv6 nativa. Não foram acrescentadas dependências, autenticação, CORS permissivo ou mudanças de navegação. Esta proteção não identifica usuários nem impede um processo local de enviar requisições locais autorizadas.
++
++## Testes e resultados
++
++67 novos casos em tests/test_am22_http_boundary.py, usando servidor HTTP real, Studio isolado e spy para verificar ausência de chamadas ao serviço nas recusas. Cobrem Host externo com Origin coincidente, GET/POST, Host ausente/inválido/duplicado, Origin inválido/duplicado, portas, aliases locais, clientes sem Origin, navegador com Origin correspondente, arquivos estáticos e exportações. O checkpoint é comparado byte a byte nas recusas de Host; ações locais válidas continuam alterando e persistindo os parâmetros. Os nove casos diretos conferem a sintaxe estrita e a porta HTTP padrão.
++
++atelier/tests/browser_am22.py executa acesso real por 127.0.0.1 e localhost nas resoluções 1280x720, 1366x768 e 1920x1080: abertura, carregamento do mapa, aplicação do modelo por POST, exportação JSON e painéis. Sem erros JavaScript nem respostas 403 nos fluxos permitidos. Seis capturas acompanham a entrega.
++
++Regressão completa: 664 testes aprovados, zero falhas, dez subtestes. Nenhum teste anterior foi apagado, desativado ou relaxado. Os três experimentos oficiais preservaram resultados: A com SLA 100/40/100%, custo da decisão R$12.113,00 e economia líquida R$4.103,68; B e C conforme log. Modo Banca HTTP real (justificativa, registro e relatório) e gráficos/exportações passaram nas três resoluções. O warning AnyIO é de depreciação do plugin de teste.
++
++Comandos: python -m pytest tests contract_tests atelier/tests -q; python -m pytest tests/test_am22_http_boundary.py tests/test_am19_distribution.py -q; python -m atelier.tests.validacao_experimentos_banca; python -m atelier.tests.browser_am22; python -m atelier.tests.browser_acabamento_final; python docs/AM19/evidencias/actual_http_browser.py. Browser requer Playwright/Chromium no ambiente de teste Linux, não no aplicativo distribuído.
++
++## Entrega e limitações
++
++ZIP completo, patch reproduzível sobre e52b245, relatório, logs, continuidade e hashes. Patch confere a base e cria outra pasta sem modificar a origem. ZIP extraído e resultado do patch são comparados por SHA-256; testes direcionados são executados na extração. Os arquivos publicados são recuperados do GitHub e comparados à versão local antes da conclusão.
++
++Windows, BAT e projetor não foram validados nativamente. A auditoria integrada final e avaliação dos componentes visuais continuam pendentes. Limitações históricas e de recuperação já documentadas permanecem; não se promete segurança universal, recuperação física de dados ou homologação de caminhos históricos adicionais nesta etapa.
+--- /dev/null
++++ b/atelier/tests/browser_am22.py
+@@ -0,0 +1,41 @@
++"""AM22 browser acceptance: numeric/localhost origins, assets, POST and export."""
++import os
++from pathlib import Path
++from tempfile import TemporaryDirectory
++from threading import Thread
++from http.server import ThreadingHTTPServer
++from playwright.sync_api import sync_playwright,expect
++from atelier.service import Studio
++from atelier import server
++
++out=Path(os.environ.get('AM22_QA_OUT','docs/AM22/capturas'));out.mkdir(parents=True,exist_ok=True)
++with sync_playwright() as pw:
++    browser=pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
++    for w,h in [(1280,720),(1366,768),(1920,1080)]:
++        for host in ['127.0.0.1','localhost']:
++            with TemporaryDirectory() as d:
++                studio=Studio(Path(d));server.STUDIO=studio
++                httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler)
++                Thread(target=httpd.serve_forever,daemon=True).start()
++                page=browser.new_page(viewport={'width':w,'height':h});errors=[];blocked=[]
++                page.on('pageerror',lambda e:errors.append(str(e)))
++                page.on('response',lambda r:blocked.append((r.url,r.status)) if r.status==403 else None)
++                try:
++                    page.goto(f'http://{host}:{httpd.server_port}/',wait_until='networkidle')
++                    page.wait_for_selector('#factory-a .station-group')
++                    page.evaluate('document.querySelector("#splash")?.remove()')
++                    page.locator('[data-nav=modelo]').click()
++                    with page.expect_response(lambda r:r.url.endswith('/api/model')) as ev:
++                        page.locator('#model-save').click()
++                    assert ev.value.ok
++                    expect(page.locator('#view-simulacao')).to_be_visible()
++                    result=page.evaluate("""async()=>{const r=await fetch('/api/model/export');return {status:r.status,body:await r.json()}}""")
++                    assert result['status']==200 and result['body']['orders']
++                    page.locator('[data-nav=paineis]').click()
++                    expect(page.locator('#view-paineis')).to_be_visible()
++                    page.screenshot(path=str(out/f'am22_{host}_{w}.png'))
++                    assert not errors,errors
++                    assert not blocked,blocked
++                    print('AM22 BROWSER OK',host,w,h,flush=True)
++                finally:page.close();httpd.shutdown();httpd.server_close()
++    browser.close()
+--- /dev/null
++++ b/docs/AM22/evidencias/after.log
+@@ -0,0 +1,4 @@
++[http] "GET /api/state HTTP/1.1" 403 -
++GET external.example:36427 None status 403 min_sla 80
++[http] "POST /api/run HTTP/1.1" 403 -
++POST external.example:36427 http://external.example:36427 status 403 min_sla 80
+# Binary in overlay: docs/AM22/evidencias/am22_127.0.0.1_1280.png
+# Binary in overlay: docs/AM22/evidencias/am22_127.0.0.1_1366.png
+# Binary in overlay: docs/AM22/evidencias/am22_127.0.0.1_1920.png
+# Binary in overlay: docs/AM22/evidencias/am22_localhost_1280.png
+# Binary in overlay: docs/AM22/evidencias/am22_localhost_1366.png
+# Binary in overlay: docs/AM22/evidencias/am22_localhost_1920.png
+--- /dev/null
++++ b/docs/AM22/evidencias/banca.log
+@@ -0,0 +1,4 @@
++3 EXPERIMENTOS APROVADOS
++A: 100.0 40.0 100.0 custos 16216.67 12113.0 4103.68
++B: [(0, 5.681763308299117, 84.12881249414335), (1, 5.681763308299117, 96.09692807908425), (2, 5.681763308299117, 108.06504366402514), (3, 5.681763308299117, 120.033159248966)]
++C: Manutenção expressa · CNC 21.57530617980079 +1 operador · CNC 19.973006391870044
+--- /dev/null
++++ b/docs/AM22/evidencias/before-tests.log
+@@ -0,0 +1,1079 @@
++FFFFFFFFFFFFFFFFFFF.FFFFFFF.FFF.F.F.F.FFFFFFFFFF........FF               [100%]
++=================================== FAILURES ===================================
++___ test_untrusted_host_rejected_before_service[external.example:{port}-GET] ___
++
++endpoint = (45819, <atelier.service.Studio object at 0x7fa18dcda090>, <Mock id='140331841163328'>)
++method = 'GET', bad = 'external.example:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++__ test_untrusted_host_rejected_before_service[external.example:{port}-POST] ___
++
++endpoint = (36239, <atelier.service.Studio object at 0x7fa18dd47800>, <Mock id='140331841163472'>)
++method = 'POST', bad = 'external.example:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++_ test_untrusted_host_rejected_before_service[127.0.0.1.external.example:{port}-GET] _
++
++endpoint = (42429, <atelier.service.Studio object at 0x7fa18d8b03b0>, <Mock id='140331841106960'>)
++method = 'GET', bad = '127.0.0.1.external.example:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_host_rejected_before_service[127.0.0.1.external.example:{port}-POST] _
++
++endpoint = (33251, <atelier.service.Studio object at 0x7fa18dcb4f50>, <Mock id='140331841269840'>)
++method = 'POST', bad = '127.0.0.1.external.example:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++_ test_untrusted_host_rejected_before_service[localhost.external.example:{port}-GET] _
++
++endpoint = (35527, <atelier.service.Studio object at 0x7fa18d8a1f70>, <Mock id='140331845577200'>)
++method = 'GET', bad = 'localhost.external.example:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_host_rejected_before_service[localhost.external.example:{port}-POST] _
++
++endpoint = (37689, <atelier.service.Studio object at 0x7fa18d8a2f90>, <Mock id='140331841171920'>)
++method = 'POST', bad = 'localhost.external.example:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++______ test_untrusted_host_rejected_before_service[127.0.0.2:{port}-GET] _______
++
++endpoint = (39651, <atelier.service.Studio object at 0x7fa18d8b0e90>, <Mock id='140331841098656'>)
++method = 'GET', bad = '127.0.0.2:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++______ test_untrusted_host_rejected_before_service[127.0.0.2:{port}-POST] ______
++
++endpoint = (39453, <atelier.service.Studio object at 0x7fa18dcd9f70>, <Mock id='140331841106576'>)
++method = 'POST', bad = '127.0.0.2:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++_______ test_untrusted_host_rejected_before_service[0.0.0.0:{port}-GET] ________
++
++endpoint = (39565, <atelier.service.Studio object at 0x7fa18d8a0500>, <Mock id='140331845969024'>)
++method = 'GET', bad = '0.0.0.0:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_______ test_untrusted_host_rejected_before_service[0.0.0.0:{port}-POST] _______
++
++endpoint = (36589, <atelier.service.Studio object at 0x7fa18d89e4b0>, <Mock id='140331845520704'>)
++method = 'POST', bad = '0.0.0.0:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++______ test_untrusted_host_rejected_before_service[localhost.:{port}-GET] ______
++
++endpoint = (37919, <atelier.service.Studio object at 0x7fa18dcdb830>, <Mock id='140331846922752'>)
++method = 'GET', bad = 'localhost.:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_____ test_untrusted_host_rejected_before_service[localhost.:{port}-POST] ______
++
++endpoint = (37627, <atelier.service.Studio object at 0x7fa18d963fe0>, <Mock id='140331841162320'>)
++method = 'POST', bad = 'localhost.:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++____ test_untrusted_host_rejected_before_service[user@localhost:{port}-GET] ____
++
++endpoint = (34377, <atelier.service.Studio object at 0x7fa18d8b28d0>, <Mock id='140331842517568'>)
++method = 'GET', bad = 'user@localhost:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++___ test_untrusted_host_rejected_before_service[user@localhost:{port}-POST] ____
++
++endpoint = (43285, <atelier.service.Studio object at 0x7fa18d89fe90>, <Mock id='140331841891376'>)
++method = 'POST', bad = 'user@localhost:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++_________ test_untrusted_host_rejected_before_service[localhost:1-GET] _________
++
++endpoint = (38681, <atelier.service.Studio object at 0x7fa18d963890>, <Mock id='140331845973920'>)
++method = 'GET', bad = 'localhost:1'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++________ test_untrusted_host_rejected_before_service[localhost:1-POST] _________
++
++endpoint = (45843, <atelier.service.Studio object at 0x7fa18d962f30>, <Mock id='140331841088368'>)
++method = 'POST', bad = 'localhost:1'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++_______ test_untrusted_host_rejected_before_service[localhost:65536-GET] _______
++
++endpoint = (42401, <atelier.service.Studio object at 0x7fa18d89f620>, <Mock id='140331841896416'>)
++method = 'GET', bad = 'localhost:65536'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++______ test_untrusted_host_rejected_before_service[localhost:65536-POST] _______
++
++endpoint = (43151, <atelier.service.Studio object at 0x7fa18d8b3e30>, <Mock id='140331841893536'>)
++method = 'POST', bad = 'localhost:65536'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++______ test_untrusted_host_rejected_before_service[localhost:{port}/-GET] ______
++
++endpoint = (35725, <atelier.service.Studio object at 0x7fa18d962c90>, <Mock id='140331841548560'>)
++method = 'GET', bad = 'localhost:{port}/'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_host_rejected_before_service[localhost:{port},external.example-GET] _
++
++endpoint = (40499, <atelier.service.Studio object at 0x7fa18dcc6750>, <Mock id='140331847468864'>)
++method = 'GET', bad = 'localhost:{port},external.example'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_host_rejected_before_service[localhost:{port},external.example-POST] _
++
++endpoint = (35779, <atelier.service.Studio object at 0x7fa18d8b16d0>, <Mock id='140331845374928'>)
++method = 'POST', bad = 'localhost:{port},external.example'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++______________ test_untrusted_host_rejected_before_service[-GET] _______________
++
++endpoint = (40483, <atelier.service.Studio object at 0x7fa18d90ef00>, <Mock id='140331845970416'>)
++method = 'GET', bad = ''
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++______________ test_untrusted_host_rejected_before_service[-POST] ______________
++
++endpoint = (43265, <atelier.service.Studio object at 0x7fa18d962b10>, <Mock id='140331845531648'>)
++method = 'POST', bad = ''
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++____________ test_untrusted_host_rejected_before_service[None-GET] _____________
++
++endpoint = (42931, <atelier.service.Studio object at 0x7fa18d8b07a0>, <Mock id='140331845975648'>)
++method = 'GET', bad = None
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++____________ test_untrusted_host_rejected_before_service[None-POST] ____________
++
++endpoint = (38175, <atelier.service.Studio object at 0x7fa18dd47ce0>, <Mock id='140331845965664'>)
++method = 'POST', bad = None
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('bad',[
++        'external.example:{port}','127.0.0.1.external.example:{port}',
++        'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++        'localhost.:{port}','user@localhost:{port}','localhost:1',
++        'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++        '',None,
++    ])
++    def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++        port,studio,spy=endpoint
++        host=bad.format(port=port) if bad else bad
++        headers=[] if host is None else [('Host',host)]
++        if method=='POST' and host:headers.append(('Origin','http://'+host))
++        before=(studio.storage/'projeto_confirmado.json').read_bytes()
++        status,_,_=request(port,method,headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:48: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++___________ test_untrusted_origin_rejected_before_service[null-GET] ____________
++
++endpoint = (33245, <atelier.service.Studio object at 0x7fa18dcb5c70>, <Mock id='140331841169664'>)
++method = 'GET', origin = 'null'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_origin_rejected_before_service[https://127.0.0.1:{port}-GET] __
++
++endpoint = (40129, <atelier.service.Studio object at 0x7fa18dd50bc0>, <Mock id='140331846010496'>)
++method = 'GET', origin = 'https://127.0.0.1:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_origin_rejected_before_service[https://127.0.0.1:{port}-POST] _
++
++endpoint = (45379, <atelier.service.Studio object at 0x7fa18dcd9e50>, <Mock id='140331849821040'>)
++method = 'POST', origin = 'https://127.0.0.1:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++_ test_untrusted_origin_rejected_before_service[http://external.example:{port}-GET] _
++
++endpoint = (36621, <atelier.service.Studio object at 0x7fa18d90f1d0>, <Mock id='140331845376896'>)
++method = 'GET', origin = 'http://external.example:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++__ test_untrusted_origin_rejected_before_service[http://localhost:{port}-GET] __
++
++endpoint = (34453, <atelier.service.Studio object at 0x7fa18d963320>, <Mock id='140331841174752'>)
++method = 'GET', origin = 'http://localhost:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++____ test_untrusted_origin_rejected_before_service[http://127.0.0.1:1-GET] _____
++
++endpoint = (42453, <atelier.service.Studio object at 0x7fa18dcdbd10>, <Mock id='140331845957152'>)
++method = 'GET', origin = 'http://127.0.0.1:1'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_origin_rejected_before_service[http://user@127.0.0.1:{port}-GET] _
++
++endpoint = (33119, <atelier.service.Studio object at 0x7fa18dcb4e30>, <Mock id='140331845443392'>)
++method = 'GET', origin = 'http://user@127.0.0.1:{port}'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}/-GET] __
++
++endpoint = (35153, <atelier.service.Studio object at 0x7fa18dcc6480>, <Mock id='140331841894448'>)
++method = 'GET', origin = 'http://127.0.0.1:{port}/'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}/-POST] _
++
++endpoint = (40177, <atelier.service.Studio object at 0x7fa18dcc66f0>, <Mock id='140331859686944'>)
++method = 'POST', origin = 'http://127.0.0.1:{port}/'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}?x=1-GET] _
++
++endpoint = (34287, <atelier.service.Studio object at 0x7fa18d90caa0>, <Mock id='140331845523824'>)
++method = 'GET', origin = 'http://127.0.0.1:{port}?x=1'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}?x=1-POST] _
++
++endpoint = (38357, <atelier.service.Studio object at 0x7fa18dcd8da0>, <Mock id='140331845523440'>)
++method = 'POST', origin = 'http://127.0.0.1:{port}?x=1'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}#fragment-GET] _
++
++endpoint = (35739, <atelier.service.Studio object at 0x7fa18d963320>, <Mock id='140331841172352'>)
++method = 'GET', origin = 'http://127.0.0.1:{port}#fragment'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_ test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}#fragment-POST] _
++
++endpoint = (39355, <atelier.service.Studio object at 0x7fa18dcc7380>, <Mock id='140331841573936'>)
++method = 'POST', origin = 'http://127.0.0.1:{port}#fragment'
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++_____________ test_untrusted_origin_rejected_before_service[-GET] ______________
++
++endpoint = (37929, <atelier.service.Studio object at 0x7fa18d9176b0>, <Mock id='140331847468864'>)
++method = 'GET', origin = ''
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_____________ test_untrusted_origin_rejected_before_service[-POST] _____________
++
++endpoint = (42977, <atelier.service.Studio object at 0x7fa18d915940>, <Mock id='140331845445744'>)
++method = 'POST', origin = ''
++
++    @pytest.mark.parametrize('method',['GET','POST'])
++    @pytest.mark.parametrize('origin',[
++        'null','https://127.0.0.1:{port}','http://external.example:{port}',
++        'http://localhost:{port}','http://127.0.0.1:1',
++        'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++        'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++    ])
++    def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++        port,_,spy=endpoint
++        status,_,_=request(port,method,headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++>       assert status==403
++E       assert 404 == 403
++
++tests/test_am22_http_boundary.py:63: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "POST /api/state HTTP/1.1" 404 -
++________________ test_duplicate_boundary_headers_rejected[Host] ________________
++
++endpoint = (39969, <atelier.service.Studio object at 0x7fa18d89fce0>, <Mock id='140331841574656'>)
++header = 'Host'
++
++    @pytest.mark.parametrize('header',['Host','Origin'])
++    def test_duplicate_boundary_headers_rejected(endpoint,header):
++        port,_,spy=endpoint;host=f'127.0.0.1:{port}'
++        headers=[('Host',host),('Origin','http://'+host)]
++        headers.append((header,host if header=='Host' else 'http://'+host))
++>       assert request(port,headers=headers)[0]==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:72: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_______________ test_duplicate_boundary_headers_rejected[Origin] _______________
++
++endpoint = (39179, <atelier.service.Studio object at 0x7fa18dcc7920>, <Mock id='140331841582768'>)
++header = 'Origin'
++
++    @pytest.mark.parametrize('header',['Host','Origin'])
++    def test_duplicate_boundary_headers_rejected(endpoint,header):
++        port,_,spy=endpoint;host=f'127.0.0.1:{port}'
++        headers=[('Host',host),('Origin','http://'+host)]
++        headers.append((header,host if header=='Host' else 'http://'+host))
++>       assert request(port,headers=headers)[0]==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:72: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET /api/state HTTP/1.1" 200 -
++_______________ test_static_files_and_exports_require_local_host _______________
++
++endpoint = (39283, <atelier.service.Studio object at 0x7fa18dcc6fc0>, <Mock id='140331841169664'>)
++
++    def test_static_files_and_exports_require_local_host(endpoint):
++        port,_,spy=endpoint
++        for path in ['/','/app.js','/api/model/export','/api/record/export']:
++>           assert request(port,path=path,headers=[('Host',f'external.example:{port}')])[0]==403
++E           assert 200 == 403
++
++tests/test_am22_http_boundary.py:89: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET / HTTP/1.1" 200 -
++___________________ test_absolute_request_target_is_rejected ___________________
++
++endpoint = (39803, <atelier.service.Studio object at 0x7fa18d8b0920>, <Mock id='140331844589600'>)
++
++    def test_absolute_request_target_is_rejected(endpoint):
++        port,_,spy=endpoint
++>       assert request(port,path=f'http://external.example:{port}/api/state',headers=[('Host',f'localhost:{port}')])[0]==403
++E       assert 200 == 403
++
++tests/test_am22_http_boundary.py:95: AssertionError
++----------------------------- Captured stdout call -----------------------------
++[http] "GET http://external.example:39803/api/state HTTP/1.1" 200 -
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++=========================== short test summary info ============================
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[external.example:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[external.example:{port}-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[127.0.0.1.external.example:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[127.0.0.1.external.example:{port}-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost.external.example:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost.external.example:{port}-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[127.0.0.2:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[127.0.0.2:{port}-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[0.0.0.0:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[0.0.0.0:{port}-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost.:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost.:{port}-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[user@localhost:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[user@localhost:{port}-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:1-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:1-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:65536-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:65536-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:{port}/-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:{port},external.example-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[localhost:{port},external.example-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[None-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_host_rejected_before_service[None-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[null-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[https://127.0.0.1:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[https://127.0.0.1:{port}-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://external.example:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://localhost:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:1-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://user@127.0.0.1:{port}-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}/-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}/-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}?x=1-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}?x=1-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}#fragment-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[http://127.0.0.1:{port}#fragment-POST]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[-GET]
++FAILED tests/test_am22_http_boundary.py::test_untrusted_origin_rejected_before_service[-POST]
++FAILED tests/test_am22_http_boundary.py::test_duplicate_boundary_headers_rejected[Host]
++FAILED tests/test_am22_http_boundary.py::test_duplicate_boundary_headers_rejected[Origin]
++FAILED tests/test_am22_http_boundary.py::test_static_files_and_exports_require_local_host
++FAILED tests/test_am22_http_boundary.py::test_absolute_request_target_is_rejected
++44 failed, 14 passed, 1 warning in 39.61s
+--- /dev/null
++++ b/docs/AM22/evidencias/before.log
+@@ -0,0 +1,4 @@
++[http] "GET /api/state HTTP/1.1" 200 -
++GET external.example:46449 None status 200 min_sla 80
++[http] "POST /api/run HTTP/1.1" 200 -
++POST external.example:46449 http://external.example:46449 status 200 min_sla 71
+--- /dev/null
++++ b/docs/AM22/evidencias/browser-banca.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1280x720 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1366x768 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1920x1080 · progressive / dual panels / justification / record / report
+--- /dev/null
++++ b/docs/AM22/evidencias/browser-charts.log
+@@ -0,0 +1,3 @@
++ACABAMENTO OK 1280 720 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1366 768 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1920 1080 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
+--- /dev/null
++++ b/docs/AM22/evidencias/browser.log
+@@ -0,0 +1,162 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++AM22 BROWSER OK 127.0.0.1 1280 720
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++AM22 BROWSER OK localhost 1280 720
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++AM22 BROWSER OK 127.0.0.1 1366 768
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++AM22 BROWSER OK localhost 1366 768
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++AM22 BROWSER OK 127.0.0.1 1920 1080
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++AM22 BROWSER OK localhost 1920 1080
+--- /dev/null
++++ b/docs/AM22/evidencias/regression.log
+@@ -0,0 +1,20 @@
++........................................................................ [ 10%]
++........................................................................ [ 21%]
++........................................................................ [ 32%]
++........................................................................ [ 43%]
++........................................................................ [ 54%]
++........................................................................ [ 65%]
++........................................................................ [ 75%]
++........................................................................ [ 86%]
++.............................................................. [ 96%]
++..........................                                               [100%]
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++664 passed, 1 warning, 10 subtests passed in 142.67s (0:02:22)
+--- /dev/null
++++ b/tests/test_am22_http_boundary.py
+@@ -0,0 +1,111 @@
++"""AM22: real HTTP must validate authority before any model access or write."""
++import http.client
++from http.server import ThreadingHTTPServer
++from threading import Thread
++from unittest.mock import Mock
++
++import pytest
++from atelier import server
++from atelier.service import Studio
++
++
++@pytest.fixture
++def endpoint(tmp_path,monkeypatch):
++    studio=Studio(tmp_path)
++    spy=Mock(wraps=studio)
++    monkeypatch.setattr(server,'STUDIO',spy)
++    httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler)
++    thread=Thread(target=httpd.serve_forever,daemon=True);thread.start()
++    yield httpd.server_port,studio,spy
++    httpd.shutdown();httpd.server_close();thread.join(timeout=3)
++
++
++def request(port,method='GET',path='/api/state',headers=None,body=None):
++    c=http.client.HTTPConnection('127.0.0.1',port,timeout=5)
++    c.putrequest(method,path,skip_host=True,skip_accept_encoding=True)
++    for key,value in (headers or []):c.putheader(key,value)
++    if body is not None:
++        c.putheader('Content-Type','application/json');c.putheader('Content-Length',str(len(body)))
++    c.endheaders(body)
++    r=c.getresponse();result=r.status,r.read(),r.getheaders();c.close();return result
++
++
++@pytest.mark.parametrize('method',['GET','POST'])
++@pytest.mark.parametrize('bad',[
++    'external.example:{port}','127.0.0.1.external.example:{port}',
++    'localhost.external.example:{port}','127.0.0.2:{port}','0.0.0.0:{port}',
++    'localhost.:{port}','user@localhost:{port}','localhost:1',
++    'localhost:65536','localhost:{port}/','localhost:{port},external.example',
++    '',None,
++])
++def test_untrusted_host_rejected_before_service(endpoint,method,bad):
++    port,studio,spy=endpoint
++    host=bad.format(port=port) if bad else bad
++    headers=[] if host is None else [('Host',host)]
++    if method=='POST' and host:headers.append(('Origin','http://'+host))
++    before=(studio.storage/'projeto_confirmado.json').read_bytes()
++    status,_,_=request(port,method,path='/api/run' if method=='POST' else '/api/state',headers=headers,body=b'{"min_sla":71}' if method=='POST' else None)
++    assert status==403
++    assert not spy.method_calls
++    assert (studio.storage/'projeto_confirmado.json').read_bytes()==before
++
++
++@pytest.mark.parametrize('method',['GET','POST'])
++@pytest.mark.parametrize('origin',[
++    'null','https://127.0.0.1:{port}','http://external.example:{port}',
++    'http://localhost:{port}','http://127.0.0.1:1',
++    'http://user@127.0.0.1:{port}','http://127.0.0.1:{port}/',
++    'http://127.0.0.1:{port}?x=1','http://127.0.0.1:{port}#fragment','',
++])
++def test_untrusted_origin_rejected_before_service(endpoint,method,origin):
++    port,_,spy=endpoint
++    status,_,_=request(port,method,path='/api/run' if method=='POST' else '/api/state',headers=[('Host',f'127.0.0.1:{port}'),('Origin',origin.format(port=port))],body=b'{}' if method=='POST' else None)
++    assert status==403
++    assert not spy.method_calls
++
++
++@pytest.mark.parametrize('header',['Host','Origin'])
++def test_duplicate_boundary_headers_rejected(endpoint,header):
++    port,_,spy=endpoint;host=f'127.0.0.1:{port}'
++    headers=[('Host',host),('Origin','http://'+host)]
++    headers.append((header,host if header=='Host' else 'http://'+host))
++    assert request(port,headers=headers)[0]==403
++    assert not spy.method_calls
++
++
++@pytest.mark.parametrize('host',['127.0.0.1','localhost','LOCALHOST','[::1]'])
++@pytest.mark.parametrize('with_origin',[False,True])
++def test_local_clients_and_same_origin_browser_are_preserved(endpoint,host,with_origin):
++    port,studio,_=endpoint;headers=[('Host',f'{host}:{port}')]
++    if with_origin:headers.append(('Origin',f'http://{host}:{port}'))
++    assert request(port,headers=headers)[0]==200
++    assert request(port,'POST','/api/run',headers,b'{"min_sla":71}')[0]==200
++    assert studio.info()['spec']['min_sla']==71
++
++
++def test_static_files_and_exports_require_local_host(endpoint):
++    port,_,spy=endpoint
++    for path in ['/','/app.js','/api/model/export','/api/record/export']:
++        assert request(port,path=path,headers=[('Host',f'external.example:{port}')])[0]==403
++    assert not spy.method_calls
++
++
++def test_absolute_request_target_is_rejected(endpoint):
++    port,_,spy=endpoint
++    assert request(port,path=f'http://external.example:{port}/api/state',headers=[('Host',f'localhost:{port}')])[0]==403
++    assert not spy.method_calls
++
++
++@pytest.mark.parametrize('host,port,expected',[
++    ('localhost',80,('localhost',80)),
++    ('127.0.0.1',80,('127.0.0.1',80)),
++    ('localhost',8080,None),
++    ('[::1]:8080',8080,('[::1]',8080)),
++    ('::1:8080',8080,None),
++    ('localhost:8080\t',8080,None),
++    ('http://localhost:8080',8080,None),
++    ('localhost:8080@external.example',8080,None),
++    ('localhoſt:8080',8080,None),
++])
++def test_authority_has_explicit_http_default_port_and_strict_syntax(host,port,expected):
++    assert server._local_authority(host,port)==expected

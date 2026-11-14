@@ -1,3 +1,10 @@
+# Versão atual: AM22-2026.1 sobre RECUPERACAO/PRIORIDADE/AM19
+
+[Aplicativo completo](ENTREGAS/AM22/ANTI_MURPHY_AM22_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM22/ANTI_MURPHY_PATCH_AM22_2026.zip) · [Relatório](ENTREGAS/AM22/RELATORIO_AM22_2026.md) · [Continuidade](ENTREGAS/AM22/CONTINUIDADE_AM22_2026.md).
+
+GET e POST exigem Host local na porta ativa; Origin presente deve corresponder à origem HTTP local. Clientes locais sem Origin continuam permitidos. Evolução visual preservada. 664 testes aprovados, zero falhas, dez subtestes; três experimentos e navegador nas três resoluções passaram. ZIP e patch conferem 650 arquivos. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Windows/projetor pendentes de validação nativa.
+
+---
 # Versão atual: RECUPERACAO-2026.1 sobre PRIORIDADE/AM19
 
 [Aplicativo completo](ENTREGAS/RECUPERACAO/ANTI_MURPHY_RECUPERACAO_COMPLETO_2026.zip) · [Patch](ENTREGAS/RECUPERACAO/ANTI_MURPHY_PATCH_RECUPERACAO_2026.zip) · [Relatório](ENTREGAS/RECUPERACAO/RELATORIO_RECUPERACAO_2026.md) · [Continuidade](ENTREGAS/RECUPERACAO/CONTINUIDADE_RECUPERACAO_2026.md).
