@@ -20,7 +20,7 @@ def _local_authority(value, port):
     No DNS lookup: a remote name resolving to loopback is still untrusted.
     localhost and numeric loopback remain distinct browser origins.
     """
-    match=re.fullmatch(r'(localhost|127\.0\.0\.1|\[::1\])(?::([0-9]{1,5}))?',value,re.IGNORECASE)
+    match=re.fullmatch(r'(localhost|127\.0\.0\.1|\[::1\])(?::([0-9]{1,5}))?',value,re.IGNORECASE|re.ASCII)
     if match is None:
         return None
     effective_port=int(match.group(2)) if match.group(2) else 80

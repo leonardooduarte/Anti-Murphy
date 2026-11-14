@@ -105,6 +105,7 @@ def test_absolute_request_target_is_rejected(endpoint):
     ('localhost:8080\t',8080,None),
     ('http://localhost:8080',8080,None),
     ('localhost:8080@external.example',8080,None),
+    ('localhoſt:8080',8080,None),
 ])
 def test_authority_has_explicit_http_default_port_and_strict_syntax(host,port,expected):
     assert server._local_authority(host,port)==expected
