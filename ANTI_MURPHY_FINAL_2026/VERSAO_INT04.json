@@ -1,0 +1,10 @@
+{
+  "version": "INT04-2026.1",
+  "base_commit": "974f38e70634ee6250878036fbd8759fc315bd17",
+  "base_css_sha256": "8d14f3dbd1c2b41880f22028912a6751896ad7bda3e9239356aab476e2029509",
+  "css_sha256": "375942e24c4f44fbc43a3023ba674c404de24c76369eed7274af8d324ee806fe",
+  "selector": ".alt-metrics small",
+  "font_px": 14,
+  "color": "#48615D",
+  "contrast_minimum": 4.5
+}
