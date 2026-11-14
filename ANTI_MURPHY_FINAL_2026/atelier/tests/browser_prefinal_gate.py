@@ -45,6 +45,7 @@ with sync_playwright() as pw:
             elif path=='/api/reset':value=studio.reset()
             elif path=='/api/projects':value=studio.projects()
             elif path=='/api/experiments':value=studio.experiment_list()
+            elif path=='/api/experiment-library':value=studio.experiment_library()
             else:raise RuntimeError('Not part of QA: '+path)
             return {'ok':True,'status':200,'data':value}
           except Exception as e:return {'ok':False,'status':400,'data':{'error':str(e)}}

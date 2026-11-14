@@ -36,6 +36,7 @@ from .decision_quality import review_alternatives
 from .record_integrity import audit_decision_note, cost_snapshot
 from .experiment_economics import snapshot as economic_snapshot, normalize as economic_view, compare as economic_compare
 from .persistence import atomic_bundle
+from .experiment_library import read_library
 from .workspace_guard import workspace_lock, project_revision
 from .analysis_provenance import contexts as experiment_contexts, inputs as experiment_inputs, signature as experiment_signature
 from .workload import profile as workload_profile, limit_message as workload_message
@@ -335,17 +336,25 @@ class Studio:
             'rule':self.state.get('nx_rule')},sort_keys=True,ensure_ascii=False)
         return hashlib.sha256(raw.encode('utf-8')).hexdigest()
 
-    def experiment_list(self):
+    def _experiment_documents(self):
+        try:
+            return read_library(self.experiments_dir,self.project_id)
+        except OSError as exc:
+            raise StudioError('Não foi possível consultar a pasta de experimentos. Verifique o acesso aos arquivos.') from exc
+
+    def experiment_library(self):
         with self.lock:
-            out=[]
-            for path in self.experiments_dir.glob('*.json'):
-                try:
-                    d=json.loads(path.read_text('utf-8'))
-                    if d.get('project_id')==self.project_id:
-                        out.append({k:d.get(k) for k in ('id','name','created_at','model_hash',
-                            'project_id','run_id','spec','metrics','selected_action','selected_signature')} | {'economics':economic_view(d)})
-                except (OSError,TypeError,ValueError):continue
-            return sorted(out,key=lambda x:x.get('created_at') or '',reverse=True)
+            documents,issues=self._experiment_documents()
+            items=[{k:d.get(k) for k in ('id','name','created_at','model_hash',
+                       'project_id','run_id','spec','metrics','selected_action','selected_signature')}
+                   | {'economics':economic_view(d)} for d in documents.values()]
+            return {'project_id':self.project_id,
+                    'items':sorted(items,key=lambda x:x.get('created_at') or '',reverse=True),
+                    'issues':issues}
+
+    def experiment_list(self):
+        # Preserve the existing API/list contract for local clients.
+        return self.experiment_library()['items']
 
     def save_experiment(self,name):
         with self.lock, self._writing_workspace():
@@ -373,14 +382,14 @@ class Studio:
 
     def compare_experiments(self,first,second):
         with self.lock:
-            allowed={r['id'] for r in self.experiment_list()}
-            if first not in allowed or second not in allowed or first==second:
+            documents,_issues=self._experiment_documents()
+            if (not isinstance(first,str) or not isinstance(second,str) or
+                first not in documents or second not in documents or first==second):
                 raise StudioError('Selecione dois experimentos distintos do projeto atual.')
-            one=json.loads((self.experiments_dir/(first+'.json')).read_text('utf-8'))
-            two=json.loads((self.experiments_dir/(second+'.json')).read_text('utf-8'))
+            one=documents[first];two=documents[second]
             k=('late_orders','sla_pct','makespan_h','total_cost')
-            a=one['metrics']['response'] or one['metrics']['incident'] or {}
-            b=two['metrics']['response'] or two['metrics']['incident'] or {}
+            a=one['metrics'].get('response') or one['metrics'].get('incident') or {}
+            b=two['metrics'].get('response') or two['metrics'].get('incident') or {}
             return _json_safe({'first':one,'second':two,
                 'same_model':one['model_hash']==two['model_hash'],
                 'economics':economic_compare(one,two),

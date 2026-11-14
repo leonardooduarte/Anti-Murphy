@@ -35,6 +35,7 @@ with sync_playwright() as p:
      elif path=='/api/technical-audit':res=studio.technical_audit()
      elif path=='/api/history':res=studio.history()
      elif path=='/api/experiments':res=studio.experiment_list()
+     elif path=='/api/experiment-library':res=studio.experiment_library()
      elif path=='/api/projects':res=studio.projects()
      elif path=='/api/select':res=studio.select(body.get('signature',''))
      elif path=='/api/record':res=studio.decision(body)

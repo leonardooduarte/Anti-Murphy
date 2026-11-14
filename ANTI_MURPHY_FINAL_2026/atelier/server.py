@@ -76,6 +76,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/history':return self.send_json(STUDIO.history())
             if path=='/api/projects':return self.send_json(STUDIO.projects())
             if path=='/api/experiments':return self.send_json(STUDIO.experiment_list())
+            if path=='/api/experiment-library':return self.send_json(STUDIO.experiment_library())
             if path=='/api/dashboards':return self.send_json(STUDIO.dashboards())
             if path=='/api/technical-audit':return self.send_json(STUDIO.technical_audit())
             if path=='/api/record/export':

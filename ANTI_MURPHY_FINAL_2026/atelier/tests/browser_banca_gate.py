@@ -43,6 +43,7 @@ with sync_playwright() as p:
                     elif path=='/api/assistant':value=studio.assistant(body.get('question',''))
                     elif path=='/api/advanced':value=studio.advanced(body)
                     elif path=='/api/experiments':value=studio.experiment_list()
+                    elif path=='/api/experiment-library':value=studio.experiment_library()
                     elif path=='/api/projects':value=studio.projects()
                     elif path=='/api/model':value=studio.set_model(body)
                     elif path=='/api/run':value=studio.calculate(body)

@@ -1728,7 +1728,15 @@ async function renameProject(){
 async function loadExperiments(){
  if(!st.data)return;
  try{
-  st.savedExperiments=await api('/api/experiments');
+  const project=st.data.active_project_id;
+  const library=await api('/api/experiment-library');
+  if(library.project_id!==project||library.project_id!==st.data?.active_project_id)return;
+  st.savedExperiments=library.items;
+  let warnings=$('experiment-warnings');
+  if(!warnings){warnings=document.createElement('div');warnings.id='experiment-warnings';warnings.className='project-advisory';warnings.setAttribute('role','status');$('experiment-list').before(warnings);}
+  const issues=library.issues||[];
+  warnings.hidden=!issues.length;
+  warnings.innerHTML=issues.length?`<strong>${integer(issues.length)} arquivo(s) da biblioteca não puderam ser lidos.</strong><p>Os originais foram preservados. Os registros válidos continuam disponíveis. Arquivos sem origem identificável podem pertencer a outro projeto.</p><details><summary>Ver arquivos e motivos</summary><ul>${issues.map(x=>`<li><strong>experimentos/${esc(x.filename)}</strong>: ${esc(x.reason)}</li>`).join('')}</ul></details>`:'';
   const items=st.savedExperiments;
   $('experiment-count').textContent=`${items.length} arquivados`;
   $('experiment-list').innerHTML=items.length?items.slice(0,30).map(x=>{
