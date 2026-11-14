@@ -1,3 +1,10 @@
+# Versão atual: INT01-2026.1 sobre AM22
+
+[Aplicativo completo](ENTREGAS/INT01/ANTI_MURPHY_INT01_COMPLETO_2026.zip) · [Patch](ENTREGAS/INT01/ANTI_MURPHY_PATCH_INT01_2026.zip) · [Relatório](ENTREGAS/INT01/RELATORIO_INT01_2026.md) · [Continuidade](ENTREGAS/INT01/CONTINUIDADE_INT01_2026.md).
+
+Importação JSON preserva EDD/SPT/FIFO explícita; ausência mantém a regra atual com aviso; inválidos são recusados antes de aplicar o modelo. Evolução visual preservada. 682 testes aprovados, zero falhas, dez subtestes; três experimentos e navegador nas três resoluções passaram. ZIP e patch conferem 669 arquivos. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Windows/projetor pendentes de validação nativa.
+
+---
 # Versão atual: AM22-2026.1 sobre RECUPERACAO/PRIORIDADE/AM19
 
 [Auditoria integrada da AM22](AUDITORIAS/INTEGRADA_AM22/RELATORIO_AUDITORIA_INTEGRADA_AM22.md) · [Evidências para baixar](AUDITORIAS/INTEGRADA_AM22/AUDITORIA_INTEGRADA_AM22_2026.zip). Auditoria sem alteração de código; quatro pendências confirmadas, com plano de correções.

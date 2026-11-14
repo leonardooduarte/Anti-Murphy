@@ -1,0 +1,220 @@
+FFF...FFFFFFFFF...                                                       [100%]
+=================================== FAILURES ===================================
+_ test_exported_rule_roundtrip_in_another_project_reproduces_model_results[EDD] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_exported_rule_roundtrip_i0')
+rule = 'EDD'
+
+    @pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
+    def test_exported_rule_roundtrip_in_another_project_reproduces_model_results(tmp_path,rule):
+        app=Studio(tmp_path);app.calculate({'rule':rule})
+        source=app.info();model=json.loads(app.export_model())
+        target=app.create_project('Projeto de destino')
+        app.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'})
+        restored=app.set_model(model)
+        assert restored['active_project_id']!=source['active_project_id']
+>       assert restored['rule']==rule
+E       AssertionError: assert 'SPT' == 'EDD'
+E         
+E         - EDD
+E         + SPT
+
+../../../int01/test_before.py:21: AssertionError
+_ test_exported_rule_roundtrip_in_another_project_reproduces_model_results[SPT] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_exported_rule_roundtrip_i1')
+rule = 'SPT'
+
+    @pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
+    def test_exported_rule_roundtrip_in_another_project_reproduces_model_results(tmp_path,rule):
+        app=Studio(tmp_path);app.calculate({'rule':rule})
+        source=app.info();model=json.loads(app.export_model())
+        target=app.create_project('Projeto de destino')
+        app.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'})
+        restored=app.set_model(model)
+        assert restored['active_project_id']!=source['active_project_id']
+>       assert restored['rule']==rule
+E       AssertionError: assert 'EDD' == 'SPT'
+E         
+E         - SPT
+E         + EDD
+
+../../../int01/test_before.py:21: AssertionError
+_ test_exported_rule_roundtrip_in_another_project_reproduces_model_results[FIFO] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_exported_rule_roundtrip_i2')
+rule = 'FIFO'
+
+    @pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
+    def test_exported_rule_roundtrip_in_another_project_reproduces_model_results(tmp_path,rule):
+        app=Studio(tmp_path);app.calculate({'rule':rule})
+        source=app.info();model=json.loads(app.export_model())
+        target=app.create_project('Projeto de destino')
+        app.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'})
+        restored=app.set_model(model)
+        assert restored['active_project_id']!=source['active_project_id']
+>       assert restored['rule']==rule
+E       AssertionError: assert 'EDD' == 'FIFO'
+E         
+E         - FIFO
+E         + EDD
+
+../../../int01/test_before.py:21: AssertionError
+_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[None] __
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_0')
+invalid = None
+
+    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
+    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
+        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
+        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
+        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
+>       with pytest.raises(StudioError,match='despacho'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE StudioError
+
+../../../int01/test_before.py:46: Failed
+___ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[] ____
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_1')
+invalid = ''
+
+    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
+    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
+        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
+        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
+        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
+>       with pytest.raises(StudioError,match='despacho'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE StudioError
+
+../../../int01/test_before.py:46: Failed
+__ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[spt] __
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_2')
+invalid = 'spt'
+
+    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
+    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
+        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
+        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
+        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
+>       with pytest.raises(StudioError,match='despacho'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE StudioError
+
+../../../int01/test_before.py:46: Failed
+_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[SPT ] __
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_3')
+invalid = 'SPT '
+
+    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
+    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
+        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
+        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
+        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
+>       with pytest.raises(StudioError,match='despacho'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE StudioError
+
+../../../int01/test_before.py:46: Failed
+_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[True] __
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_4')
+invalid = True
+
+    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
+    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
+        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
+        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
+        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
+>       with pytest.raises(StudioError,match='despacho'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE StudioError
+
+../../../int01/test_before.py:46: Failed
+___ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[1] ___
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_5')
+invalid = 1
+
+    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
+    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
+        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
+        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
+        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
+>       with pytest.raises(StudioError,match='despacho'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE StudioError
+
+../../../int01/test_before.py:46: Failed
+_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid6] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_6')
+invalid = []
+
+    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
+    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
+        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
+        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
+        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
+>       with pytest.raises(StudioError,match='despacho'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE StudioError
+
+../../../int01/test_before.py:46: Failed
+_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid7] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_7')
+invalid = {}
+
+    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
+    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
+        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
+        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
+        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
+>       with pytest.raises(StudioError,match='despacho'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE StudioError
+
+../../../int01/test_before.py:46: Failed
+_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[INVALID] _
+
+tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_8')
+invalid = 'INVALID'
+
+    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
+    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
+        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
+        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
+        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
+>       with pytest.raises(StudioError,match='despacho'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE StudioError
+
+../../../int01/test_before.py:46: Failed
+=============================== warnings summary ===============================
+../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED ../../../int01/test_before.py::test_exported_rule_roundtrip_in_another_project_reproduces_model_results[EDD]
+FAILED ../../../int01/test_before.py::test_exported_rule_roundtrip_in_another_project_reproduces_model_results[SPT]
+FAILED ../../../int01/test_before.py::test_exported_rule_roundtrip_in_another_project_reproduces_model_results[FIFO]
+FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[None]
+FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[]
+FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[spt]
+FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[SPT ]
+FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[True]
+FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[1]
+FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid6]
+FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid7]
+FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[INVALID]
+12 failed, 6 passed, 1 warning in 14.33s

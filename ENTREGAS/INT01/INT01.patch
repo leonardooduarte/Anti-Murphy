@@ -1,0 +1,1142 @@
+--- a/atelier/service.py
++++ b/atelier/service.py
+@@ -610,6 +610,11 @@
+ 
+     def set_model(self, payload:dict):
+         with self.lock:
++            # Legacy model JSON and editor updates omit the optional rule.
++            # Explicit invalid values must never silently inherit the session.
++            if 'dispatch_rule' in payload and (not isinstance(payload['dispatch_rule'],str) or
++                                               payload['dispatch_rule'] not in ('EDD','SPT','FIFO')):
++                raise StudioError('Regra de despacho inválida: informe EDD, SPT ou FIFO.')
+             stations=payload.get('stations'); orders=payload.get('orders')
+             if not isinstance(stations,dict) or not isinstance(orders,list):
+                 raise StudioError('Modelo: informe postos e ordens.')
+@@ -621,6 +626,8 @@
+             candidate=deepcopy(self.state)
+             candidate.update(stations=deepcopy(stations),orders=deepcopy(orders),
+                              nx_source='Modelo editado pelo usuário')
++            if 'dispatch_rule' in payload:
++                candidate['nx_rule']=payload['dispatch_rule']
+             invalidate_model(candidate)
+             current=ExperimentSpec(**candidate['nx_spec'])
+             updates={'station':current.station if current.station in stations else next(iter(stations))}
+--- a/atelier/web/app.js
++++ b/atelier/web/app.js
+@@ -1634,7 +1634,14 @@
+ }
+ function download(content,name){const blob=new Blob([content],{type:'application/json'}),url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();URL.revokeObjectURL(url)}
+ async function importModel(file){
+- try{const obj=JSON.parse(await file.text());await perform(api('/api/model','POST',{stations:obj.stations,orders:obj.orders}),'Modelo importado e recalculado.');st.editing=null;navigate('modelo')}
++ try{
++  const obj=JSON.parse(await file.text());
++  const hasRule=Object.prototype.hasOwnProperty.call(obj,'dispatch_rule');
++  const payload={stations:obj.stations,orders:obj.orders};
++  if(hasRule)payload.dispatch_rule=obj.dispatch_rule;
++  const message='Modelo importado e recalculado. '+(hasRule?'Regra de despacho do arquivo preservada.':'Arquivo sem regra: mantida a regra de despacho atual.');
++  await perform(api('/api/model','POST',payload),message);st.editing=null;navigate('modelo');
++ }
+  catch(e){notify('Falha ao importar: '+e.message,true)}
+ }
+ 
+--- a/tests/test_am19_distribution.py
++++ b/tests/test_am19_distribution.py
+@@ -64,5 +64,10 @@
+         version=json.loads(amendment.read_text())
+         assert version['base_app_sha256']==expected['atelier/web/app.js']
+         expected['atelier/web/app.js']=version['app_sha256']
++    amendment=ROOT/'VERSAO_INT01.json'
++    if amendment.is_file():
++        version=json.loads(amendment.read_text())
++        assert version['base_app_sha256']==expected['atelier/web/app.js']
++        expected['atelier/web/app.js']=version['app_sha256']
+     for name,digest in expected.items():
+         assert sha256((ROOT/name).read_bytes()).hexdigest()==digest,name
+--- /dev/null
++++ b/CONTINUIDADE_INT01_2026.md
+@@ -0,0 +1,9 @@
++# Continuidade — INT01-2026.1
++
++Aplicativo base AM22 8599a5c; branch criada sobre a auditoria integrada c7e023c, que não alterou o aplicativo. Correção: correcao-int01-importacao-regra, checkpoint 40d049d. Importação JSON preserva dispatch_rule explícita EDD/SPT/FIFO, ausência mantém a regra atual com aviso e inválidos são recusados. Falhas e conflitos não publicam estado parcial. Modelo importado não é restauração de todo um experimento.
++
++682 testes aprovados, zero falhas, dez subtestes; 18 casos novos. Três experimentos oficiais preservados. Importação/download/upload em outro projeto, reabertura, legado e inválidos passaram nas três resoluções. AM05, Modo Banca, gráficos e exportações novamente conferidos. ZIP/patch extraídos e comparados; GitHub recuperado e conferido antes da conclusão. VERSAO_INT01.json estende a cadeia de hash autorizada sem modificar referências anteriores.
++
++Próxima etapa recomendada: INT-02, precisão da auditoria por pedido (atelier/technical_audit.py, summarize_audit). Reproduzir o caso de 0,001 h da auditoria integrada, consumir completion_h/lateness_h precisos e aplicar fallback legado explícito. Não alterar o motor, fórmulas nem outros achados nessa etapa. Base deve ser a entrega INT01 mais recente confirmada, nunca AM22 antiga se houver uma sucessora.
++
++Depois: INT-03, documentos inválidos na biblioteca; INT-04, contraste/legibilidade pontuais. Windows/BAT/projetor continuam pendentes. AM18/20/21 e validade industrial não foram resolvidos por esta importação. Continuar sem agentes paralelos, etapas pequenas, checkpoints, ZIP completo, patch, relatório e downloads verificados.
+--- /dev/null
++++ b/LEIA_INT01_2026.md
+@@ -0,0 +1 @@
++INT01-2026.1 sobre AM22. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve versões e projetos anteriores. Leia RELATORIO_INT01_2026.md e CONTINUIDADE_INT01_2026.md. Importação JSON preserva a regra explícita; ausência mantém a atual com aviso; inválidos são recusados. Windows nativo pendente.
+--- /dev/null
++++ b/RELATORIO_INT01_2026.md
+@@ -0,0 +1,52 @@
++# INT-01 — contrato de importação da regra de despacho
++
++## Base e escopo
++
++Aplicativo base: AM22-2026.1, commit 8599a5c6f8ce361e5804f4403a8770939546df79. A branch parte da auditoria integrada c7e023c, cujo aplicativo tem exatamente os mesmos 650 arquivos da AM22. Branch de correção: correcao-int01-importacao-regra. Checkpoint 40d049d. Não foi usado ZIP antigo, não houve reconstrução nem agentes paralelos.
++
++Escopo exclusivo: preservar dispatch_rule do JSON de modelo ao importar na interface e no backend. A auditoria permanece preservada como ponto de recuperação. INT-02 (precisão da auditoria por pedido), INT-03 (arquivo inválido na biblioteca) e INT-04 (contraste) não foram corrigidos aqui. A evolução visual, abertura, motor DES, fórmulas, gráficos, Modo Banca, arquivos arquivados e dados-base são preservados.
++
++## Reprodução
++
++Na AM22, exportar modelo em SPT e importar na mesma sessão após mudar para EDD mantém EDD. Há duas perdas: importModel enviava só stations/orders; set_model também ignorava dispatch_rule mesmo quando recebida diretamente. before.log registra a reprodução antes da alteração. A auditoria anterior já comprovava o caminho real de arquivo nas três resoluções.
++
++A bateria final de 18 casos novos foi executada também contra a extração AM22 intacta, antes de considerar a correção válida: 12 falhas confirmavam perda de regra explícita ou aceitação de regra inválida; seis casos de compatibilidade/rollback já passavam. before-tests.log contém esse resultado. Uma primeira versão da asserção de conflito comparava também a lista de projetos atualizada externamente; ela foi ajustada para comparar o estado de cálculo e dados em memória que a instância deveria preservar. Isso é correção do instrumento de teste, não mudança do produto para ocultar falha. Os testes e provas finais verificam os bytes gravados e a edição externa mais recente.
++
++## Contrato adotado
++
++- dispatch_rule explicitamente presente deve ser string exata EDD, SPT ou FIFO. É aplicada ao candidato antes do cálculo e confirmada com o modelo na transação existente.
++- Campo ausente mantém a regra atual, para compatibilidade com modelos antigos e com a atualização normal pelo editor. A importação na interface informa: arquivo sem regra; mantida a regra de despacho atual.
++- null, vazio, minúsculas, espaço adicional, booleanos, números, arrays, objetos ou identificador desconhecido são inválidos. Não são convertidos em EDD nem confundidos com ausência. A interface recebe erro antes de publicar outra configuração.
++- A importação continua sendo de modelo produtivo, não restauração de todo um experimento arquivado. Incidente, orçamento, meta e espera atuais seguem os contratos anteriores. Se um pedido crítico deixa de existir, continua valendo a proteção anterior que limpa essa referência.
++
++Não há recálculo automático adicional: continua ocorrendo uma aplicação por importação. Arquivos com regra válida já são recalculados pela mesma operação que aplicava o modelo. Não se acrescentou novo formato de arquivo, dependência ou serviço externo.
++
++## Arquivos e funções alterados
++
++1. atelier/service.py, Studio.set_model: valida presença/tipo/valor; aplica nx_rule somente ao candidato local; publica memória e disco apenas depois de calcular e persistir com sucesso. Ausência mantém o estado vigente. As proteções de carga e de conflito da AM12 permanecem.
++2. atelier/web/app.js, importModel: transmite dispatch_rule quando o JSON contém a propriedade e distingue no aviso a origem explícita do caso legado. Não normaliza inválidos para uma regra válida.
++3. tests/test_int01_import_rule.py: 18 casos automatizados novos.
++4. atelier/tests/browser_int01.py: exportação/download e importação/upload reais nas três resoluções, troca de projeto, legado, inválidos e reabertura.
++5. VERSAO_INT01.json e tests/test_am19_distribution.py: adendo de hash da alteração autorizada em app.js. A referência AM19 e VERSAO_PRIORIDADE.json continuam byte a byte intactas. O teste confere a cadeia de hashes e continua verificando os demais arquivos visuais e engine. Não foi desativado nem afrouxado para aceitar qualquer conteúdo.
++
++Outras alterações do pacote são somente relatório, continuidade, instruções e evidências. Nenhuma função de INT-02/03/04 foi modificada. A alteração do importador não resolve AM20, que é de caminho clássico separado.
++
++## Validação
++
++Regressão completa: 682 testes aprovados, zero falhas, dez subtestes aprovados. São 18 casos novos, não 18 módulos. Warning de depreciação do plugin AnyIO, sem falha funcional.
++
++Casos novos: round-trip de EDD/SPT/FIFO em outro projeto e reabertura, com igualdade das métricas nominais; arquivos sem campo sob as três regras, preservando parâmetros não pertencentes ao modelo; nove valores explicitamente inválidos, com memória e todos os JSON intactos; falhas controladas de cálculo e persistência sem publicar a regra candidata; conflito entre instâncias preservando a gravação mais recente. O teste de falha de persistência simula OSError na transação; a cobertura anterior de rollback por substituição de arquivos continua na regressão.
++
++Navegador HTTP real em 1280x720,1366x768,1920x1080: exportação pelo botão do produto, criação de projeto pela interface, preparação da regra oposta e importação por upload. As três regras foram preservadas e os resultados nominais coincidiram com a origem. Arquivo sem campo mantém FIFO com aviso explícito; null, spt e array retornam 400 sem alterar memória/disco. Reabertura confirmou a regra. Sem exceções JavaScript não tratadas.
++
++AM05 foi novamente conferida nas três resoluções, incluindo origem/assinatura e resultados atuais/desatualizados/históricos. Modo Banca real com justificativa/registro/relatório e gráficos/ampliação/exportações passaram nas três resoluções.
++
++Os três experimentos oficiais permaneceram iguais. A: SLA nominal/incidente/resposta 100/40/100%, custo total da decisão R$12.113,00, economia líquida R$4.103,68. B e C conforme banca.log. Nenhum número de referência foi ajustado para obter aprovação.
++
++Comandos: python -m pytest tests contract_tests atelier/tests -q -p no:cacheprovider; python -m pytest tests/test_int01_import_rule.py tests/test_am19_distribution.py -q -p no:cacheprovider; python -m atelier.tests.validacao_experimentos_banca; python -m atelier.tests.browser_int01; python -m atelier.tests.browser_am05; python -m atelier.tests.browser_acabamento_final; python docs/AM19/evidencias/actual_http_browser.py. Os testes de navegador usam Playwright/Chromium no Linux, sem dependências novas no aplicativo principal.
++
++## Empacotamento e limites
++
++ZIP completo com recursos essenciais e todos os arquivos anteriores, patch reproduzível sobre os 650 arquivos AM22 originais, relatório e continuidade. O aplicador confere a base e cria uma pasta nova, preservando a origem. ZIP extraído e patch aplicado são comparados por SHA-256; testes direcionados são executados na extração. Os arquivos publicados no GitHub são recuperados e comparados à versão local antes da conclusão.
++
++Instale em pasta nova e preserve sua instalação e projetos anteriores. A base da auditoria e os ZIPs anteriores permanecem no GitHub. Não houve validação nativa no Windows, BAT ou projetor. Limites e pendências da auditoria integrada permanecem explícitos; esta etapa não os declara resolvidos.
+--- /dev/null
++++ b/VERSAO_INT01.json
+@@ -0,0 +1,6 @@
++{
++  "version": "INT01-2026.1",
++  "base_commit": "8599a5c6f8ce361e5804f4403a8770939546df79",
++  "base_app_sha256": "0d8591f22f9bd61f1abef08931a5d6a24001177a4531224ff29ba17d5aacfb17",
++  "app_sha256": "b05152ce353059ffba88aa6662b598bf02a80687c136a146de8db341484659ba"
++}--- /dev/null
++++ b/atelier/tests/browser_int01.py
+@@ -0,0 +1,52 @@
++"""INT01 real HTTP/file download/upload acceptance at three viewports."""
++import json,os
++from pathlib import Path
++from tempfile import TemporaryDirectory
++from threading import Thread
++from http.server import ThreadingHTTPServer
++from playwright.sync_api import sync_playwright,expect
++from atelier.service import Studio
++from atelier import server
++
++out=Path(os.environ.get('INT01_QA_OUT','docs/INT01/capturas'));out.mkdir(parents=True,exist_ok=True)
++with sync_playwright() as pw:
++ b=pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
++ for w,h in [(1280,720),(1366,768),(1920,1080)]:
++  with TemporaryDirectory() as d:
++   folder=Path(d);s=Studio(folder);server.STUDIO=s
++   httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler);Thread(target=httpd.serve_forever,daemon=True).start()
++   p=b.new_page(viewport={'width':w,'height':h},accept_downloads=True);errors=[];p.on('pageerror',lambda e:errors.append(str(e)))
++   def reload():
++    p.goto(f'http://127.0.0.1:{httpd.server_port}/',wait_until='networkidle');p.wait_for_selector('#factory-a .station-group');p.evaluate('document.querySelector("#splash")?.remove()')
++   def upload(model):
++    p.locator('[data-nav=modelo]').click()
++    with p.expect_response(lambda r:r.url.endswith('/api/model')) as ev:
++     p.locator('#model-file').set_input_files({'name':'modelo.json','mimeType':'application/json','buffer':json.dumps(model).encode()})
++    return ev.value
++   try:
++    for rule in ['EDD','SPT','FIFO']:
++     s.calculate({'rule':rule});reload();reference=s.info()['metrics']['normal'];source=s.project_id
++     with p.expect_download() as ev:p.locator('#header-export').click()
++     model=json.loads(Path(ev.value.path()).read_text());assert model['dispatch_rule']==rule
++     p.locator('#project-manager').click();p.locator('#project-new-name').fill(f'Destino {rule} {w}');p.locator('#project-duplicate').check()
++     with p.expect_response(lambda r:r.url.endswith('/api/project/create')) as ev:p.locator('#project-create').click()
++     assert ev.value.ok
++     s.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'});reload()
++     assert s.project_id!=source
++     response=upload(model);assert response.ok
++     expect(p.locator('#toast')).to_contain_text('Regra de despacho do arquivo preservada')
++     assert s.info()['rule']==rule and s.info()['metrics']['normal']==reference
++     assert Studio(folder).info()['rule']==rule
++    legacy=dict(model);legacy.pop('dispatch_rule');assert upload(legacy).ok
++    expect(p.locator('#toast')).to_contain_text('Arquivo sem regra: mantida a regra de despacho atual')
++    assert s.info()['rule']=='FIFO'
++    for invalid in [None,'spt',[]]:
++     bad=json.loads(json.dumps(model));bad['dispatch_rule']=invalid;bad['orders'][0]['quantidade']+=1
++     before=s.info();disk={p:p.read_bytes() for p in folder.rglob('*.json')}
++     assert upload(bad).status==400
++     expect(p.locator('#toast')).to_contain_text('Regra de despacho inválida')
++     assert s.info()==before and all(p.read_bytes()==data for p,data in disk.items())
++    p.screenshot(path=str(out/f'importacao_{w}.png'));assert not errors,errors
++    print('INT01 BROWSER OK',w,h,'EDD/SPT/FIFO, outro projeto, download/upload, legado, inválidos e reabertura',flush=True)
++   finally:p.close();httpd.shutdown();httpd.server_close()
++ b.close()
+--- /dev/null
++++ b/docs/INT01/evidencias/after.log
+@@ -0,0 +1,3 @@
++Exported: SPT After backend import: SPT Reopened: SPT
++Absent rule: SPT
++Explicit null rejected: Regra de despacho inválida: informe EDD, SPT ou FIFO. Current rule: SPT
+--- /dev/null
++++ b/docs/INT01/evidencias/banca.log
+@@ -0,0 +1,4 @@
++3 EXPERIMENTOS APROVADOS
++A: 100.0 40.0 100.0 custos 16216.67 12113.0 4103.68
++B: [(0, 5.681763308299117, 84.12881249414335), (1, 5.681763308299117, 96.09692807908425), (2, 5.681763308299117, 108.06504366402514), (3, 5.681763308299117, 120.033159248966)]
++C: Manutenção expressa · CNC 21.57530617980079 +1 operador · CNC 19.973006391870044
+--- /dev/null
++++ b/docs/INT01/evidencias/before-tests-initial.log
+@@ -0,0 +1,239 @@
++FFF...FFFFFFFFF..F                                                       [100%]
++=================================== FAILURES ===================================
++_ test_exported_rule_roundtrip_in_another_project_reproduces_model_results[EDD] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_exported_rule_roundtrip_i0')
++rule = 'EDD'
++
++    @pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
++    def test_exported_rule_roundtrip_in_another_project_reproduces_model_results(tmp_path,rule):
++        app=Studio(tmp_path);app.calculate({'rule':rule})
++        source=app.info();model=json.loads(app.export_model())
++        target=app.create_project('Projeto de destino')
++        app.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'})
++        restored=app.set_model(model)
++        assert restored['active_project_id']!=source['active_project_id']
++>       assert restored['rule']==rule
++E       AssertionError: assert 'SPT' == 'EDD'
++E         
++E         - EDD
++E         + SPT
++
++tests/test_int01_import_rule.py:21: AssertionError
++_ test_exported_rule_roundtrip_in_another_project_reproduces_model_results[SPT] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_exported_rule_roundtrip_i1')
++rule = 'SPT'
++
++    @pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
++    def test_exported_rule_roundtrip_in_another_project_reproduces_model_results(tmp_path,rule):
++        app=Studio(tmp_path);app.calculate({'rule':rule})
++        source=app.info();model=json.loads(app.export_model())
++        target=app.create_project('Projeto de destino')
++        app.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'})
++        restored=app.set_model(model)
++        assert restored['active_project_id']!=source['active_project_id']
++>       assert restored['rule']==rule
++E       AssertionError: assert 'EDD' == 'SPT'
++E         
++E         - SPT
++E         + EDD
++
++tests/test_int01_import_rule.py:21: AssertionError
++_ test_exported_rule_roundtrip_in_another_project_reproduces_model_results[FIFO] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_exported_rule_roundtrip_i2')
++rule = 'FIFO'
++
++    @pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
++    def test_exported_rule_roundtrip_in_another_project_reproduces_model_results(tmp_path,rule):
++        app=Studio(tmp_path);app.calculate({'rule':rule})
++        source=app.info();model=json.loads(app.export_model())
++        target=app.create_project('Projeto de destino')
++        app.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'})
++        restored=app.set_model(model)
++        assert restored['active_project_id']!=source['active_project_id']
++>       assert restored['rule']==rule
++E       AssertionError: assert 'EDD' == 'FIFO'
++E         
++E         - FIFO
++E         + EDD
++
++tests/test_int01_import_rule.py:21: AssertionError
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[None] __
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_explicit_invalid_rule_is_0')
++invalid = None
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++tests/test_int01_import_rule.py:46: Failed
++___ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[] ____
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_explicit_invalid_rule_is_1')
++invalid = ''
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++tests/test_int01_import_rule.py:46: Failed
++__ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[spt] __
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_explicit_invalid_rule_is_2')
++invalid = 'spt'
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++tests/test_int01_import_rule.py:46: Failed
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[SPT ] __
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_explicit_invalid_rule_is_3')
++invalid = 'SPT '
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++tests/test_int01_import_rule.py:46: Failed
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[True] __
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_explicit_invalid_rule_is_4')
++invalid = True
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++tests/test_int01_import_rule.py:46: Failed
++___ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[1] ___
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_explicit_invalid_rule_is_5')
++invalid = 1
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++tests/test_int01_import_rule.py:46: Failed
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid6] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_explicit_invalid_rule_is_6')
++invalid = []
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++tests/test_int01_import_rule.py:46: Failed
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid7] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_explicit_invalid_rule_is_7')
++invalid = {}
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++tests/test_int01_import_rule.py:46: Failed
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[INVALID] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_explicit_invalid_rule_is_8')
++invalid = 'INVALID'
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++tests/test_int01_import_rule.py:46: Failed
++___ test_conflicting_writer_keeps_newer_project_and_original_importer_state ____
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-60/test_conflicting_writer_keeps_0')
++
++    def test_conflicting_writer_keeps_newer_project_and_original_importer_state(tmp_path):
++        app=Studio(tmp_path);other=Studio(tmp_path)
++        model=json.loads(app.export_model());model['dispatch_rule']='SPT';before=app.info()
++        other.calculate({'rule':'FIFO'});disk=documents(tmp_path)
++        with pytest.raises(StudioError,match='outra instância'):app.set_model(model)
++>       assert app.info()==before
++E       AssertionError: assert {'source': 'E...5, ...}], ...} == {'source': 'E...5, ...}], ...}
++E         
++E         Omitting 25 identical items, use -vv to show
++E         Differing items:
++E         {'projects': [{'id': 'principal', 'name': 'Projeto principal', 'updated_at': '2026-11-14T02:13:44.022086+00:00', 'stations': 5, ...}]} != {'projects': [{'id': 'principal', 'name': 'Projeto principal', 'updated_at': '2026-11-14T02:13:43.558788+00:00', 'stations': 5, ...}]}
++E         Use -v to get more diff
++
++tests/test_int01_import_rule.py:69: AssertionError
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++=========================== short test summary info ============================
++FAILED tests/test_int01_import_rule.py::test_exported_rule_roundtrip_in_another_project_reproduces_model_results[EDD]
++FAILED tests/test_int01_import_rule.py::test_exported_rule_roundtrip_in_another_project_reproduces_model_results[SPT]
++FAILED tests/test_int01_import_rule.py::test_exported_rule_roundtrip_in_another_project_reproduces_model_results[FIFO]
++FAILED tests/test_int01_import_rule.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[None]
++FAILED tests/test_int01_import_rule.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[]
++FAILED tests/test_int01_import_rule.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[spt]
++FAILED tests/test_int01_import_rule.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[SPT ]
++FAILED tests/test_int01_import_rule.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[True]
++FAILED tests/test_int01_import_rule.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[1]
++FAILED tests/test_int01_import_rule.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid6]
++FAILED tests/test_int01_import_rule.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid7]
++FAILED tests/test_int01_import_rule.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[INVALID]
++FAILED tests/test_int01_import_rule.py::test_conflicting_writer_keeps_newer_project_and_original_importer_state
++13 failed, 5 passed, 1 warning in 14.18s
+--- /dev/null
++++ b/docs/INT01/evidencias/before-tests.log
+@@ -0,0 +1,220 @@
++FFF...FFFFFFFFF...                                                       [100%]
++=================================== FAILURES ===================================
++_ test_exported_rule_roundtrip_in_another_project_reproduces_model_results[EDD] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_exported_rule_roundtrip_i0')
++rule = 'EDD'
++
++    @pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
++    def test_exported_rule_roundtrip_in_another_project_reproduces_model_results(tmp_path,rule):
++        app=Studio(tmp_path);app.calculate({'rule':rule})
++        source=app.info();model=json.loads(app.export_model())
++        target=app.create_project('Projeto de destino')
++        app.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'})
++        restored=app.set_model(model)
++        assert restored['active_project_id']!=source['active_project_id']
++>       assert restored['rule']==rule
++E       AssertionError: assert 'SPT' == 'EDD'
++E         
++E         - EDD
++E         + SPT
++
++../../../int01/test_before.py:21: AssertionError
++_ test_exported_rule_roundtrip_in_another_project_reproduces_model_results[SPT] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_exported_rule_roundtrip_i1')
++rule = 'SPT'
++
++    @pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
++    def test_exported_rule_roundtrip_in_another_project_reproduces_model_results(tmp_path,rule):
++        app=Studio(tmp_path);app.calculate({'rule':rule})
++        source=app.info();model=json.loads(app.export_model())
++        target=app.create_project('Projeto de destino')
++        app.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'})
++        restored=app.set_model(model)
++        assert restored['active_project_id']!=source['active_project_id']
++>       assert restored['rule']==rule
++E       AssertionError: assert 'EDD' == 'SPT'
++E         
++E         - SPT
++E         + EDD
++
++../../../int01/test_before.py:21: AssertionError
++_ test_exported_rule_roundtrip_in_another_project_reproduces_model_results[FIFO] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_exported_rule_roundtrip_i2')
++rule = 'FIFO'
++
++    @pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
++    def test_exported_rule_roundtrip_in_another_project_reproduces_model_results(tmp_path,rule):
++        app=Studio(tmp_path);app.calculate({'rule':rule})
++        source=app.info();model=json.loads(app.export_model())
++        target=app.create_project('Projeto de destino')
++        app.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'})
++        restored=app.set_model(model)
++        assert restored['active_project_id']!=source['active_project_id']
++>       assert restored['rule']==rule
++E       AssertionError: assert 'EDD' == 'FIFO'
++E         
++E         - FIFO
++E         + EDD
++
++../../../int01/test_before.py:21: AssertionError
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[None] __
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_0')
++invalid = None
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++../../../int01/test_before.py:46: Failed
++___ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[] ____
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_1')
++invalid = ''
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++../../../int01/test_before.py:46: Failed
++__ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[spt] __
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_2')
++invalid = 'spt'
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++../../../int01/test_before.py:46: Failed
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[SPT ] __
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_3')
++invalid = 'SPT '
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++../../../int01/test_before.py:46: Failed
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[True] __
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_4')
++invalid = True
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++../../../int01/test_before.py:46: Failed
++___ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[1] ___
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_5')
++invalid = 1
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++../../../int01/test_before.py:46: Failed
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid6] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_6')
++invalid = []
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++../../../int01/test_before.py:46: Failed
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid7] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_7')
++invalid = {}
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++../../../int01/test_before.py:46: Failed
++_ test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[INVALID] _
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-63/test_explicit_invalid_rule_is_8')
++invalid = 'INVALID'
++
++    @pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++    def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++        app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++        before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++        model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++>       with pytest.raises(StudioError,match='despacho'):
++             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++E       Failed: DID NOT RAISE StudioError
++
++../../../int01/test_before.py:46: Failed
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++=========================== short test summary info ============================
++FAILED ../../../int01/test_before.py::test_exported_rule_roundtrip_in_another_project_reproduces_model_results[EDD]
++FAILED ../../../int01/test_before.py::test_exported_rule_roundtrip_in_another_project_reproduces_model_results[SPT]
++FAILED ../../../int01/test_before.py::test_exported_rule_roundtrip_in_another_project_reproduces_model_results[FIFO]
++FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[None]
++FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[]
++FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[spt]
++FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[SPT ]
++FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[True]
++FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[1]
++FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid6]
++FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[invalid7]
++FAILED ../../../int01/test_before.py::test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes[INVALID]
++12 failed, 6 passed, 1 warning in 14.33s
+--- /dev/null
++++ b/docs/INT01/evidencias/before.log
+@@ -0,0 +1,2 @@
++Exported: SPT After backend import: EDD
++Frontend importModel discards dispatch_rule: True
+--- /dev/null
++++ b/docs/INT01/evidencias/browser-am05.log
+@@ -0,0 +1,138 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/select HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/select HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM05 BROWSER OK 1280x720: 9 checks, no JS errors
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/select HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/select HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM05 BROWSER OK 1366x768: 9 checks, no JS errors
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/select HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/lab HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/select HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++[http] "POST /api/advanced HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM05 BROWSER OK 1920x1080: 9 checks, no JS errors
+--- /dev/null
++++ b/docs/INT01/evidencias/browser-banca.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1280x720 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1366x768 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1920x1080 · progressive / dual panels / justification / record / report
+--- /dev/null
++++ b/docs/INT01/evidencias/browser-charts.log
+@@ -0,0 +1,3 @@
++ACABAMENTO OK 1280 720 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1366 768 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1920 1080 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
+--- /dev/null
++++ b/docs/INT01/evidencias/browser.log
+@@ -0,0 +1,135 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++INT01 BROWSER OK 1280 720 EDD/SPT/FIFO, outro projeto, download/upload, legado, inválidos e reabertura
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++INT01 BROWSER OK 1366 768 EDD/SPT/FIFO, outro projeto, download/upload, legado, inválidos e reabertura
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++INT01 BROWSER OK 1920 1080 EDD/SPT/FIFO, outro projeto, download/upload, legado, inválidos e reabertura
+# Binary in overlay: docs/INT01/evidencias/importacao_1280.png
+# Binary in overlay: docs/INT01/evidencias/importacao_1366.png
+# Binary in overlay: docs/INT01/evidencias/importacao_1920.png
+--- /dev/null
++++ b/docs/INT01/evidencias/regression.log
+@@ -0,0 +1,20 @@
++........................................................................ [ 10%]
++........................................................................ [ 21%]
++........................................................................ [ 31%]
++........................................................................ [ 42%]
++........................................................................ [ 52%]
++........................................................................ [ 63%]
++........................................................................ [ 73%]
++........................................................................ [ 84%]
++.............................................................. [ 93%]
++............................................                             [100%]
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++682 passed, 1 warning, 10 subtests passed in 183.44s (0:03:03)
+--- /dev/null
++++ b/tests/test_int01_import_rule.py
+@@ -0,0 +1,73 @@
++"""INT01 import/export contract, preserving legacy absence and transactionality."""
++from copy import deepcopy
++import json
++from unittest.mock import patch
++import pytest
++from atelier.service import Studio,StudioError
++
++
++def documents(folder):
++    return {str(p.relative_to(folder)):p.read_bytes() for p in folder.rglob('*.json')}
++
++
++@pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
++def test_exported_rule_roundtrip_in_another_project_reproduces_model_results(tmp_path,rule):
++    app=Studio(tmp_path);app.calculate({'rule':rule})
++    source=app.info();model=json.loads(app.export_model())
++    target=app.create_project('Projeto de destino')
++    app.calculate({'rule':'EDD' if rule!='EDD' else 'SPT'})
++    restored=app.set_model(model)
++    assert restored['active_project_id']!=source['active_project_id']
++    assert restored['rule']==rule
++    assert restored['metrics']['normal']==source['metrics']['normal']
++    reopened=Studio(tmp_path).info()
++    assert reopened['active_project_id']==target['active_project_id']
++    assert reopened['rule']==rule
++    assert reopened['metrics']['normal']==source['metrics']['normal']
++    assert json.loads(app.export_model())==model
++
++
++@pytest.mark.parametrize('rule',['EDD','SPT','FIFO'])
++def test_legacy_absence_preserves_current_rule_and_non_model_controls(tmp_path,rule):
++    app=Studio(tmp_path);app.calculate({'rule':rule,'min_sla':73,'delay_h':3,'duration_h':7})
++    before=app.info();model=json.loads(app.export_model());model.pop('dispatch_rule')
++    restored=app.set_model(model)
++    assert restored['rule']==rule
++    assert restored['spec']==before['spec']
++    assert restored['delay_h']==before['delay_h']
++    assert Studio(tmp_path).info()['rule']==rule
++
++
++@pytest.mark.parametrize('invalid',[None,'','spt','SPT ',True,1,[],{},'INVALID'])
++def test_explicit_invalid_rule_is_rejected_without_memory_or_disk_changes(tmp_path,invalid):
++    app=Studio(tmp_path);app.calculate({'rule':'SPT'})
++    before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model())
++    model['dispatch_rule']=invalid;model['orders'][0]['quantidade']+=1
++    with pytest.raises(StudioError,match='despacho'):
++        app.set_model(model)
++    assert app.info()==before
++    assert documents(tmp_path)==disk
++
++
++@pytest.mark.parametrize('operation',['simulation','persistence'])
++def test_import_does_not_publish_new_rule_when_execution_or_save_fails(tmp_path,operation):
++    app=Studio(tmp_path);app.calculate({'rule':'EDD'})
++    before=app.info();disk=documents(tmp_path);model=json.loads(app.export_model());model['dispatch_rule']='SPT'
++    target='atelier.service.execute' if operation=='simulation' else 'atelier.service.atomic_bundle'
++    error=ValueError('Falha controlada') if operation=='simulation' else OSError('Falha controlada')
++    with patch(target,side_effect=error),pytest.raises(StudioError):app.set_model(model)
++    assert app.info()==before
++    assert documents(tmp_path)==disk
++    assert Studio(tmp_path).info()['rule']=='EDD'
++
++
++def test_conflicting_writer_keeps_newer_project_and_original_importer_state(tmp_path):
++    app=Studio(tmp_path);other=Studio(tmp_path)
++    model=json.loads(app.export_model());model['dispatch_rule']='SPT';before=app.info()
++    other.calculate({'rule':'FIFO'});disk=documents(tmp_path)
++    with pytest.raises(StudioError,match='outra instância'):app.set_model(model)
++    after=app.info()
++    for key in ('rule','run_id','spec','orders','stations','selected','metrics','analysis_signature'):
++        assert after[key]==before[key]
++    assert documents(tmp_path)==disk
++    assert Studio(tmp_path).info()['rule']=='FIFO'

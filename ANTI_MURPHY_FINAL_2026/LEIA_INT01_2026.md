@@ -1,0 +1,1 @@
+INT01-2026.1 sobre AM22. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve versões e projetos anteriores. Leia RELATORIO_INT01_2026.md e CONTINUIDADE_INT01_2026.md. Importação JSON preserva a regra explícita; ausência mantém a atual com aviso; inválidos são recusados. Windows nativo pendente.

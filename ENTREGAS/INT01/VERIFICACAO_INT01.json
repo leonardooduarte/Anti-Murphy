@@ -1,0 +1,13 @@
+{
+  "base_commit": "8599a5c6f8ce361e5804f4403a8770939546df79",
+  "files": 669,
+  "zip_patch_identical": true,
+  "regression_passed": 682,
+  "failed": 0,
+  "subtests_passed": 10,
+  "new_cases": 18,
+  "extracted_tests_passed": 21,
+  "official_experiments": 3,
+  "browser_resolutions": 3,
+  "native_windows_validated": false
+}
