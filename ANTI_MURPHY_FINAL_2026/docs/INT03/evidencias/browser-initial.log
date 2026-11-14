@@ -1,0 +1,36 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/workspace/work/prioridade/repo/ANTI_MURPHY_FINAL_2026/atelier/tests/browser_int03.py", line 50, in <module>
+    assert s.info()==before
+           ^^^^^^^^^^^^^^^^
+AssertionError
+[http] "GET / HTTP/1.1" 200 -
+[http] "GET /styles.css HTTP/1.1" 200 -
+[http] "GET /design_vnext.css HTTP/1.1" 200 -
+[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
+[http] "GET /dashboards.css HTTP/1.1" 200 -
+[http] "GET /studio_final.css HTTP/1.1" 200 -
+[http] "GET /release_quality.css HTTP/1.1" 200 -
+[http] "GET /banca.css HTTP/1.1" 200 -
+[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
+[http] "GET /final_banca.css HTTP/1.1" 200 -
+[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
+[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
+[http] "GET /engineering_charts.css HTTP/1.1" 200 -
+[http] "GET /integridade_final.css HTTP/1.1" 200 -
+[http] "GET /experience_v01.css HTTP/1.1" 200 -
+[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
+[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
+[http] "GET /app.js HTTP/1.1" 200 -
+[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
+[http] "GET /analysis_state.js HTTP/1.1" 200 -
+[http] "GET /engineering_charts.js HTTP/1.1" 200 -
+[http] "GET /api/state HTTP/1.1" 200 -
+[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
+[http] "GET /api/experiment-library HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "POST /api/experiment/compare HTTP/1.1" 200 -
+[http] "POST /api/experiment/compare HTTP/1.1" 200 -
+[http] "POST /api/experiment/save HTTP/1.1" 200 -
+[http] "GET /api/experiment-library HTTP/1.1" 200 -

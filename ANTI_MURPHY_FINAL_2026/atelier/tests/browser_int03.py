@@ -47,7 +47,9 @@ with sync_playwright() as pw:
     expect(p.locator('#experiment-count')).to_have_text('4 arquivados')
     expect(p.locator('#experiment-warnings')).to_be_visible()
     assert all(p.read_bytes()==raw for p,raw in originals.items())
-    assert s.info()==before
+    after=s.info()
+    assert after['experiment_count']==before['experiment_count']+1
+    assert {k:v for k,v in after.items() if k!='experiment_count'}=={k:v for k,v in before.items() if k!='experiment_count'}
     original_project=s.project_id;s.create_project('Outro projeto');open_analysis()
     expect(p.locator('#experiment-count')).to_have_text('0 arquivados')
     expect(p.locator('#experiment-list')).not_to_contain_text('Referência válida')

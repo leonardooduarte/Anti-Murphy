@@ -1,3 +1,10 @@
+# Versão atual: INT03-2026.1 sobre INT02
+
+[Aplicativo completo](ENTREGAS/INT03/ANTI_MURPHY_INT03_COMPLETO_2026.zip) · [Patch](ENTREGAS/INT03/ANTI_MURPHY_PATCH_INT03_2026.zip) · [Relatório](ENTREGAS/INT03/RELATORIO_INT03_2026.md) · [Continuidade](ENTREGAS/INT03/CONTINUIDADE_INT03_2026.md).
+
+Biblioteca isola documentos inválidos, preserva originais e informa os problemas. Registros válidos continuam consultáveis, comparáveis e graváveis; a API anterior permanece em lista. Evolução visual preservada. 732 testes aprovados, zero falhas, dez subtestes; três experimentos e navegador nas três resoluções passaram. ZIP e patch conferem 719 arquivos. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Windows/projetor pendentes de validação nativa.
+
+---
 # Versão atual: INT02-2026.1 sobre INT01
 
 [Aplicativo completo](ENTREGAS/INT02/ANTI_MURPHY_INT02_COMPLETO_2026.zip) · [Patch](ENTREGAS/INT02/ANTI_MURPHY_PATCH_INT02_2026.zip) · [Relatório](ENTREGAS/INT02/RELATORIO_INT02_2026.md) · [Continuidade](ENTREGAS/INT02/CONTINUIDADE_INT02_2026.md).

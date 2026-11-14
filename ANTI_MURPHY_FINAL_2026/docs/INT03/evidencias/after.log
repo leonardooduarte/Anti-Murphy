@@ -1,0 +1,3 @@
+Valid list: 1 Issues: [{'filename': 'invalid.json', 'reason': 'Documento deve ser um objeto JSON.'}]
+Saved and list: 2
+Restart: 2 Invalid unchanged: True

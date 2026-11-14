@@ -1,0 +1,1713 @@
+--- a/atelier/server.py
++++ b/atelier/server.py
+@@ -76,6 +76,7 @@
+             if path=='/api/history':return self.send_json(STUDIO.history())
+             if path=='/api/projects':return self.send_json(STUDIO.projects())
+             if path=='/api/experiments':return self.send_json(STUDIO.experiment_list())
++            if path=='/api/experiment-library':return self.send_json(STUDIO.experiment_library())
+             if path=='/api/dashboards':return self.send_json(STUDIO.dashboards())
+             if path=='/api/technical-audit':return self.send_json(STUDIO.technical_audit())
+             if path=='/api/record/export':
+--- a/atelier/service.py
++++ b/atelier/service.py
+@@ -36,6 +36,7 @@
+ from .record_integrity import audit_decision_note, cost_snapshot
+ from .experiment_economics import snapshot as economic_snapshot, normalize as economic_view, compare as economic_compare
+ from .persistence import atomic_bundle
++from .experiment_library import read_library
+ from .workspace_guard import workspace_lock, project_revision
+ from .analysis_provenance import contexts as experiment_contexts, inputs as experiment_inputs, signature as experiment_signature
+ from .workload import profile as workload_profile, limit_message as workload_message
+@@ -335,17 +336,25 @@
+             'rule':self.state.get('nx_rule')},sort_keys=True,ensure_ascii=False)
+         return hashlib.sha256(raw.encode('utf-8')).hexdigest()
+ 
++    def _experiment_documents(self):
++        try:
++            return read_library(self.experiments_dir,self.project_id)
++        except OSError as exc:
++            raise StudioError('Não foi possível consultar a pasta de experimentos. Verifique o acesso aos arquivos.') from exc
++
++    def experiment_library(self):
++        with self.lock:
++            documents,issues=self._experiment_documents()
++            items=[{k:d.get(k) for k in ('id','name','created_at','model_hash',
++                       'project_id','run_id','spec','metrics','selected_action','selected_signature')}
++                   | {'economics':economic_view(d)} for d in documents.values()]
++            return {'project_id':self.project_id,
++                    'items':sorted(items,key=lambda x:x.get('created_at') or '',reverse=True),
++                    'issues':issues}
++
+     def experiment_list(self):
+-        with self.lock:
+-            out=[]
+-            for path in self.experiments_dir.glob('*.json'):
+-                try:
+-                    d=json.loads(path.read_text('utf-8'))
+-                    if d.get('project_id')==self.project_id:
+-                        out.append({k:d.get(k) for k in ('id','name','created_at','model_hash',
+-                            'project_id','run_id','spec','metrics','selected_action','selected_signature')} | {'economics':economic_view(d)})
+-                except (OSError,TypeError,ValueError):continue
+-            return sorted(out,key=lambda x:x.get('created_at') or '',reverse=True)
++        # Preserve the existing API/list contract for local clients.
++        return self.experiment_library()['items']
+ 
+     def save_experiment(self,name):
+         with self.lock, self._writing_workspace():
+@@ -373,14 +382,14 @@
+ 
+     def compare_experiments(self,first,second):
+         with self.lock:
+-            allowed={r['id'] for r in self.experiment_list()}
+-            if first not in allowed or second not in allowed or first==second:
++            documents,_issues=self._experiment_documents()
++            if (not isinstance(first,str) or not isinstance(second,str) or
++                first not in documents or second not in documents or first==second):
+                 raise StudioError('Selecione dois experimentos distintos do projeto atual.')
+-            one=json.loads((self.experiments_dir/(first+'.json')).read_text('utf-8'))
+-            two=json.loads((self.experiments_dir/(second+'.json')).read_text('utf-8'))
++            one=documents[first];two=documents[second]
+             k=('late_orders','sla_pct','makespan_h','total_cost')
+-            a=one['metrics']['response'] or one['metrics']['incident'] or {}
+-            b=two['metrics']['response'] or two['metrics']['incident'] or {}
++            a=one['metrics'].get('response') or one['metrics'].get('incident') or {}
++            b=two['metrics'].get('response') or two['metrics'].get('incident') or {}
+             return _json_safe({'first':one,'second':two,
+                 'same_model':one['model_hash']==two['model_hash'],
+                 'economics':economic_compare(one,two),
+--- a/atelier/tests/browser_acabamento_final.py
++++ b/atelier/tests/browser_acabamento_final.py
+@@ -25,6 +25,7 @@
+    elif path=='/api/technical-audit':res=studio.technical_audit()
+    elif path=='/api/history':res=studio.history()
+    elif path=='/api/experiments':res=studio.experiment_list()
++   elif path=='/api/experiment-library':res=studio.experiment_library()
+    elif path=='/api/projects':res=studio.projects()
+    elif path=='/api/select':res=studio.select(body.get('signature',''))
+    elif path=='/api/record':res=studio.decision(body)
+--- a/atelier/tests/browser_banca_gate.py
++++ b/atelier/tests/browser_banca_gate.py
+@@ -43,6 +43,7 @@
+                     elif path=='/api/assistant':value=studio.assistant(body.get('question',''))
+                     elif path=='/api/advanced':value=studio.advanced(body)
+                     elif path=='/api/experiments':value=studio.experiment_list()
++                    elif path=='/api/experiment-library':value=studio.experiment_library()
+                     elif path=='/api/projects':value=studio.projects()
+                     elif path=='/api/model':value=studio.set_model(body)
+                     elif path=='/api/run':value=studio.calculate(body)
+--- a/atelier/tests/browser_final_banca.py
++++ b/atelier/tests/browser_final_banca.py
+@@ -35,6 +35,7 @@
+      elif path=='/api/technical-audit':res=studio.technical_audit()
+      elif path=='/api/history':res=studio.history()
+      elif path=='/api/experiments':res=studio.experiment_list()
++     elif path=='/api/experiment-library':res=studio.experiment_library()
+      elif path=='/api/projects':res=studio.projects()
+      elif path=='/api/select':res=studio.select(body.get('signature',''))
+      elif path=='/api/record':res=studio.decision(body)
+--- a/atelier/tests/browser_prefinal_gate.py
++++ b/atelier/tests/browser_prefinal_gate.py
+@@ -45,6 +45,7 @@
+             elif path=='/api/reset':value=studio.reset()
+             elif path=='/api/projects':value=studio.projects()
+             elif path=='/api/experiments':value=studio.experiment_list()
++            elif path=='/api/experiment-library':value=studio.experiment_library()
+             else:raise RuntimeError('Not part of QA: '+path)
+             return {'ok':True,'status':200,'data':value}
+           except Exception as e:return {'ok':False,'status':400,'data':{'error':str(e)}}
+--- a/atelier/tests/browser_premium_banca.py
++++ b/atelier/tests/browser_premium_banca.py
+@@ -35,6 +35,7 @@
+      elif path=='/api/technical-audit':res=studio.technical_audit()
+      elif path=='/api/history':res=studio.history()
+      elif path=='/api/experiments':res=studio.experiment_list()
++     elif path=='/api/experiment-library':res=studio.experiment_library()
+      elif path=='/api/projects':res=studio.projects()
+      elif path=='/api/select':res=studio.select(body.get('signature',''))
+      elif path=='/api/record':res=studio.decision(body)
+--- a/atelier/web/app.js
++++ b/atelier/web/app.js
+@@ -1728,7 +1728,15 @@
+ async function loadExperiments(){
+  if(!st.data)return;
+  try{
+-  st.savedExperiments=await api('/api/experiments');
++  const project=st.data.active_project_id;
++  const library=await api('/api/experiment-library');
++  if(library.project_id!==project||library.project_id!==st.data?.active_project_id)return;
++  st.savedExperiments=library.items;
++  let warnings=$('experiment-warnings');
++  if(!warnings){warnings=document.createElement('div');warnings.id='experiment-warnings';warnings.className='project-advisory';warnings.setAttribute('role','status');$('experiment-list').before(warnings);}
++  const issues=library.issues||[];
++  warnings.hidden=!issues.length;
++  warnings.innerHTML=issues.length?`<strong>${integer(issues.length)} arquivo(s) da biblioteca não puderam ser lidos.</strong><p>Os originais foram preservados. Os registros válidos continuam disponíveis. Arquivos sem origem identificável podem pertencer a outro projeto.</p><details><summary>Ver arquivos e motivos</summary><ul>${issues.map(x=>`<li><strong>experimentos/${esc(x.filename)}</strong>: ${esc(x.reason)}</li>`).join('')}</ul></details>`:'';
+   const items=st.savedExperiments;
+   $('experiment-count').textContent=`${items.length} arquivados`;
+   $('experiment-list').innerHTML=items.length?items.slice(0,30).map(x=>{
+--- a/tests/test_am19_distribution.py
++++ b/tests/test_am19_distribution.py
+@@ -74,5 +74,10 @@
+         version=json.loads(amendment.read_text())
+         assert version['base_app_sha256']==expected['atelier/web/app.js']
+         expected['atelier/web/app.js']=version['app_sha256']
++    amendment=ROOT/'VERSAO_INT03.json'
++    if amendment.is_file():
++        version=json.loads(amendment.read_text())
++        assert version['base_app_sha256']==expected['atelier/web/app.js']
++        expected['atelier/web/app.js']=version['app_sha256']
+     for name,digest in expected.items():
+         assert sha256((ROOT/name).read_bytes()).hexdigest()==digest,name
+--- /dev/null
++++ b/CONTINUIDADE_INT03_2026.md
+@@ -0,0 +1,11 @@
++# Continuidade — INT03-2026.1
++
++Base INT02 f0baa1a. Branch correcao-int03-biblioteca-resiliente; checkpoint 025e4ce. Leitura individual isola documentos inválidos, conserva originais e apresenta filename/motivo em aviso na biblioteca. Válidos continuam consultáveis, comparáveis e graváveis. Reabertura com arquivo inválido é coberta; falha de acesso à pasta inteira continua sendo erro explícito, sem fingir coleção vazia.
++
++API /api/experiments permanece em lista; /api/experiment-library acrescenta snapshot com projeto/items/issues para interface e clientes que precisam dos avisos. Compatibilidade econômica legada não presume investimento zero. Comparação usa documentos validados; não há reparo automático nem regravação de históricos. Regra INT01, precisão INT02, DES, fórmulas, CSS, abertura, gráficos e Modo Banca preservados.
++
++732 testes aprovados, zero falhas, dez subtestes; 26 casos novos. Browser INT03/AM08, Modo Banca e gráficos/exportações nas três resoluções; três experimentos oficiais preservados. ZIP/patch comparados em base limpa e publicação recuperada do GitHub antes da conclusão. Adaptações de transporte e hash rastreáveis estão descritas no relatório, sem exclusão de testes.
++
++Próxima etapa: INT04, correção pontual de contraste/legibilidade dos rótulos identificados na auditoria AM22 (fonte 10 px, cor #758681 sobre branco, contraste aproximado 3,83:1). Reproduzir na versão atual; ajustar cor/tipografia com critério >=4,5:1 para texto normal, testar as três resoluções e preservar identidade, mapa/foco, abertura, Modo Banca e navegação. Não redesenhar o projeto nem avançar para AM18/20/21 nessa etapa.
++
++Windows/BAT/projetor e validação industrial permanecem pendentes. Usar sempre a última entrega confirmada, sem voltar ao ZIP original antigo. Trabalhar sem agentes paralelos, com uma branch, checkpoints, ZIP completo, patch e downloads verificados por etapa.
+--- /dev/null
++++ b/LEIA_INT03_2026.md
+@@ -0,0 +1 @@
++INT03-2026.1 sobre INT02. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve versões e projetos anteriores. Leia RELATORIO_INT03_2026.md e CONTINUIDADE_INT03_2026.md. Arquivos inválidos são preservados e identificados na biblioteca; registros válidos permanecem disponíveis. Windows nativo pendente.
+--- /dev/null
++++ b/RELATORIO_INT03_2026.md
+@@ -0,0 +1,69 @@
++# INT-03 — biblioteca de experimentos resiliente
++
++## Base e escopo
++
++Base INT02-2026.1, commit f0baa1a813212c70e35045cdf22aeafb19817641, branch correcao-int02-precisao-auditoria. Nova branch correcao-int03-biblioteca-resiliente; checkpoint 025e4ce. Sem agentes paralelos. Não houve reconstrução, uso de ZIP antigo, remoção de funcionalidades ou alteração do motor.
++
++Escopo exclusivo: impedir que documentos inválidos na coleção de experimentos bloqueiem os válidos, a comparação, novas gravações ou a abertura do projeto; informar os problemas e preservar seus arquivos. INT-04 (contraste), Windows/BAT/projetor e pendências históricas continuam separados. INT01/INT02, identidade visual, abertura, Modo Banca, gráficos e cálculos anteriores são preservados.
++
++## Reprodução
++
++before.log mostra que, após salvar um experimento válido e adicionar experimentos/invalid.json com [], tanto experiment_list quanto save_experiment levantavam AttributeError em d.get. Os arquivos continuavam presentes, mas a coleção não era utilizável.
++
++before-startup.log executa o mesmo caso na extração INT02 intacta: Studio também falhava na inicialização. O método info consulta a contagem dos experimentos; portanto, o erro da coleção podia impedir a abertura de uma instalação já existente, além da tela de biblioteca. Não foi demonstrada perda de dados, mas indisponibilidade confirmada.
++
++Os 24 primeiros casos do contrato proposto falharam na base e passaram após a alteração. Depois foram adicionados os casos de enumeração inacessível e JSON excessivamente aninhado, chegando a 26 casos novos. A preservação na reabertura também foi incorporada aos casos de documentos inválidos. before-tests.log registra o estágio inicial; não representa 24 defeitos independentes.
++
++## Contrato de leitura
++
++O novo módulo atelier/experiment_library.py faz leitura individual, sem reparo ou gravação. Reconhece .json e .JSON, sem depender da sensibilidade a maiúsculas do sistema de arquivos. Cada documento do projeto atual deve ter objeto JSON, identidade textual coerente com o nome do arquivo, nome, projeto e model_hash identificáveis, além de métricas de cenário em estrutura suportada. Campos opcionais, como data e resposta, podem faltar; economia ausente ou null continua pelo contrato legado da AM08, sem inferir investimento zero. Um documento sem os campos mínimos é preservado e listado como problema, sem inventar sua origem ou seu conteúdo.
++
++São isolados, entre outros: JSON truncado, null/lista/texto no lugar de objeto, codificação inválida, identificador incompatível, campos estruturais incompatíveis, métricas numéricas com tipo inadequado, números não finitos, documento aninhado além da capacidade de leitura e falha de acesso a um arquivo. Os dados são conferidos também quanto à serialização JSON finita, para que um valor inválido escondido não derrube toda a resposta.
++
++Arquivos reconhecidamente de outros projetos não entram na biblioteca corrente. Arquivos sem origem identificável geram diagnóstico na coleção compartilhada; a interface explica que eles podem pertencer a outro projeto. Os nomes são relativos à pasta experimentos, sem adivinhar associação.
++
++Nenhum arquivo inválido é apagado, movido, normalizado, sobrescrito ou considerado experimento válido. O limite de 100 experimentos por projeto continua existindo e conta os registros válidos desse projeto. Falha ao enumerar a pasta inteira é um erro controlado de acesso, não uma coleção vazia fictícia. Não se promete abertura normal se a própria pasta não puder ser consultada; nesse caso é necessário restabelecer acesso aos arquivos.
++
++## Serviços, API e interface
++
++Studio._experiment_documents concentra o acesso e converte falha de enumeração em StudioError com mensagem de acesso. Studio.experiment_library retorna um snapshot com project_id, items e issues. Cada issue informa filename e reason. A leitura não executa simulação nem altera modelo ou arquivos.
++
++Studio.experiment_list conserva o retorno em lista, inclusive em GET /api/experiments. Clientes locais anteriores continuam recebendo o mesmo tipo de resposta. GET /api/experiment-library é o endpoint adicional usado pela interface para obter registros e avisos na mesma leitura. A validação Host/Origin da AM22 se aplica a ele como às demais rotas GET.
++
++A comparação seleciona os documentos já validados daquela leitura, sem reabrir caminhos formados por identificadores não validados. IDs não pertencentes à coleção válida/projeto atual recebem erro controlado. Usa get para resposta opcional em registros antigos. Fórmulas de delta e componentes econômicos não foram alteradas. A gravação de um novo experimento continua com o mesmo contrato de persistência; os documentos antigos não são regravados.
++
++loadExperiments usa o snapshot do projeto corrente e descarta resposta identificada com outra origem. Um aviso na biblioteca apresenta quantidade e detalhes dos arquivos problemáticos, com nomes/motivos escapados. Os controles de consulta, comparação e gravação dos válidos permanecem disponíveis. O aviso não obriga etapas de reparo para usar os válidos. Ao reler, um reparo externo explicitamente realizado passa a ser reconhecido; a aplicação não faz esse reparo automaticamente.
++
++Sem problemas, o aviso fica oculto e a aparência normal é preservada. O novo elemento é criado pelo JavaScript, mantendo index.html e todas as folhas CSS intactos. Não houve redesenho nem correção de contraste nesta etapa.
++
++## Arquivos e testes
++
++Produção: atelier/experiment_library.py (novo leitor/validador); atelier/service.py (leitura, lista e comparação); atelier/server.py (rota adicional); atelier/web/app.js (snapshot e aviso).
++
++Testes: tests/test_int03_experiment_library.py acrescenta 26 casos. Dezoito variantes de documento inválido conferem listagem, comparação, nova gravação, bytes anteriores e reabertura. Outros casos cobrem legado econômico com resposta/data opcionais ausentes e extensão .JSON, reparo externo explícito, isolamento entre projetos, seleção de documento inválido, leitura negada por arquivo, limite de válidos com 100 inválidos presentes, enumeração da pasta negada e aninhamento excessivo.
++
++atelier/tests/browser_int03.py usa HTTP e serviço reais nas três resoluções: biblioteca mista com válidos/legado/inválidos, aviso expandido, nomes escapados (sem criação de elementos HTML pelo nome do arquivo), API antiga em lista, comparação normal e econômica parcial, nova gravação com aviso, separação de projetos e releitura após reparo externo. Verifica que somente a contagem cresce após guardar, conservando o restante do cálculo e os arquivos anteriores.
++
++O primeiro instrumento de navegador comparava info inteiro antes/depois de uma gravação esperada. browser-initial.log e browser-instrument-diff.log preservam a investigação: a única diferença era experiment_count de 3 para 4. A asserção final exige exatamente esse incremento e igualdade de todos os outros campos, além dos bytes dos arquivos anteriores. Não houve mudança do produto para encobrir uma alteração do cálculo.
++
++Cinco adaptadores de transporte dos runners browser_acabamento_final, browser_banca_gate, browser_final_banca, browser_prefinal_gate e browser_premium_banca receberam uma rota adicional delegada ao serviço real. As rotas e verificações anteriores foram mantidas; não se substituiu o serviço por resposta fixa. A execução atual cobre o acabamento/gráficos por seu adaptador e o Modo Banca por HTTP real; não significa que todos os runners históricos foram homologados novamente.
++
++VERSAO_INT03.json e tests/test_am19_distribution.py estendem a cadeia de hashes da alteração autorizada em app.js. AM19, prioridade, INT01 e INT02 conservam suas referências originais; o teste continua conferindo engine e os demais arquivos visuais. Nenhum teste foi removido, desativado ou convertido em aprovação incondicional.
++
++## Resultados
++
++Regressão completa: 732 testes aprovados, zero falhas e dez subtestes. Warning de depreciação do plugin AnyIO, sem falha funcional. Os testes direcionados sobre o pacote extraído conferem também as asserções finais de reabertura da coleção.
++
++INT03 no navegador passou em 1280x720, 1366x768 e 1920x1080, sem exceções JavaScript não tratadas e sem overflow horizontal do documento. As verificações de economia AM08 também passaram nas três resoluções, incluindo investimento ausente em legado sem regravação. Modo Banca, justificativa, registro, relatório, gráficos, ampliação e exportações passaram nas três resoluções.
++
++Três experimentos oficiais preservados. A: SLA nominal/incidente/resposta 100/40/100%, custo total da decisão R$12.113,00 e economia líquida R$4.103,68; B/C conforme banca.log. Nenhuma referência foi artificialmente ajustada.
++
++Comandos: python -m pytest tests contract_tests atelier/tests -q -p no:cacheprovider; python -m pytest tests/test_int03_experiment_library.py tests/test_am19_distribution.py -q -p no:cacheprovider; python -m atelier.tests.validacao_experimentos_banca; python -m atelier.tests.browser_int03; python -m atelier.tests.browser_am08; python -m atelier.tests.browser_acabamento_final; python docs/AM19/evidencias/actual_http_browser.py. Navegador usa Playwright/Chromium no Linux; não são dependências novas para iniciar o aplicativo principal.
++
++## Entrega, limites e continuidade
++
++ZIP completo atualizado, patch sobre os 697 arquivos INT02, relatório, continuidade, logs e capturas. O patch confere a base e cria outra pasta, preservando a origem. ZIP é extraído, patch aplicado em base limpa e resultados comparados por SHA-256. Testes direcionados rodam na extração; arquivos publicados no GitHub são recuperados e comparados aos locais antes da conclusão.
++
++A validação é estrutural e de disponibilidade da coleção, não autenticação criptográfica dos experimentos nem comprovação industrial dos valores. Campos/formatos históricos fora do contrato suportado permanecem preservados com aviso, sem migração por adivinhação. Arquivos reparados ou acrescentados externamente dependem de nova leitura da biblioteca; não foi criado monitoramento contínuo da pasta.
++
++Não houve validação nativa no Windows, BAT ou projetor. Instale em pasta nova e mantenha versões e projetos anteriores. Próximo passo recomendado: INT-04, legibilidade/contraste pontuais identificados pela auditoria, preservando a identidade e os fluxos. Não avançar para reorganização ampla ou novos recursos nesta entrega.
+--- /dev/null
++++ b/VERSAO_INT03.json
+@@ -0,0 +1,6 @@
++{
++  "version": "INT03-2026.1",
++  "base_commit": "f0baa1a813212c70e35045cdf22aeafb19817641",
++  "base_app_sha256": "47466b5a88df500d1ac5aec5453afe5638b3a76a930c9b4a1e1e9b013d9fa3c9",
++  "app_sha256": "d74ba62c2fcd2e76360c61ed8c050bcbb63db93b1faf769dfe049e61cd7a49dd"
++}--- /dev/null
++++ b/atelier/experiment_library.py
+@@ -0,0 +1,68 @@
++"""Read-only experiment collection: isolate invalid documents, never repair on read."""
++import json
++import re
++
++
++METRICS=('late_orders','sla_pct','makespan_h','total_cost','operating_cost',
++         'penalty_total','throughput_h','planned_units','total_units')
++
++
++def _validate(document, path):
++    for key in ('id','name','project_id','model_hash'):
++        if not isinstance(document.get(key),str) or not document[key].strip():
++            raise ValueError(f'Campo {key} ausente ou inválido.')
++    if not re.fullmatch(r'[A-Za-z0-9_-]+',document['id']) or document['id']!=path.stem:
++        raise ValueError('Identificador incompatível com o nome do arquivo.')
++    if document.get('created_at') is not None and not isinstance(document['created_at'],str):
++        raise ValueError('Data do experimento em formato inválido.')
++    metrics=document.get('metrics')
++    if not isinstance(metrics,dict):raise ValueError('Métricas em formato inválido.')
++    if not any(isinstance(metrics.get(k),dict) for k in ('incident','response')):
++        raise ValueError('Experimento sem métricas de cenário disponíveis.')
++    for key in ('incident','response'):
++        result=metrics.get(key)
++        if result is None:continue
++        if not isinstance(result,dict):raise ValueError('Cenário em formato inválido.')
++        precise=result.get('precise')
++        if precise is not None and not isinstance(precise,dict):
++            raise ValueError('Métricas precisas em formato inválido.')
++        for values in (result,precise or {}):
++            for field in METRICS:
++                value=values.get(field)
++                if value is not None and (isinstance(value,bool) or not isinstance(value,(int,float))):
++                    raise ValueError(f'Métrica {field} em formato inválido.')
++    if document.get('economics') is not None and not isinstance(document['economics'],dict):
++        raise ValueError('Componentes econômicos em formato inválido.')
++    # The API serializes the original snapshot as well as the displayed metrics.
++    # Validate all numbers, including optional/unknown nested fields.
++    try:json.dumps(document,allow_nan=False)
++    except (ValueError,OverflowError) as exc:
++        raise ValueError('Documento contém número não finito ou não representável.') from exc
++
++
++def read_library(directory, project_id):
++    """Return validated current-project documents and per-file diagnostics.
++
++    An unreadable/malformed file of unknown origin is reported for the shared
++    collection. Well-identified documents of other projects are not presented.
++    Enumeration failures propagate: an unreadable collection is never empty
++    merely because access failed.
++    """
++    documents={};issues=[]
++    for path in sorted(directory.iterdir()):
++        if path.suffix.lower()!='.json':continue
++        try:
++            try:document=json.loads(path.read_text('utf-8'))
++            except (json.JSONDecodeError,UnicodeError) as exc:
++                raise ValueError('JSON inválido ou codificação diferente de UTF-8.') from exc
++            if not isinstance(document,dict):raise ValueError('Documento deve ser um objeto JSON.')
++            origin=document.get('project_id')
++            if isinstance(origin,str) and origin and origin!=project_id:continue
++            _validate(document,path)
++            documents[document['id']]=document
++        except OSError:
++            issues.append({'filename':path.name,'reason':'Não foi possível ler o arquivo.'})
++        except (ValueError,TypeError,OverflowError,RecursionError) as exc:
++            reason=str(exc) if isinstance(exc,ValueError) else 'Estrutura do documento inválida ou excessivamente aninhada.'
++            issues.append({'filename':path.name,'reason':reason})
++    return documents,issues
+--- /dev/null
++++ b/atelier/tests/browser_int03.py
+@@ -0,0 +1,65 @@
++"""Real-HTTP mixed archives: visible diagnostics, valid saves/comparisons and legacy."""
++import json,os
++from copy import deepcopy
++from pathlib import Path
++from tempfile import TemporaryDirectory
++from threading import Thread
++from http.server import ThreadingHTTPServer
++from playwright.sync_api import sync_playwright,expect
++from atelier import server
++from atelier.service import Studio
++
++out=Path(os.environ.get('INT03_QA_OUT','docs/INT03/capturas'));out.mkdir(parents=True,exist_ok=True)
++with sync_playwright() as pw:
++ b=pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
++ for w,h in [(1280,720),(1366,768),(1920,1080)]:
++  with TemporaryDirectory() as d:
++   folder=Path(d);s=Studio(folder);first=s.save_experiment('Referência válida');s.calculate({'duration_h':10});second=s.save_experiment('Comparação válida')
++   legacy=deepcopy(first);legacy.pop('economics');legacy['id']='legacy';legacy['name']='Histórico legado'
++   (s.experiments_dir/'legacy.json').write_text(json.dumps(legacy))
++   for name,raw in [('invalid.json',b'[]'),('truncated.json',b'{broken'),('<img src=x>.json',b'null')]:
++    (s.experiments_dir/name).write_bytes(raw)
++   originals={p:p.read_bytes() for p in s.experiments_dir.iterdir()};before=s.info();server.STUDIO=s
++   httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler);Thread(target=httpd.serve_forever,daemon=True).start()
++   p=b.new_page(viewport={'width':w,'height':h});errors=[];p.on('pageerror',lambda e:errors.append(str(e)))
++   def open_analysis():
++    p.goto(f'http://127.0.0.1:{httpd.server_port}/',wait_until='networkidle');p.wait_for_selector('#factory-a .station-group');p.evaluate('document.querySelector("#splash")?.remove()');p.locator('[data-nav=analise]').click()
++   try:
++    open_analysis();expect(p.locator('#experiment-count')).to_have_text('3 arquivados')
++    expect(p.locator('#experiment-warnings')).to_contain_text('3 arquivo(s)')
++    p.locator('#experiment-warnings summary').click()
++    expect(p.locator('#experiment-warnings')).to_contain_text('<img src=x>.json')
++    assert p.locator('#experiment-warnings img').count()==0
++    p.screenshot(path=str(out/f'biblioteca_{w}.png'))
++    # Old clients still receive an array, not the new diagnostic envelope.
++    old=p.request.get(f'http://127.0.0.1:{httpd.server_port}/api/experiments');assert old.ok and len(old.json())==3
++    p.locator('#experiment-first').select_option(first['id']);p.locator('#experiment-second').select_option(second['id'])
++    with p.expect_response(lambda r:r.url.endswith('/api/experiment/compare')) as ev:p.locator('#experiment-compare').click()
++    assert ev.value.ok
++    expect(p.locator('[data-economic-component=investment]')).to_be_visible()
++    p.locator('#experiment-first').select_option('legacy')
++    with p.expect_response(lambda r:r.url.endswith('/api/experiment/compare')) as ev:p.locator('#experiment-compare').click()
++    assert ev.value.ok
++    expect(p.locator('#experiment-comparison')).to_contain_text('Comparação econômica parcial')
++    p.locator('#experiment-name').fill('Novo válido com avisos')
++    with p.expect_response(lambda r:r.url.endswith('/api/experiment/save')) as ev:p.locator('#experiment-save').click()
++    assert ev.value.ok
++    expect(p.locator('#experiment-count')).to_have_text('4 arquivados')
++    expect(p.locator('#experiment-warnings')).to_be_visible()
++    assert all(p.read_bytes()==raw for p,raw in originals.items())
++    after=s.info()
++    assert after['experiment_count']==before['experiment_count']+1
++    assert {k:v for k,v in after.items() if k!='experiment_count'}=={k:v for k,v in before.items() if k!='experiment_count'}
++    original_project=s.project_id;s.create_project('Outro projeto');open_analysis()
++    expect(p.locator('#experiment-count')).to_have_text('0 arquivados')
++    expect(p.locator('#experiment-list')).not_to_contain_text('Referência válida')
++    assert p.locator('#experiment-compare').is_disabled()
++    s.open_project(original_project);open_analysis();expect(p.locator('#experiment-count')).to_have_text('4 arquivados')
++    # Repair is external and explicit; the application only rereads it.
++    fixed=deepcopy(first);fixed['id']='invalid';(s.experiments_dir/'invalid.json').write_text(json.dumps(fixed))
++    open_analysis();expect(p.locator('#experiment-warnings')).to_contain_text('2 arquivo(s)')
++    assert not errors,errors
++    assert p.evaluate('document.documentElement.scrollWidth<=innerWidth+3')
++    print('INT03 BROWSER OK',w,h,'avisos, nomes escapados, legado, listagem antiga, comparação/gravação, projetos e releitura',flush=True)
++   finally:p.close();httpd.shutdown();httpd.server_close()
++ b.close()
+--- /dev/null
++++ b/docs/INT03/evidencias/after.log
+@@ -0,0 +1,3 @@
++Valid list: 1 Issues: [{'filename': 'invalid.json', 'reason': 'Documento deve ser um objeto JSON.'}]
++Saved and list: 2
++Restart: 2 Invalid unchanged: True
+--- /dev/null
++++ b/docs/INT03/evidencias/banca.log
+@@ -0,0 +1,4 @@
++3 EXPERIMENTOS APROVADOS
++A: 100.0 40.0 100.0 custos 16216.67 12113.0 4103.68
++B: [(0, 5.681763308299117, 84.12881249414335), (1, 5.681763308299117, 96.09692807908425), (2, 5.681763308299117, 108.06504366402514), (3, 5.681763308299117, 120.033159248966)]
++C: Manutenção expressa · CNC 21.57530617980079 +1 operador · CNC 19.973006391870044
+--- /dev/null
++++ b/docs/INT03/evidencias/before-startup.log
+@@ -0,0 +1 @@
++INT02 startup with invalid archive: AttributeError 'list' object has no attribute 'get'
+--- /dev/null
++++ b/docs/INT03/evidencias/before-tests.log
+@@ -0,0 +1,762 @@
++FFFFFFFFFFFFFFFFFFFFFFFF                                                 [100%]
++=================================== FAILURES ===================================
++__ test_invalid_document_does_not_block_listing_comparison_or_new_save[array] __
++
++archived = (<atelier.service.Studio object at 0x7fe837cb29f0>, {'id': 'cd1cab01673444c0', 'name': 'Primeiro válido', 'created_at'...88634f97', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:37.687749+00:00', 'project_id': 'principal', ...})
++damage = 'array'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++__ test_invalid_document_does_not_block_listing_comparison_or_new_save[null] ___
++
++archived = (<atelier.service.Studio object at 0x7fe837c144a0>, {'id': '5e23bc0c3f724dcf', 'name': 'Primeiro válido', 'created_at'...94c245aa', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:38.101122+00:00', 'project_id': 'principal', ...})
++damage = 'null'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++__ test_invalid_document_does_not_block_listing_comparison_or_new_save[text] ___
++
++archived = (<atelier.service.Studio object at 0x7fe837cfa4b0>, {'id': '77cdae00bb7c40e5', 'name': 'Primeiro válido', 'created_at'...178e4e5a', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:38.500741+00:00', 'project_id': 'principal', ...})
++damage = 'text'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[truncated] _
++
++archived = (<atelier.service.Studio object at 0x7fe837bc43b0>, {'id': '3d7f1a13cf2e430b', 'name': 'Primeiro válido', 'created_at'...f1df450a', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:38.905520+00:00', 'project_id': 'principal', ...})
++damage = 'truncated'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[encoding] _
++
++archived = (<atelier.service.Studio object at 0x7fe837ca51f0>, {'id': '8a5b4575fcdb458c', 'name': 'Primeiro válido', 'created_at'...ee554894', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:39.327641+00:00', 'project_id': 'principal', ...})
++damage = 'encoding'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++__ test_invalid_document_does_not_block_listing_comparison_or_new_save[no_id] __
++
++archived = (<atelier.service.Studio object at 0x7fe837c16ea0>, {'id': 'e2916dc9b18f401f', 'name': 'Primeiro válido', 'created_at'...c6b0410b', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:39.710249+00:00', 'project_id': 'principal', ...})
++damage = 'no_id'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[wrong_id] _
++
++archived = (<atelier.service.Studio object at 0x7fe837bc5970>, {'id': '6daf0a9aa6ef43d3', 'name': 'Primeiro válido', 'created_at'...680f4026', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:40.123238+00:00', 'project_id': 'principal', ...})
++damage = 'wrong_id'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[unsafe_id] _
++
++archived = (<atelier.service.Studio object at 0x7fe837ca4110>, {'id': '1ab6607a37014535', 'name': 'Primeiro válido', 'created_at'...519f44ec', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:40.518832+00:00', 'project_id': 'principal', ...})
++damage = 'unsafe_id'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[no_project] _
++
++archived = (<atelier.service.Studio object at 0x7fe837b9a540>, {'id': '3901d11917cd44a4', 'name': 'Primeiro válido', 'created_at'...7455426f', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:40.917887+00:00', 'project_id': 'principal', ...})
++damage = 'no_project'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[no_hash] _
++
++archived = (<atelier.service.Studio object at 0x7fe837bc64b0>, {'id': '6186f7b6aab64e13', 'name': 'Primeiro válido', 'created_at'...9e1f4519', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:41.322334+00:00', 'project_id': 'principal', ...})
++damage = 'no_hash'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_name] _
++
++archived = (<atelier.service.Studio object at 0x7fe837cf9c40>, {'id': '45bd7a7b0b0b47b3', 'name': 'Primeiro válido', 'created_at'...1ef74033', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:41.750766+00:00', 'project_id': 'principal', ...})
++damage = 'bad_name'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_date] _
++
++archived = (<atelier.service.Studio object at 0x7fe837c1e990>, {'id': '35e577a5a11b401a', 'name': 'Primeiro válido', 'created_at'...10714db9', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:42.179515+00:00', 'project_id': 'principal', ...})
++damage = 'bad_date'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_metrics] _
++
++archived = (<atelier.service.Studio object at 0x7fe837b98e00>, {'id': '17eb469f999648fe', 'name': 'Primeiro válido', 'created_at'...065c4eb2', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:42.557409+00:00', 'project_id': 'principal', ...})
++damage = 'bad_metrics'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_response] _
++
++archived = (<atelier.service.Studio object at 0x7fe837bc7d70>, {'id': '27c52ec958314d47', 'name': 'Primeiro válido', 'created_at'...096f48a4', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:42.984749+00:00', 'project_id': 'principal', ...})
++damage = 'bad_response'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_precise] _
++
++archived = (<atelier.service.Studio object at 0x7fe837c1de80>, {'id': '3718062fa49e46a4', 'name': 'Primeiro válido', 'created_at'...ad69498b', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:43.398511+00:00', 'project_id': 'principal', ...})
++damage = 'bad_precise'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_metric] _
++
++archived = (<atelier.service.Studio object at 0x7fe837c17650>, {'id': 'e0b4f6c8ee1449e1', 'name': 'Primeiro válido', 'created_at'...afbc438d', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:43.810928+00:00', 'project_id': 'principal', ...})
++damage = 'bad_metric'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[nonfinite] _
++
++archived = (<atelier.service.Studio object at 0x7fe837bc6de0>, {'id': 'dd4d1fba1bbe4b13', 'name': 'Primeiro válido', 'created_at'...61a84af4', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:44.246818+00:00', 'project_id': 'principal', ...})
++damage = 'nonfinite'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_economics] _
++
++archived = (<atelier.service.Studio object at 0x7fe837cfb0e0>, {'id': '47f479b6a32242ec', 'name': 'Primeiro válido', 'created_at'...deb34a84', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:44.669734+00:00', 'project_id': 'principal', ...})
++damage = 'bad_economics'
++
++    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++        if damage=='array':raw=b'[]'
++        elif damage=='null':raw=b'null'
++        elif damage=='text':raw=b'"text"'
++        elif damage=='truncated':raw=b'{broken'
++        elif damage=='encoding':raw=b'\xff'
++        else:
++            if damage=='no_id':doc.pop('id')
++            if damage=='wrong_id':doc['id']='another'
++            if damage=='unsafe_id':doc['id']='../outside'
++            if damage=='no_project':doc.pop('project_id')
++            if damage=='no_hash':doc.pop('model_hash')
++            if damage=='bad_name':doc['name']=[]
++            if damage=='bad_date':doc['created_at']=17
++            if damage=='bad_metrics':doc['metrics']=[]
++            if damage=='bad_response':doc['metrics']['response']=[]
++            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++            if damage=='bad_economics':doc['economics']=[]
++            raw=json.dumps(doc).encode()
++        p.write_bytes(raw);before=files(app)
++>       status=app.experiment_library()
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:43: AttributeError
++____ test_legacy_economics_and_missing_optional_response_key_stay_read_only ____
++
++archived = (<atelier.service.Studio object at 0x7fe837badc10>, {'id': '8e29e37deca6495f', 'name': 'Primeiro válido', 'project_id'..., ...}, {'id': 'fe37906da1f24af9', 'name': 'Segundo válido', 'project_id': 'principal', 'run_id': '117e9d84d9a7', ...})
++
++    def test_legacy_economics_and_missing_optional_response_key_stay_read_only(archived):
++        app,a,b=archived
++        for doc in [a,b]:
++            doc.pop('economics');doc['metrics'].pop('response');doc.pop('created_at')
++            (app.experiments_dir/(doc['id']+'.json')).write_text(json.dumps(doc))
++>       before=files(app);status=app.experiment_library()
++                                 ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:62: AttributeError
++_ test_invalid_files_are_not_deleted_and_notice_updates_after_external_repair __
++
++archived = (<atelier.service.Studio object at 0x7fe837c171a0>, {'id': '986bf26da76a46ad', 'name': 'Primeiro válido', 'created_at'...32654ce3', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:45.442795+00:00', 'project_id': 'principal', ...})
++
++    def test_invalid_files_are_not_deleted_and_notice_updates_after_external_repair(archived):
++        app,a,b=archived;path=app.experiments_dir/'repaired.json';path.write_text('[]')
++>       assert app.experiment_library()['issues']
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:72: AttributeError
++______________ test_project_isolation_and_unknown_origin_warning _______________
++
++archived = (<atelier.service.Studio object at 0x7fe837b98dd0>, {'id': '9f3c49d79d16416c', 'name': 'Primeiro válido', 'created_at'...68b946e3', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:45.840898+00:00', 'project_id': 'principal', ...})
++
++    def test_project_isolation_and_unknown_origin_warning(archived):
++        app,a,b=archived;original=app.project_id;app.create_project('Outro projeto')
++        saved=app.save_experiment('Válido no outro projeto')
++        assert [x['id'] for x in app.experiment_list()]==[saved['id']]
++        with pytest.raises(StudioError):app.compare_experiments(a['id'],saved['id'])
++        path=app.experiments_dir/'unknown.json';path.write_text('[]')
++>       assert app.experiment_library()['issues'][0]['filename']=='unknown.json'
++               ^^^^^^^^^^^^^^^^^^^^^^
++E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:84: AttributeError
++___________ test_invalid_selected_document_returns_controlled_error ____________
++
++archived = (<atelier.service.Studio object at 0x7fe837ca70b0>, {'id': 'bf7e3a52bf8b4e95', 'name': 'Primeiro válido', 'created_at'...9d944767', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:46.518503+00:00', 'project_id': 'principal', ...})
++
++    def test_invalid_selected_document_returns_controlled_error(archived):
++        app,a,b=archived;(app.experiments_dir/(a['id']+'.json')).write_text('[]')
++>       with pytest.raises(StudioError,match='dois experimentos'):app.compare_experiments(a['id'],b['id'])
++                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++
++tests/test_int03_experiment_library.py:91: 
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++atelier/service.py:376: in compare_experiments
++    allowed={r['id'] for r in self.experiment_list()}
++                              ^^^^^^^^^^^^^^^^^^^^^^
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++
++self = <atelier.service.Studio object at 0x7fe837ca70b0>
++
++    def experiment_list(self):
++        with self.lock:
++            out=[]
++            for path in self.experiments_dir.glob('*.json'):
++                try:
++                    d=json.loads(path.read_text('utf-8'))
++>                   if d.get('project_id')==self.project_id:
++                       ^^^^^
++E                   AttributeError: 'list' object has no attribute 'get'
++
++atelier/service.py:344: AttributeError
++____________ test_unreadable_file_is_reported_without_hiding_others ____________
++
++archived = (<atelier.service.Studio object at 0x7fe837c14590>, {'id': '1f9965989a83440a', 'name': 'Primeiro válido', 'created_at'...d7854afa', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:46.937104+00:00', 'project_id': 'principal', ...})
++
++    def test_unreadable_file_is_reported_without_hiding_others(archived):
++        app,a,b=archived;path=app.experiments_dir/'denied.json';path.write_text('{}')
++        original=type(path).read_text
++        def read(p,*args,**kwargs):
++            if p==path:raise PermissionError('controlled')
++            return original(p,*args,**kwargs)
++        with patch.object(type(path),'read_text',read):
++>           status=app.experiment_library()
++                   ^^^^^^^^^^^^^^^^^^^^^^
++E           AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
++
++tests/test_int03_experiment_library.py:101: AttributeError
++______ test_invalid_documents_do_not_consume_limit_but_valid_documents_do ______
++
++archived = (<atelier.service.Studio object at 0x7fe837c1d6d0>, {'id': 'dca5af0474774415', 'name': 'Primeiro válido', 'created_at'...39664236', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:47.364413+00:00', 'project_id': 'principal', ...})
++
++    def test_invalid_documents_do_not_consume_limit_but_valid_documents_do(archived):
++        app,a,b=archived
++        for i in range(100):(app.experiments_dir/f'bad{i}.json').write_text('[]')
++        for i in range(97):
++            doc=deepcopy(a);doc['id']=f'copy{i}';(app.experiments_dir/(doc['id']+'.json')).write_text(json.dumps(doc))
++>       assert len(app.experiment_list())==99
++                   ^^^^^^^^^^^^^^^^^^^^^
++
++tests/test_int03_experiment_library.py:111: 
++_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
++
++self = <atelier.service.Studio object at 0x7fe837c1d6d0>
++
++    def experiment_list(self):
++        with self.lock:
++            out=[]
++            for path in self.experiments_dir.glob('*.json'):
++                try:
++                    d=json.loads(path.read_text('utf-8'))
++>                   if d.get('project_id')==self.project_id:
++                       ^^^^^
++E                   AttributeError: 'list' object has no attribute 'get'
++
++atelier/service.py:344: AttributeError
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++=========================== short test summary info ============================
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[array]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[null]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[text]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[truncated]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[encoding]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[no_id]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[wrong_id]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[unsafe_id]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[no_project]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[no_hash]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_name]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_date]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_metrics]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_response]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_precise]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_metric]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[nonfinite]
++FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_economics]
++FAILED tests/test_int03_experiment_library.py::test_legacy_economics_and_missing_optional_response_key_stay_read_only
++FAILED tests/test_int03_experiment_library.py::test_invalid_files_are_not_deleted_and_notice_updates_after_external_repair
++FAILED tests/test_int03_experiment_library.py::test_project_isolation_and_unknown_origin_warning
++FAILED tests/test_int03_experiment_library.py::test_invalid_selected_document_returns_controlled_error
++FAILED tests/test_int03_experiment_library.py::test_unreadable_file_is_reported_without_hiding_others
++FAILED tests/test_int03_experiment_library.py::test_invalid_documents_do_not_consume_limit_but_valid_documents_do
++24 failed, 1 warning in 10.20s
+--- /dev/null
++++ b/docs/INT03/evidencias/before.log
+@@ -0,0 +1,3 @@
++list AttributeError 'list' object has no attribute 'get'
++save AttributeError 'list' object has no attribute 'get'
++Valid file preserved: True Invalid preserved: True
+# Binary in overlay: docs/INT03/evidencias/biblioteca_1280.png
+# Binary in overlay: docs/INT03/evidencias/biblioteca_1366.png
+# Binary in overlay: docs/INT03/evidencias/biblioteca_1920.png
+--- /dev/null
++++ b/docs/INT03/evidencias/browser-am08.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++AM08 BROWSER OK 1280 720 componentes separados, legado não regravado, sem erroJS
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++AM08 BROWSER OK 1366 768 componentes separados, legado não regravado, sem erroJS
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++AM08 BROWSER OK 1920 1080 componentes separados, legado não regravado, sem erroJS
+--- /dev/null
++++ b/docs/INT03/evidencias/browser-banca.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++Modo Banca premium OK 1280x720 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++Modo Banca premium OK 1366x768 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++Modo Banca premium OK 1920x1080 · progressive / dual panels / justification / record / report
+--- /dev/null
++++ b/docs/INT03/evidencias/browser-charts.log
+@@ -0,0 +1,3 @@
++ACABAMENTO OK 1280 720 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1366 768 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1920 1080 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
+--- /dev/null
++++ b/docs/INT03/evidencias/browser-initial.log
+@@ -0,0 +1,36 @@
++Traceback (most recent call last):
++  File "<frozen runpy>", line 198, in _run_module_as_main
++  File "<frozen runpy>", line 88, in _run_code
++  File "/workspace/work/prioridade/repo/ANTI_MURPHY_FINAL_2026/atelier/tests/browser_int03.py", line 50, in <module>
++    assert s.info()==before
++           ^^^^^^^^^^^^^^^^
++AssertionError
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/save HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
+--- /dev/null
++++ b/docs/INT03/evidencias/browser-instrument-diff.log
+@@ -0,0 +1,36 @@
++Traceback (most recent call last):
++  File "<frozen runpy>", line 198, in _run_module_as_main
++  File "<frozen runpy>", line 88, in _run_code
++  File "/workspace/work/prioridade/repo/ANTI_MURPHY_FINAL_2026/atelier/tests/browser_int03.py", line 51, in <module>
++    assert after==before, json.dumps({k:{'before':before[k],'after':after[k]} for k in before if before[k]!=after[k]},ensure_ascii=False)
++           ^^^^^^^^^^^^^
++AssertionError: {"experiment_count": {"before": 3, "after": 4}}
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/save HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
+--- /dev/null
++++ b/docs/INT03/evidencias/browser.log
+@@ -0,0 +1,108 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/save HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++INT03 BROWSER OK 1280 720 avisos, nomes escapados, legado, listagem antiga, comparação/gravação, projetos e releitura
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/save HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++INT03 BROWSER OK 1366 768 avisos, nomes escapados, legado, listagem antiga, comparação/gravação, projetos e releitura
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/compare HTTP/1.1" 200 -
++[http] "POST /api/experiment/save HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++INT03 BROWSER OK 1920 1080 avisos, nomes escapados, legado, listagem antiga, comparação/gravação, projetos e releitura
+--- /dev/null
++++ b/docs/INT03/evidencias/regression.log
+@@ -0,0 +1,21 @@
++........................................................................ [  9%]
++........................................................................ [ 19%]
++........................................................................ [ 29%]
++........................................................................ [ 39%]
++........................................................................ [ 49%]
++........................................................................ [ 59%]
++........................................................................ [ 68%]
++........................................................................ [ 78%]
++........................................................................ [ 88%]
++.............................................................. [ 96%]
++......................                                                   [100%]
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++732 passed, 1 warning, 10 subtests passed in 166.96s (0:02:46)
+--- /dev/null
++++ b/tests/test_int03_experiment_library.py
+@@ -0,0 +1,136 @@
++"""A malformed archive must not hide or overwrite valid experiments."""
++from copy import deepcopy
++import json
++from unittest.mock import patch
++import pytest
++from atelier.service import Studio,StudioError
++
++
++@pytest.fixture
++def archived(tmp_path):
++    app=Studio(tmp_path);first=app.save_experiment('Primeiro válido')
++    app.calculate({'duration_h':10});second=app.save_experiment('Segundo válido')
++    return app,first,second
++
++
++def files(app):return {p:p.read_bytes() for p in app.experiments_dir.glob('*.json')}
++
++
++@pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
++def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
++    app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
++    if damage=='array':raw=b'[]'
++    elif damage=='null':raw=b'null'
++    elif damage=='text':raw=b'"text"'
++    elif damage=='truncated':raw=b'{broken'
++    elif damage=='encoding':raw=b'\xff'
++    else:
++        if damage=='no_id':doc.pop('id')
++        if damage=='wrong_id':doc['id']='another'
++        if damage=='unsafe_id':doc['id']='../outside'
++        if damage=='no_project':doc.pop('project_id')
++        if damage=='no_hash':doc.pop('model_hash')
++        if damage=='bad_name':doc['name']=[]
++        if damage=='bad_date':doc['created_at']=17
++        if damage=='bad_metrics':doc['metrics']=[]
++        if damage=='bad_response':doc['metrics']['response']=[]
++        if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
++        if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
++        if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
++        if damage=='bad_economics':doc['economics']=[]
++        raw=json.dumps(doc).encode()
++    p.write_bytes(raw);before=files(app)
++    status=app.experiment_library()
++    assert {x['id'] for x in status['items']}=={a['id'],b['id']}
++    assert status['project_id']==app.project_id
++    assert len(status['issues'])==1 and status['issues'][0]['filename']=='invalid.json'
++    assert status['issues'][0]['reason']
++    assert {x['id'] for x in app.experiment_list()}=={a['id'],b['id']}
++    assert app.compare_experiments(a['id'],b['id'])['same_model']
++    assert files(app)==before
++    saved=app.save_experiment('Terceiro válido')
++    assert saved['id'] not in {a['id'],b['id']}
++    assert all(path.read_bytes()==raw for path,raw in before.items())
++    assert len(app.experiment_list())==3
++    after_save=files(app)
++    reopened=Studio(app.storage)
++    assert len(reopened.experiment_list())==3
++    assert reopened.experiment_library()['issues']
++    assert files(app)==after_save
++
++
++def test_legacy_economics_and_missing_optional_response_key_stay_read_only(archived):
++    app,a,b=archived
++    for doc in [a,b]:
++        doc.pop('economics');doc['metrics'].pop('response');doc.pop('created_at')
++        (app.experiments_dir/(doc['id']+'.json')).write_text(json.dumps(doc))
++    lower=app.experiments_dir/(a['id']+'.json');upper=lower.with_suffix('.JSON');lower.rename(upper);upper_bytes=upper.read_bytes()
++    before=files(app);status=app.experiment_library()
++    assert not status['issues'] and len(status['items'])==2
++    result=app.compare_experiments(a['id'],b['id'])
++    assert result['economics']['first']['investment'] is None
++    assert result['economics']['first']['status']=='partial'
++    assert files(app)==before
++    assert upper.read_bytes()==upper_bytes
++
++
++def test_invalid_files_are_not_deleted_and_notice_updates_after_external_repair(archived):
++    app,a,b=archived;path=app.experiments_dir/'repaired.json';path.write_text('[]')
++    assert app.experiment_library()['issues']
++    fixed=deepcopy(a);fixed['id']='repaired';path.write_text(json.dumps(fixed));raw=path.read_bytes()
++    assert not app.experiment_library()['issues']
++    assert len(app.experiment_list())==3 and path.read_bytes()==raw
++
++
++def test_project_isolation_and_unknown_origin_warning(archived):
++    app,a,b=archived;original=app.project_id;app.create_project('Outro projeto')
++    saved=app.save_experiment('Válido no outro projeto')
++    assert [x['id'] for x in app.experiment_list()]==[saved['id']]
++    with pytest.raises(StudioError):app.compare_experiments(a['id'],saved['id'])
++    path=app.experiments_dir/'unknown.json';path.write_text('[]')
++    assert app.experiment_library()['issues'][0]['filename']=='unknown.json'
++    app.open_project(original)
++    assert {x['id'] for x in app.experiment_list()}=={a['id'],b['id']}
++
++
++def test_invalid_selected_document_returns_controlled_error(archived):
++    app,a,b=archived;(app.experiments_dir/(a['id']+'.json')).write_text('[]')
++    with pytest.raises(StudioError,match='dois experimentos'):app.compare_experiments(a['id'],b['id'])
++
++
++def test_unreadable_file_is_reported_without_hiding_others(archived):
++    app,a,b=archived;path=app.experiments_dir/'denied.json';path.write_text('{}')
++    original=type(path).read_text
++    def read(p,*args,**kwargs):
++        if p==path:raise PermissionError('controlled')
++        return original(p,*args,**kwargs)
++    with patch.object(type(path),'read_text',read):
++        status=app.experiment_library()
++    assert len(status['items'])==2 and status['issues'][0]['filename']=='denied.json'
++    assert path.read_text()=='{}'
++
++
++def test_invalid_documents_do_not_consume_limit_but_valid_documents_do(archived):
++    app,a,b=archived
++    for i in range(100):(app.experiments_dir/f'bad{i}.json').write_text('[]')
++    for i in range(97):
++        doc=deepcopy(a);doc['id']=f'copy{i}';(app.experiments_dir/(doc['id']+'.json')).write_text(json.dumps(doc))
++    assert len(app.experiment_list())==99
++    app.save_experiment('Centésimo válido')
++    with pytest.raises(StudioError,match='100 experimentos'):app.save_experiment('Excesso válido')
++    assert len(app.experiment_list())==100
++    assert all((app.experiments_dir/f'bad{i}.json').read_text()=='[]' for i in range(100))
++
++
++def test_enumeration_failure_is_not_reported_as_an_empty_collection(archived):
++    app,a,b=archived
++    with patch.object(type(app.experiments_dir),'iterdir',side_effect=PermissionError('controlled')):
++        with pytest.raises(StudioError,match='consultar a pasta'):app.experiment_library()
++        with pytest.raises(StudioError):app.save_experiment('Não deve gravar')
++
++
++def test_deeply_nested_invalid_json_does_not_block_valid_records(archived):
++    app,a,b=archived;path=app.experiments_dir/'nested.json';path.write_text('['*1500+'0'+']'*1500)
++    status=app.experiment_library()
++    assert len(status['items'])==2 and status['issues'][0]['filename']=='nested.json'
++    assert path.exists()

@@ -1,0 +1,762 @@
+FFFFFFFFFFFFFFFFFFFFFFFF                                                 [100%]
+=================================== FAILURES ===================================
+__ test_invalid_document_does_not_block_listing_comparison_or_new_save[array] __
+
+archived = (<atelier.service.Studio object at 0x7fe837cb29f0>, {'id': 'cd1cab01673444c0', 'name': 'Primeiro válido', 'created_at'...88634f97', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:37.687749+00:00', 'project_id': 'principal', ...})
+damage = 'array'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+__ test_invalid_document_does_not_block_listing_comparison_or_new_save[null] ___
+
+archived = (<atelier.service.Studio object at 0x7fe837c144a0>, {'id': '5e23bc0c3f724dcf', 'name': 'Primeiro válido', 'created_at'...94c245aa', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:38.101122+00:00', 'project_id': 'principal', ...})
+damage = 'null'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+__ test_invalid_document_does_not_block_listing_comparison_or_new_save[text] ___
+
+archived = (<atelier.service.Studio object at 0x7fe837cfa4b0>, {'id': '77cdae00bb7c40e5', 'name': 'Primeiro válido', 'created_at'...178e4e5a', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:38.500741+00:00', 'project_id': 'principal', ...})
+damage = 'text'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[truncated] _
+
+archived = (<atelier.service.Studio object at 0x7fe837bc43b0>, {'id': '3d7f1a13cf2e430b', 'name': 'Primeiro válido', 'created_at'...f1df450a', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:38.905520+00:00', 'project_id': 'principal', ...})
+damage = 'truncated'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[encoding] _
+
+archived = (<atelier.service.Studio object at 0x7fe837ca51f0>, {'id': '8a5b4575fcdb458c', 'name': 'Primeiro válido', 'created_at'...ee554894', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:39.327641+00:00', 'project_id': 'principal', ...})
+damage = 'encoding'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+__ test_invalid_document_does_not_block_listing_comparison_or_new_save[no_id] __
+
+archived = (<atelier.service.Studio object at 0x7fe837c16ea0>, {'id': 'e2916dc9b18f401f', 'name': 'Primeiro válido', 'created_at'...c6b0410b', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:39.710249+00:00', 'project_id': 'principal', ...})
+damage = 'no_id'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[wrong_id] _
+
+archived = (<atelier.service.Studio object at 0x7fe837bc5970>, {'id': '6daf0a9aa6ef43d3', 'name': 'Primeiro válido', 'created_at'...680f4026', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:40.123238+00:00', 'project_id': 'principal', ...})
+damage = 'wrong_id'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[unsafe_id] _
+
+archived = (<atelier.service.Studio object at 0x7fe837ca4110>, {'id': '1ab6607a37014535', 'name': 'Primeiro válido', 'created_at'...519f44ec', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:40.518832+00:00', 'project_id': 'principal', ...})
+damage = 'unsafe_id'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[no_project] _
+
+archived = (<atelier.service.Studio object at 0x7fe837b9a540>, {'id': '3901d11917cd44a4', 'name': 'Primeiro válido', 'created_at'...7455426f', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:40.917887+00:00', 'project_id': 'principal', ...})
+damage = 'no_project'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[no_hash] _
+
+archived = (<atelier.service.Studio object at 0x7fe837bc64b0>, {'id': '6186f7b6aab64e13', 'name': 'Primeiro válido', 'created_at'...9e1f4519', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:41.322334+00:00', 'project_id': 'principal', ...})
+damage = 'no_hash'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_name] _
+
+archived = (<atelier.service.Studio object at 0x7fe837cf9c40>, {'id': '45bd7a7b0b0b47b3', 'name': 'Primeiro válido', 'created_at'...1ef74033', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:41.750766+00:00', 'project_id': 'principal', ...})
+damage = 'bad_name'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_date] _
+
+archived = (<atelier.service.Studio object at 0x7fe837c1e990>, {'id': '35e577a5a11b401a', 'name': 'Primeiro válido', 'created_at'...10714db9', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:42.179515+00:00', 'project_id': 'principal', ...})
+damage = 'bad_date'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_metrics] _
+
+archived = (<atelier.service.Studio object at 0x7fe837b98e00>, {'id': '17eb469f999648fe', 'name': 'Primeiro válido', 'created_at'...065c4eb2', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:42.557409+00:00', 'project_id': 'principal', ...})
+damage = 'bad_metrics'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_response] _
+
+archived = (<atelier.service.Studio object at 0x7fe837bc7d70>, {'id': '27c52ec958314d47', 'name': 'Primeiro válido', 'created_at'...096f48a4', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:42.984749+00:00', 'project_id': 'principal', ...})
+damage = 'bad_response'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_precise] _
+
+archived = (<atelier.service.Studio object at 0x7fe837c1de80>, {'id': '3718062fa49e46a4', 'name': 'Primeiro válido', 'created_at'...ad69498b', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:43.398511+00:00', 'project_id': 'principal', ...})
+damage = 'bad_precise'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_metric] _
+
+archived = (<atelier.service.Studio object at 0x7fe837c17650>, {'id': 'e0b4f6c8ee1449e1', 'name': 'Primeiro válido', 'created_at'...afbc438d', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:43.810928+00:00', 'project_id': 'principal', ...})
+damage = 'bad_metric'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[nonfinite] _
+
+archived = (<atelier.service.Studio object at 0x7fe837bc6de0>, {'id': 'dd4d1fba1bbe4b13', 'name': 'Primeiro válido', 'created_at'...61a84af4', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:44.246818+00:00', 'project_id': 'principal', ...})
+damage = 'nonfinite'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+_ test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_economics] _
+
+archived = (<atelier.service.Studio object at 0x7fe837cfb0e0>, {'id': '47f479b6a32242ec', 'name': 'Primeiro válido', 'created_at'...deb34a84', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:44.669734+00:00', 'project_id': 'principal', ...})
+damage = 'bad_economics'
+
+    @pytest.mark.parametrize('damage',['array','null','text','truncated','encoding','no_id','wrong_id','unsafe_id','no_project','no_hash','bad_name','bad_date','bad_metrics','bad_response','bad_precise','bad_metric','nonfinite','bad_economics'])
+    def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived,damage):
+        app,a,b=archived;doc=deepcopy(a);doc['id']='invalid';p=app.experiments_dir/'invalid.json'
+        if damage=='array':raw=b'[]'
+        elif damage=='null':raw=b'null'
+        elif damage=='text':raw=b'"text"'
+        elif damage=='truncated':raw=b'{broken'
+        elif damage=='encoding':raw=b'\xff'
+        else:
+            if damage=='no_id':doc.pop('id')
+            if damage=='wrong_id':doc['id']='another'
+            if damage=='unsafe_id':doc['id']='../outside'
+            if damage=='no_project':doc.pop('project_id')
+            if damage=='no_hash':doc.pop('model_hash')
+            if damage=='bad_name':doc['name']=[]
+            if damage=='bad_date':doc['created_at']=17
+            if damage=='bad_metrics':doc['metrics']=[]
+            if damage=='bad_response':doc['metrics']['response']=[]
+            if damage=='bad_precise':doc['metrics']['incident']['precise']=[]
+            if damage=='bad_metric':doc['metrics']['incident']['sla_pct']='wrong'
+            if damage=='nonfinite':doc['metrics']['incident']['total_cost']=float('inf')
+            if damage=='bad_economics':doc['economics']=[]
+            raw=json.dumps(doc).encode()
+        p.write_bytes(raw);before=files(app)
+>       status=app.experiment_library()
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:43: AttributeError
+____ test_legacy_economics_and_missing_optional_response_key_stay_read_only ____
+
+archived = (<atelier.service.Studio object at 0x7fe837badc10>, {'id': '8e29e37deca6495f', 'name': 'Primeiro válido', 'project_id'..., ...}, {'id': 'fe37906da1f24af9', 'name': 'Segundo válido', 'project_id': 'principal', 'run_id': '117e9d84d9a7', ...})
+
+    def test_legacy_economics_and_missing_optional_response_key_stay_read_only(archived):
+        app,a,b=archived
+        for doc in [a,b]:
+            doc.pop('economics');doc['metrics'].pop('response');doc.pop('created_at')
+            (app.experiments_dir/(doc['id']+'.json')).write_text(json.dumps(doc))
+>       before=files(app);status=app.experiment_library()
+                                 ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:62: AttributeError
+_ test_invalid_files_are_not_deleted_and_notice_updates_after_external_repair __
+
+archived = (<atelier.service.Studio object at 0x7fe837c171a0>, {'id': '986bf26da76a46ad', 'name': 'Primeiro válido', 'created_at'...32654ce3', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:45.442795+00:00', 'project_id': 'principal', ...})
+
+    def test_invalid_files_are_not_deleted_and_notice_updates_after_external_repair(archived):
+        app,a,b=archived;path=app.experiments_dir/'repaired.json';path.write_text('[]')
+>       assert app.experiment_library()['issues']
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:72: AttributeError
+______________ test_project_isolation_and_unknown_origin_warning _______________
+
+archived = (<atelier.service.Studio object at 0x7fe837b98dd0>, {'id': '9f3c49d79d16416c', 'name': 'Primeiro válido', 'created_at'...68b946e3', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:45.840898+00:00', 'project_id': 'principal', ...})
+
+    def test_project_isolation_and_unknown_origin_warning(archived):
+        app,a,b=archived;original=app.project_id;app.create_project('Outro projeto')
+        saved=app.save_experiment('Válido no outro projeto')
+        assert [x['id'] for x in app.experiment_list()]==[saved['id']]
+        with pytest.raises(StudioError):app.compare_experiments(a['id'],saved['id'])
+        path=app.experiments_dir/'unknown.json';path.write_text('[]')
+>       assert app.experiment_library()['issues'][0]['filename']=='unknown.json'
+               ^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:84: AttributeError
+___________ test_invalid_selected_document_returns_controlled_error ____________
+
+archived = (<atelier.service.Studio object at 0x7fe837ca70b0>, {'id': 'bf7e3a52bf8b4e95', 'name': 'Primeiro válido', 'created_at'...9d944767', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:46.518503+00:00', 'project_id': 'principal', ...})
+
+    def test_invalid_selected_document_returns_controlled_error(archived):
+        app,a,b=archived;(app.experiments_dir/(a['id']+'.json')).write_text('[]')
+>       with pytest.raises(StudioError,match='dois experimentos'):app.compare_experiments(a['id'],b['id'])
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_int03_experiment_library.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+atelier/service.py:376: in compare_experiments
+    allowed={r['id'] for r in self.experiment_list()}
+                              ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <atelier.service.Studio object at 0x7fe837ca70b0>
+
+    def experiment_list(self):
+        with self.lock:
+            out=[]
+            for path in self.experiments_dir.glob('*.json'):
+                try:
+                    d=json.loads(path.read_text('utf-8'))
+>                   if d.get('project_id')==self.project_id:
+                       ^^^^^
+E                   AttributeError: 'list' object has no attribute 'get'
+
+atelier/service.py:344: AttributeError
+____________ test_unreadable_file_is_reported_without_hiding_others ____________
+
+archived = (<atelier.service.Studio object at 0x7fe837c14590>, {'id': '1f9965989a83440a', 'name': 'Primeiro válido', 'created_at'...d7854afa', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:46.937104+00:00', 'project_id': 'principal', ...})
+
+    def test_unreadable_file_is_reported_without_hiding_others(archived):
+        app,a,b=archived;path=app.experiments_dir/'denied.json';path.write_text('{}')
+        original=type(path).read_text
+        def read(p,*args,**kwargs):
+            if p==path:raise PermissionError('controlled')
+            return original(p,*args,**kwargs)
+        with patch.object(type(path),'read_text',read):
+>           status=app.experiment_library()
+                   ^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'Studio' object has no attribute 'experiment_library'. Did you mean: 'experiment_list'?
+
+tests/test_int03_experiment_library.py:101: AttributeError
+______ test_invalid_documents_do_not_consume_limit_but_valid_documents_do ______
+
+archived = (<atelier.service.Studio object at 0x7fe837c1d6d0>, {'id': 'dca5af0474774415', 'name': 'Primeiro válido', 'created_at'...39664236', 'name': 'Segundo válido', 'created_at': '2026-11-14T02:36:47.364413+00:00', 'project_id': 'principal', ...})
+
+    def test_invalid_documents_do_not_consume_limit_but_valid_documents_do(archived):
+        app,a,b=archived
+        for i in range(100):(app.experiments_dir/f'bad{i}.json').write_text('[]')
+        for i in range(97):
+            doc=deepcopy(a);doc['id']=f'copy{i}';(app.experiments_dir/(doc['id']+'.json')).write_text(json.dumps(doc))
+>       assert len(app.experiment_list())==99
+                   ^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_int03_experiment_library.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <atelier.service.Studio object at 0x7fe837c1d6d0>
+
+    def experiment_list(self):
+        with self.lock:
+            out=[]
+            for path in self.experiments_dir.glob('*.json'):
+                try:
+                    d=json.loads(path.read_text('utf-8'))
+>                   if d.get('project_id')==self.project_id:
+                       ^^^^^
+E                   AttributeError: 'list' object has no attribute 'get'
+
+atelier/service.py:344: AttributeError
+=============================== warnings summary ===============================
+../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[array]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[null]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[text]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[truncated]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[encoding]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[no_id]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[wrong_id]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[unsafe_id]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[no_project]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[no_hash]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_name]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_date]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_metrics]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_response]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_precise]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_metric]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[nonfinite]
+FAILED tests/test_int03_experiment_library.py::test_invalid_document_does_not_block_listing_comparison_or_new_save[bad_economics]
+FAILED tests/test_int03_experiment_library.py::test_legacy_economics_and_missing_optional_response_key_stay_read_only
+FAILED tests/test_int03_experiment_library.py::test_invalid_files_are_not_deleted_and_notice_updates_after_external_repair
+FAILED tests/test_int03_experiment_library.py::test_project_isolation_and_unknown_origin_warning
+FAILED tests/test_int03_experiment_library.py::test_invalid_selected_document_returns_controlled_error
+FAILED tests/test_int03_experiment_library.py::test_unreadable_file_is_reported_without_hiding_others
+FAILED tests/test_int03_experiment_library.py::test_invalid_documents_do_not_consume_limit_but_valid_documents_do
+24 failed, 1 warning in 10.20s

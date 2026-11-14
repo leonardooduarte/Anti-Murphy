@@ -1,0 +1,1 @@
+INT02 startup with invalid archive: AttributeError 'list' object has no attribute 'get'

@@ -52,6 +52,11 @@ def test_invalid_document_does_not_block_listing_comparison_or_new_save(archived
     assert saved['id'] not in {a['id'],b['id']}
     assert all(path.read_bytes()==raw for path,raw in before.items())
     assert len(app.experiment_list())==3
+    after_save=files(app)
+    reopened=Studio(app.storage)
+    assert len(reopened.experiment_list())==3
+    assert reopened.experiment_library()['issues']
+    assert files(app)==after_save
 
 
 def test_legacy_economics_and_missing_optional_response_key_stay_read_only(archived):
@@ -59,12 +64,14 @@ def test_legacy_economics_and_missing_optional_response_key_stay_read_only(archi
     for doc in [a,b]:
         doc.pop('economics');doc['metrics'].pop('response');doc.pop('created_at')
         (app.experiments_dir/(doc['id']+'.json')).write_text(json.dumps(doc))
+    lower=app.experiments_dir/(a['id']+'.json');upper=lower.with_suffix('.JSON');lower.rename(upper);upper_bytes=upper.read_bytes()
     before=files(app);status=app.experiment_library()
     assert not status['issues'] and len(status['items'])==2
     result=app.compare_experiments(a['id'],b['id'])
     assert result['economics']['first']['investment'] is None
     assert result['economics']['first']['status']=='partial'
     assert files(app)==before
+    assert upper.read_bytes()==upper_bytes
 
 
 def test_invalid_files_are_not_deleted_and_notice_updates_after_external_repair(archived):

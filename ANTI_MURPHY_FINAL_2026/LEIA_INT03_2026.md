@@ -1,0 +1,1 @@
+INT03-2026.1 sobre INT02. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve versões e projetos anteriores. Leia RELATORIO_INT03_2026.md e CONTINUIDADE_INT03_2026.md. Arquivos inválidos são preservados e identificados na biblioteca; registros válidos permanecem disponíveis. Windows nativo pendente.

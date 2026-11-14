@@ -50,7 +50,7 @@ def read_library(directory, project_id):
     """
     documents={};issues=[]
     for path in sorted(directory.iterdir()):
-        if path.suffix!='.json':continue
+        if path.suffix.lower()!='.json':continue
         try:
             try:document=json.loads(path.read_text('utf-8'))
             except (json.JSONDecodeError,UnicodeError) as exc:
