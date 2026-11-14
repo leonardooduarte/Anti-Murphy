@@ -610,6 +610,11 @@ class Studio:
 
     def set_model(self, payload:dict):
         with self.lock:
+            # Legacy model JSON and editor updates omit the optional rule.
+            # Explicit invalid values must never silently inherit the session.
+            if 'dispatch_rule' in payload and (not isinstance(payload['dispatch_rule'],str) or
+                                               payload['dispatch_rule'] not in ('EDD','SPT','FIFO')):
+                raise StudioError('Regra de despacho inválida: informe EDD, SPT ou FIFO.')
             stations=payload.get('stations'); orders=payload.get('orders')
             if not isinstance(stations,dict) or not isinstance(orders,list):
                 raise StudioError('Modelo: informe postos e ordens.')
@@ -621,6 +626,8 @@ class Studio:
             candidate=deepcopy(self.state)
             candidate.update(stations=deepcopy(stations),orders=deepcopy(orders),
                              nx_source='Modelo editado pelo usuário')
+            if 'dispatch_rule' in payload:
+                candidate['nx_rule']=payload['dispatch_rule']
             invalidate_model(candidate)
             current=ExperimentSpec(**candidate['nx_spec'])
             updates={'station':current.station if current.station in stations else next(iter(stations))}

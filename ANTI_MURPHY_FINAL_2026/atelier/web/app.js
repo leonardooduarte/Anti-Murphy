@@ -1634,7 +1634,14 @@ async function openHistory(filename){
 }
 function download(content,name){const blob=new Blob([content],{type:'application/json'}),url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();URL.revokeObjectURL(url)}
 async function importModel(file){
- try{const obj=JSON.parse(await file.text());await perform(api('/api/model','POST',{stations:obj.stations,orders:obj.orders}),'Modelo importado e recalculado.');st.editing=null;navigate('modelo')}
+ try{
+  const obj=JSON.parse(await file.text());
+  const hasRule=Object.prototype.hasOwnProperty.call(obj,'dispatch_rule');
+  const payload={stations:obj.stations,orders:obj.orders};
+  if(hasRule)payload.dispatch_rule=obj.dispatch_rule;
+  const message='Modelo importado e recalculado. '+(hasRule?'Regra de despacho do arquivo preservada.':'Arquivo sem regra: mantida a regra de despacho atual.');
+  await perform(api('/api/model','POST',payload),message);st.editing=null;navigate('modelo');
+ }
  catch(e){notify('Falha ao importar: '+e.message,true)}
 }
 
