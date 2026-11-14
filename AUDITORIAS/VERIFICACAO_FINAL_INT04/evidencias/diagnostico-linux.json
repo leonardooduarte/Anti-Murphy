@@ -1,0 +1,26 @@
+{
+  "executado_em": "2026-11-14T03:10:21.809472+00:00",
+  "sistema": "Linux",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "verificacoes": {
+    "python_310_ou_superior": true,
+    "748_arquivos_da_INT04_conferem": true,
+    "inicio_sem_dependencias_extras": true,
+    "referencia_oficial_SLA": true,
+    "recurso_/": true,
+    "recurso_/app.js": true,
+    "recurso_/styles.css": true,
+    "recurso_/experience_v01.css": true,
+    "INT01_regra_restaurada": true,
+    "INT03_validos_e_aviso": true,
+    "reabertura_sem_perda": true,
+    "tres_experimentos_oficiais": true
+  },
+  "windows_automatizado_aprovado": null,
+  "bat_executado": false,
+  "interface_visual_homologada": false,
+  "projetor_homologado": false,
+  "arquivos_diferentes": [],
+  "experimentos_saida": "3 EXPERIMENTOS APROVADOS\nA: 100.0 40.0 100.0 custos 16216.67 12113.0 4103.68\nB: [(0, 5.681763308299117, 84.12881249414335), (1, 5.681763308299117, 96.09692807908425), (2, 5.681763308299117, 108.06504366402514), (3, 5.681763308299117, 120.033159248966)]\nC: Manutenção expressa · CNC 21.57530617980079 +1 operador · CNC 19.973006391870044\n",
+  "automaticos_aprovados": true
+}

@@ -1,0 +1,17 @@
+{
+  "base_commit": "ac852d85e454c4b5df37f9f57d1c749aed045189",
+  "application_files_unchanged": 748,
+  "regression_passed": 732,
+  "failed": 0,
+  "subtests": 10,
+  "official_experiments": 3,
+  "browser_contract_scripts": 7,
+  "am15_original_cases_passed": 15,
+  "additional_50_station_repetitions": 15,
+  "previous_map_failure_reproduced": false,
+  "map_root_cause_confirmed": false,
+  "windows_native_validated": false,
+  "bat_native_validated": false,
+  "projector_validated": false,
+  "portable_checker_tested_on": "Linux"
+}

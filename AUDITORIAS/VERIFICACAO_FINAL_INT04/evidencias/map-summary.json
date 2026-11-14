@@ -1,0 +1,9 @@
+{
+  "cases": 15,
+  "original_runner_cases": 15,
+  "split_measurement_failures": 0,
+  "atomic_failures": 0,
+  "settled_failures": 0,
+  "previous_failure_reproduced": false,
+  "root_cause_confirmed": false
+}

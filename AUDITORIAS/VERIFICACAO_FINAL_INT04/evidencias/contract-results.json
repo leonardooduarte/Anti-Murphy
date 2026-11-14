@@ -1,0 +1,36 @@
+[
+  {
+    "name": "int01",
+    "exit_code": 0,
+    "elapsed_s": 35.73
+  },
+  {
+    "name": "int02",
+    "exit_code": 0,
+    "elapsed_s": 16.63
+  },
+  {
+    "name": "int03",
+    "exit_code": 0,
+    "elapsed_s": 18.84
+  },
+  {
+    "name": "int04",
+    "exit_code": 0,
+    "elapsed_s": 8.63
+  },
+  {
+    "name": "am08",
+    "exit_code": 0,
+    "elapsed_s": 8.8
+  },
+  {
+    "name": "acabamento_final",
+    "exit_code": 0,
+    "elapsed_s": 12.45
+  },
+  {
+    "name": "banca_http",
+    "exit_code": 0
+  }
+]

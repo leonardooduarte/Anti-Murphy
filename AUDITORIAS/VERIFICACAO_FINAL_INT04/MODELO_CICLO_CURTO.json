@@ -1,0 +1,30 @@
+{
+  "stations": {
+    "P": {
+      "nome": "Ensaio de ciclo curto",
+      "maquinas": 1,
+      "operadores": 1,
+      "operadores_por_maquina": 1,
+      "eficiencia_operador": 1,
+      "disponibilidade": 1,
+      "custo_maquina_h": 10,
+      "custo_operador_h": 5,
+      "setup_min": 0
+    }
+  },
+  "orders": [
+    {
+      "id": "CURTA",
+      "quantidade": 1,
+      "prazo_h": 0.0005,
+      "multa_hora": 10000,
+      "route": [
+        [
+          "P",
+          0.06
+        ]
+      ]
+    }
+  ],
+  "dispatch_rule": "EDD"
+}
