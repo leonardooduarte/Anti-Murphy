@@ -14,7 +14,7 @@ def _num(value):
     try:
         v = float(value)
         return v if isfinite(v) else None
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
 
 
@@ -62,13 +62,30 @@ def summarize_audit(analysis, selected, orders, spec, project_id, model_hash):
             continue
         detail = []
         for row in result.get('orders', []):
-            due, finish = _num(row.get('Prazo (h)')), _num(row.get('Conclusão (h)'))
-            if due is None or finish is None:
-                continue
-            slack = round(due-finish, 3)
+            due = _num(row.get('Prazo (h)'))
+            precise_finish = 'completion_h' in row
+            finish = _num(row.get('completion_h') if precise_finish else row.get('Conclusão (h)'))
+            if finish is not None and finish < 0:
+                finish = None
+            slack = _num(due-finish) if due is not None and finish is not None else None
+            precise_lateness = 'lateness_h' in row
+            lateness = (_num(row.get('lateness_h')) if precise_lateness else
+                        max(0., -slack) if slack is not None else None)
+            if lateness is not None and lateness < 0:
+                lateness = None
+            is_late = None
+            if slack is not None and lateness is not None:
+                # Preserve the DES classification, including its existing
+                # numerical tolerance; never introduce a new timing floor.
+                is_late = (True if row.get('Status') == 'Atrasada' else
+                           False if row.get('Status') == 'No prazo' else lateness > 0)
             detail.append({'id': row.get('OP'), 'client': row.get('Cliente'),
                            'due_h': due, 'finish_h': finish, 'slack_h': slack,
-                           'lateness_h': max(0, round(-slack, 3)),
+                           'lateness_h': lateness, 'is_late': is_late,
+                           'timing_source': ('precise' if precise_finish else 'legacy_rounded')
+                                            if slack is not None else 'unavailable',
+                           'lateness_source': ('precise' if precise_lateness else 'derived')
+                                              if lateness is not None else 'unavailable',
                            'penalty': _num(row.get('Multa (R$)')),
                            'units': by_id.get(row.get('OP'), {}).get('quantidade')})
         out[name] = detail

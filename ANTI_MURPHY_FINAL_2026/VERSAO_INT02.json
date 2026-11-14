@@ -1,0 +1,6 @@
+{
+  "version": "INT02-2026.1",
+  "base_commit": "1bbe141ee4ee5d52aecbe109a8b2bb53d5088c92",
+  "base_app_sha256": "b05152ce353059ffba88aa6662b598bf02a80687c136a146de8db341484659ba",
+  "app_sha256": "47466b5a88df500d1ac5aec5453afe5638b3a76a930c9b4a1e1e9b013d9fa3c9"
+}

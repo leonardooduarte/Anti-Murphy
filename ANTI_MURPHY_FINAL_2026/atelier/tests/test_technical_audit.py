@@ -23,7 +23,11 @@ def test_evidence_is_derived_from_active_des_not_guessed():
             engine=analysis[scenario] if scenario!='response' else selected['result']
             for row in engine['orders']:
                 audited=next(r for r in audit['orders'][scenario] if r['id']==row['OP'])
-                assert abs(audited['slack_h'] - round(row['Prazo (h)']-row['Conclusão (h)'],3))<1e-7
+                finish=row.get('completion_h',row['Conclusão (h)'])
+                assert audited['finish_h']==finish
+                assert audited['slack_h']==pytest.approx(row['Prazo (h)']-finish,abs=1e-12)
+                assert audited['lateness_h']==row['lateness_h']
+                assert audited['is_late']==(row['Status']=='Atrasada')
         assert audit['quality']['modeled'] is False
         assert audit['maintenance']['mtbf_h'] is None
         assert audit['maintenance']['mttr_h'] is None

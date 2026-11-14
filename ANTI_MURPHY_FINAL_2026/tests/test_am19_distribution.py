@@ -69,5 +69,10 @@ def test_visual_package_sources_remain_identical_to_received_zip():
         version=json.loads(amendment.read_text())
         assert version['base_app_sha256']==expected['atelier/web/app.js']
         expected['atelier/web/app.js']=version['app_sha256']
+    amendment=ROOT/'VERSAO_INT02.json'
+    if amendment.is_file():
+        version=json.loads(amendment.read_text())
+        assert version['base_app_sha256']==expected['atelier/web/app.js']
+        expected['atelier/web/app.js']=version['app_sha256']
     for name,digest in expected.items():
         assert sha256((ROOT/name).read_bytes()).hexdigest()==digest,name
