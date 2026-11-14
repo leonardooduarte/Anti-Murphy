@@ -1,0 +1,120 @@
+Traceback (most recent call last):
+  File "/workspace/work/auditoria-integrada/base/ANTI_MURPHY_FINAL_2026/atelier/server.py", line 78, in do_GET
+    if path=='/api/experiments':return self.send_json(STUDIO.experiment_list())
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/auditoria-integrada/base/ANTI_MURPHY_FINAL_2026/atelier/service.py", line 344, in experiment_list
+    if d.get('project_id')==self.project_id:
+       ^^^^^
+AttributeError: 'list' object has no attribute 'get'
+[http] "GET / HTTP/1.1" 200 -
+[http] "GET /styles.css HTTP/1.1" 200 -
+[http] "GET /release_quality.css HTTP/1.1" 200 -
+[http] "GET /dashboards.css HTTP/1.1" 200 -
+[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
+[http] "GET /design_vnext.css HTTP/1.1" 200 -
+[http] "GET /banca.css HTTP/1.1" 200 -
+[http] "GET /studio_final.css HTTP/1.1" 200 -
+[http] "GET /final_banca.css HTTP/1.1" 200 -
+[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
+[http] "GET /engineering_charts.css HTTP/1.1" 200 -
+[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
+[http] "GET /integridade_final.css HTTP/1.1" 200 -
+[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
+[http] "GET /experience_v01.css HTTP/1.1" 200 -
+[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
+[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
+[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
+[http] "GET /engineering_charts.js HTTP/1.1" 200 -
+[http] "GET /analysis_state.js HTTP/1.1" 200 -
+[http] "GET /app.js HTTP/1.1" 200 -
+[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
+[http] "GET /api/state HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "GET /api/dashboards HTTP/1.1" 200 -
+[http] "GET /api/history HTTP/1.1" 200 -
+[http] "POST /api/model HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "POST /api/experiment/save HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 500 -
+{"resolution": [1280, 720], "views": [{"view": "simulacao", "viewport": 1280, "document": 1280}, {"view": "modelo", "viewport": 1280, "document": 1280}, {"view": "analise", "viewport": 1280, "document": 1280}, {"view": "paineis", "viewport": 1280, "document": 1280}, {"view": "laboratorio", "viewport": 1280, "document": 1280}, {"view": "avancadas", "viewport": 1280, "document": 1280}, {"view": "decisoes", "viewport": 1280, "document": 1280}, {"view": "historico", "viewport": 1280, "document": 1280}], "initial_ready_s": 1.5913228479998907, "model_roundtrip": {"exported_rule": "SPT", "rule_after_import": "EDD", "response_status": 200}, "invalid_archive": {"status": 500, "preserved": true, "valid_archive_exists": true}, "js_errors": []}
+Traceback (most recent call last):
+  File "/workspace/work/auditoria-integrada/base/ANTI_MURPHY_FINAL_2026/atelier/server.py", line 78, in do_GET
+    if path=='/api/experiments':return self.send_json(STUDIO.experiment_list())
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/auditoria-integrada/base/ANTI_MURPHY_FINAL_2026/atelier/service.py", line 344, in experiment_list
+    if d.get('project_id')==self.project_id:
+       ^^^^^
+AttributeError: 'list' object has no attribute 'get'
+[http] "GET / HTTP/1.1" 200 -
+[http] "GET /styles.css HTTP/1.1" 200 -
+[http] "GET /release_quality.css HTTP/1.1" 200 -
+[http] "GET /design_vnext.css HTTP/1.1" 200 -
+[http] "GET /studio_final.css HTTP/1.1" 200 -
+[http] "GET /dashboards.css HTTP/1.1" 200 -
+[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
+[http] "GET /engineering_charts.css HTTP/1.1" 200 -
+[http] "GET /final_banca.css HTTP/1.1" 200 -
+[http] "GET /banca.css HTTP/1.1" 200 -
+[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
+[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
+[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
+[http] "GET /integridade_final.css HTTP/1.1" 200 -
+[http] "GET /experience_v01.css HTTP/1.1" 200 -
+[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
+[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
+[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
+[http] "GET /analysis_state.js HTTP/1.1" 200 -
+[http] "GET /engineering_charts.js HTTP/1.1" 200 -
+[http] "GET /app.js HTTP/1.1" 200 -
+[http] "GET /api/state HTTP/1.1" 200 -
+[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "GET /api/dashboards HTTP/1.1" 200 -
+[http] "GET /api/history HTTP/1.1" 200 -
+[http] "POST /api/model HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "POST /api/experiment/save HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 500 -
+{"resolution": [1366, 768], "views": [{"view": "simulacao", "viewport": 1366, "document": 1366}, {"view": "modelo", "viewport": 1366, "document": 1366}, {"view": "analise", "viewport": 1366, "document": 1366}, {"view": "paineis", "viewport": 1366, "document": 1366}, {"view": "laboratorio", "viewport": 1366, "document": 1366}, {"view": "avancadas", "viewport": 1366, "document": 1366}, {"view": "decisoes", "viewport": 1366, "document": 1366}, {"view": "historico", "viewport": 1366, "document": 1366}], "initial_ready_s": 1.2284827309999855, "model_roundtrip": {"exported_rule": "SPT", "rule_after_import": "EDD", "response_status": 200}, "invalid_archive": {"status": 500, "preserved": true, "valid_archive_exists": true}, "js_errors": []}
+Traceback (most recent call last):
+  File "/workspace/work/auditoria-integrada/base/ANTI_MURPHY_FINAL_2026/atelier/server.py", line 78, in do_GET
+    if path=='/api/experiments':return self.send_json(STUDIO.experiment_list())
+                                                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/auditoria-integrada/base/ANTI_MURPHY_FINAL_2026/atelier/service.py", line 344, in experiment_list
+    if d.get('project_id')==self.project_id:
+       ^^^^^
+AttributeError: 'list' object has no attribute 'get'
+[http] "GET / HTTP/1.1" 200 -
+[http] "GET /release_quality.css HTTP/1.1" 200 -
+[http] "GET /design_vnext.css HTTP/1.1" 200 -
+[http] "GET /studio_final.css HTTP/1.1" 200 -
+[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
+[http] "GET /dashboards.css HTTP/1.1" 200 -
+[http] "GET /styles.css HTTP/1.1" 200 -
+[http] "GET /banca.css HTTP/1.1" 200 -
+[http] "GET /engineering_charts.css HTTP/1.1" 200 -
+[http] "GET /final_banca.css HTTP/1.1" 200 -
+[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
+[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
+[http] "GET /experience_v01.css HTTP/1.1" 200 -
+[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
+[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
+[http] "GET /integridade_final.css HTTP/1.1" 200 -
+[http] "GET /analysis_state.js HTTP/1.1" 200 -
+[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
+[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
+[http] "GET /engineering_charts.js HTTP/1.1" 200 -
+[http] "GET /app.js HTTP/1.1" 200 -
+[http] "GET /api/state HTTP/1.1" 200 -
+[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "GET /api/dashboards HTTP/1.1" 200 -
+[http] "GET /api/history HTTP/1.1" 200 -
+[http] "POST /api/model HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "POST /api/experiment/save HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 200 -
+[http] "GET /api/experiments HTTP/1.1" 500 -
+{"resolution": [1920, 1080], "views": [{"view": "simulacao", "viewport": 1920, "document": 1920}, {"view": "modelo", "viewport": 1920, "document": 1920}, {"view": "analise", "viewport": 1920, "document": 1920}, {"view": "paineis", "viewport": 1920, "document": 1920}, {"view": "laboratorio", "viewport": 1920, "document": 1920}, {"view": "avancadas", "viewport": 1920, "document": 1920}, {"view": "decisoes", "viewport": 1920, "document": 1920}, {"view": "historico", "viewport": 1920, "document": 1920}], "initial_ready_s": 1.5556230339998365, "model_roundtrip": {"exported_rule": "SPT", "rule_after_import": "EDD", "response_status": 200}, "invalid_archive": {"status": 500, "preserved": true, "valid_archive_exists": true}, "js_errors": []}

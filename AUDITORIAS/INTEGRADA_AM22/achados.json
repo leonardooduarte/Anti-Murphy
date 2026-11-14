@@ -1,0 +1,75 @@
+[
+  {
+    "id": "INT-01",
+    "priority": "P1",
+    "status": "confirmed",
+    "title": "Importação do modelo ignora a regra exportada",
+    "files": [
+      "atelier/web/app.js:1636 — importModel",
+      "atelier/service.py:611 — set_model",
+      "atelier/service.py:867 — export_model"
+    ],
+    "reproduction": "Exportar modelo em SPT; mudar a sessão para EDD; importar o JSON exportado. HTTP 200, mas regra continua EDD. Reproduzido no navegador nas três resoluções.",
+    "impact": "O mesmo arquivo pode produzir sequenciamento diferente conforme o estado anterior da sessão, prejudicando reprodução de estudos.",
+    "next": "Definir contrato de importação: preservar dispatch_rule explícita válida; definir ausência legada; rejeitar inválida antes de alterar memória/disco; não confundir modelo com experimento completo.",
+    "evidence": [
+      "integrated-browser.json",
+      "browser-integrated.log"
+    ]
+  },
+  {
+    "id": "INT-02",
+    "priority": "P2",
+    "status": "confirmed",
+    "title": "Auditoria por pedido recalcula folga a partir de conclusão arredondada",
+    "files": [
+      "atelier/technical_audit.py:53 — summarize_audit",
+      "atelier/web/app.js:988 — auditSlackStatus",
+      "simulation/engine.py — campos completion_h e lateness_h"
+    ],
+    "reproduction": "Ciclo 0,06 min, prazo 0,0005 h, multa 10000/h. Conclusão real 0,0010359130029347337 h, atraso 0,0005359130029347337 h, multa 5,36. Auditoria recebe conclusão 0 e publica folga +0,001 h, atraso 0.",
+    "impact": "Diagnóstico de folga/atraso da auditoria contradiz a simulação em operações curtas. Não demonstrou erro do makespan, utilização ou throughput do motor.",
+    "next": "Consumir completion_h/lateness_h precisos, usar fallback explícito para legado e arredondar só no texto; testar perto do prazo e ciclos curtos.",
+    "evidence": [
+      "probes.json",
+      "probes.log"
+    ]
+  },
+  {
+    "id": "INT-03",
+    "priority": "P2",
+    "status": "confirmed",
+    "title": "Um arquivo inválido impede leitura da biblioteca de experimentos",
+    "files": [
+      "atelier/service.py:338 — experiment_list",
+      "atelier/service.py:350 — save_experiment",
+      "atelier/web/app.js — loadExperiments"
+    ],
+    "reproduction": "Com um experimento válido, criar experimentos/invalid.json contendo []. GET /api/experiments retorna 500 por AttributeError em d.get. Reproduzido nas três resoluções; arquivo válido e inválido preservados.",
+    "impact": "A biblioteca e novas gravações que consultam sua lista ficam indisponíveis por um documento malformado; não foi demonstrada perda dos arquivos.",
+    "next": "Validar estrutura por arquivo, preservar documentos inválidos e informar sua existência; não ocultar todo o acervo nem apagar registros para recuperar a lista.",
+    "evidence": [
+      "probes.json",
+      "integrated-browser.json",
+      "browser-integrated.log"
+    ]
+  },
+  {
+    "id": "INT-04",
+    "priority": "P2",
+    "status": "confirmed",
+    "title": "Contraste insuficiente e rótulos muito pequenos em decisões",
+    "files": [
+      "atelier/web/styles.css — .alt-metrics small",
+      "atelier/web/app.js:1528 — renderização de métricas da decisão"
+    ],
+    "reproduction": "Cor computada rgb(117,134,129), fundo branco, fonte 10 px; contraste calculado pela luminância sRGB 3,829729:1 nas três resoluções.",
+    "impact": "A amostra fica abaixo de 4,5:1 para texto normal (WCAG 1.4.3 AA); leitura em projetor ainda não testada. Tamanho 10 px é evidência de densidade, não um tamanho mínimo universal imposto pela WCAG.",
+    "next": "Ajustar tokens de cor e tipografia desses rótulos; conferir contraste >=4,5:1, alinhamentos e overflow nas três resoluções; preservar identidade e foco/zoom do mapa.",
+    "evidence": [
+      "visual-review.json",
+      "visual-review.log",
+      "capturas-integradas/decisoes_1920.png"
+    ]
+  }
+]

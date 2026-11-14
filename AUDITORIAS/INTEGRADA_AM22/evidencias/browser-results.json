@@ -1,0 +1,80 @@
+[
+  {
+    "module": "am07",
+    "exit_code": 0,
+    "elapsed_s": 12.04,
+    "log": "browser-am07.log"
+  },
+  {
+    "module": "am08",
+    "exit_code": 0,
+    "elapsed_s": 7.99,
+    "log": "browser-am08.log"
+  },
+  {
+    "module": "am09",
+    "exit_code": 0,
+    "elapsed_s": 8.6,
+    "log": "browser-am09.log"
+  },
+  {
+    "module": "am10",
+    "exit_code": 0,
+    "elapsed_s": 8.75,
+    "log": "browser-am10.log"
+  },
+  {
+    "module": "am12",
+    "exit_code": 0,
+    "elapsed_s": 3.0,
+    "log": "browser-am12.log"
+  },
+  {
+    "module": "am13",
+    "exit_code": 0,
+    "elapsed_s": 10.06,
+    "log": "browser-am13.log"
+  },
+  {
+    "module": "am14",
+    "exit_code": 0,
+    "elapsed_s": 8.11,
+    "log": "browser-am14.log"
+  },
+  {
+    "module": "am15",
+    "exit_code": 0,
+    "elapsed_s": 32.45,
+    "log": "browser-am15.log"
+  },
+  {
+    "module": "am16",
+    "exit_code": 0,
+    "elapsed_s": 12.65,
+    "log": "browser-am16.log"
+  },
+  {
+    "module": "am17",
+    "exit_code": 0,
+    "elapsed_s": 13.73,
+    "log": "browser-am17.log"
+  },
+  {
+    "module": "am22",
+    "exit_code": 0,
+    "elapsed_s": 21.19,
+    "log": "browser-am22.log"
+  },
+  {
+    "module": "startup_recovery",
+    "exit_code": 0,
+    "elapsed_s": 11.06,
+    "log": "browser-startup_recovery.log"
+  },
+  {
+    "module": "optional_priority",
+    "exit_code": 0,
+    "elapsed_s": 10.5,
+    "log": "browser-optional_priority.log"
+  }
+]

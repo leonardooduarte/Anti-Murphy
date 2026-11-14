@@ -1,0 +1,18 @@
+{
+  "base_commit": "8599a5c6f8ce361e5804f4403a8770939546df79",
+  "base_zip_sha256": "a6f706acdf78a0184691fa1338d3d99803f3628d3242caa3887bce97da7bc13e",
+  "base_files_unchanged": 650,
+  "application_code_changed": false,
+  "regression_passed": 664,
+  "failed": 0,
+  "subtests": 10,
+  "official_experiments": 3,
+  "additional_browser_modules": 13,
+  "integrated_viewports": 3,
+  "views_per_viewport": 8,
+  "independent_numeric_cases": 6,
+  "confirmed_findings": 4,
+  "native_windows_validated": false,
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41"
+}

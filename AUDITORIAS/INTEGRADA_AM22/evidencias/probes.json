@@ -1,0 +1,174 @@
+{
+  "numeric_references": [
+    {
+      "minutes": 0.06,
+      "efficiency": 1,
+      "availability": 1,
+      "machines": 1,
+      "workers": 1,
+      "labor_per_machine": 1,
+      "units": 1,
+      "expected": {
+        "makespan_h": 0.000971720835349653,
+        "throughput_h": 1029.1021491169029,
+        "operating_cost": 0.014575812530244795
+      },
+      "checks": {
+        "makespan_h": true,
+        "throughput_h": true,
+        "operating_cost": true,
+        "machine_util_pct": true,
+        "worker_util_pct": true
+      },
+      "elapsed_s": 0.00016077200007202919
+    },
+    {
+      "minutes": 1e-05,
+      "efficiency": 1,
+      "availability": 1,
+      "machines": 1,
+      "workers": 1,
+      "labor_per_machine": 1,
+      "units": 1,
+      "expected": {
+        "makespan_h": 1.6195347255827554e-07,
+        "throughput_h": 6174612.894701416,
+        "operating_cost": 2.429302088374133e-06
+      },
+      "checks": {
+        "makespan_h": true,
+        "throughput_h": true,
+        "operating_cost": true,
+        "machine_util_pct": true,
+        "worker_util_pct": true
+      },
+      "elapsed_s": 0.00019716699989658082
+    },
+    {
+      "minutes": 0.06,
+      "efficiency": 0.001,
+      "availability": 1,
+      "machines": 1,
+      "workers": 1,
+      "labor_per_machine": 1,
+      "units": 1,
+      "expected": {
+        "makespan_h": 0.9717208353496529,
+        "throughput_h": 1.029102149116903,
+        "operating_cost": 14.575812530244793
+      },
+      "checks": {
+        "makespan_h": true,
+        "throughput_h": true,
+        "operating_cost": true,
+        "machine_util_pct": true,
+        "worker_util_pct": true
+      },
+      "elapsed_s": 9.005599986267043e-05
+    },
+    {
+      "minutes": 60,
+      "efficiency": 1,
+      "availability": 0.5,
+      "machines": 2,
+      "workers": 2,
+      "labor_per_machine": 1,
+      "units": 7,
+      "expected": {
+        "makespan_h": 8.033149843524047,
+        "throughput_h": 0.8713891980544936,
+        "operating_cost": 240.99449530572141
+      },
+      "checks": {
+        "makespan_h": true,
+        "throughput_h": true,
+        "operating_cost": true,
+        "machine_util_pct": true,
+        "worker_util_pct": true
+      },
+      "elapsed_s": 0.0002764060000117752
+    },
+    {
+      "minutes": 1,
+      "efficiency": 1,
+      "availability": 1,
+      "machines": 4,
+      "workers": 1,
+      "labor_per_machine": 0.5,
+      "units": 9,
+      "expected": {
+        "makespan_h": 0.08399630699478908,
+        "throughput_h": 107.14756781578906,
+        "operating_cost": 3.7798338147655084
+      },
+      "checks": {
+        "makespan_h": true,
+        "throughput_h": true,
+        "operating_cost": true,
+        "machine_util_pct": true,
+        "worker_util_pct": true
+      },
+      "elapsed_s": 0.0002057990000139398
+    },
+    {
+      "minutes": 2,
+      "efficiency": 1,
+      "availability": 1,
+      "machines": 3,
+      "workers": 6,
+      "labor_per_machine": 2,
+      "units": 8,
+      "expected": {
+        "makespan_h": 0.10234605838646402,
+        "throughput_h": 78.16617587549474,
+        "operating_cost": 6.140763503187841
+      },
+      "checks": {
+        "makespan_h": true,
+        "throughput_h": true,
+        "operating_cost": true,
+        "machine_util_pct": true,
+        "worker_util_pct": true
+      },
+      "elapsed_s": 0.00019079699995927513
+    }
+  ],
+  "short_order_report": {
+    "engine_order": {
+      "OP": "CURTA",
+      "Cliente": "",
+      "Produto": "",
+      "Quantidade": 1,
+      "Prazo (h)": 0.0005,
+      "Conclusão (h)": 0.0,
+      "Atraso (h)": 0.0,
+      "Multa (R$)": 5.36,
+      "Status": "Atrasada",
+      "completion_h": 0.0010359130029347337,
+      "lateness_h": 0.0005359130029347337,
+      "penalty": 5.3591300293473365
+    },
+    "technical_audit_order": {
+      "id": "CURTA",
+      "client": "",
+      "due_h": 0.0005,
+      "finish_h": 0.0,
+      "slack_h": 0.001,
+      "lateness_h": 0,
+      "penalty": 5.36,
+      "units": 1
+    },
+    "makespan_h": 0.0010359130029347337
+  },
+  "malformed_experiment": {
+    "type": "AttributeError",
+    "message": "'list' object has no attribute 'get'",
+    "valid_experiment": "339bed7964dc4c67",
+    "file_preserved": true
+  },
+  "temporal_reference": {
+    "shared_completed_operations": 2,
+    "cost_expected": 5.3059370988793875,
+    "cost_actual": 5.305937098879387
+  }
+}

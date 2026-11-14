@@ -1,5 +1,7 @@
 # Versão atual: AM22-2026.1 sobre RECUPERACAO/PRIORIDADE/AM19
 
+[Auditoria integrada da AM22](AUDITORIAS/INTEGRADA_AM22/RELATORIO_AUDITORIA_INTEGRADA_AM22.md) · [Evidências para baixar](AUDITORIAS/INTEGRADA_AM22/AUDITORIA_INTEGRADA_AM22_2026.zip). Auditoria sem alteração de código; quatro pendências confirmadas, com plano de correções.
+
 [Aplicativo completo](ENTREGAS/AM22/ANTI_MURPHY_AM22_COMPLETO_2026.zip) · [Patch](ENTREGAS/AM22/ANTI_MURPHY_PATCH_AM22_2026.zip) · [Relatório](ENTREGAS/AM22/RELATORIO_AM22_2026.md) · [Continuidade](ENTREGAS/AM22/CONTINUIDADE_AM22_2026.md).
 
 GET e POST exigem Host local na porta ativa; Origin presente deve corresponder à origem HTTP local. Clientes locais sem Origin continuam permitidos. Evolução visual preservada. 664 testes aprovados, zero falhas, dez subtestes; três experimentos e navegador nas três resoluções passaram. ZIP e patch conferem 650 arquivos. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Windows/projetor pendentes de validação nativa.

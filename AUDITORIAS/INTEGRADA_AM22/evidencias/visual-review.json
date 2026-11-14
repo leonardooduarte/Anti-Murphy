@@ -1,0 +1,302 @@
+[
+  {
+    "resolution": [
+      1280,
+      720
+    ],
+    "narrative_keyboard": true,
+    "narrative_comparison": true,
+    "new_brief_and_orders": true,
+    "js_errors": [],
+    "decision_labels": [
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Término previsto",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Investimento",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Custo total simulado",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida estimada",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Conclusão da carteira",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      }
+    ]
+  },
+  {
+    "resolution": [
+      1366,
+      768
+    ],
+    "narrative_keyboard": true,
+    "narrative_comparison": true,
+    "new_brief_and_orders": true,
+    "js_errors": [],
+    "decision_labels": [
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Término previsto",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Investimento",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Custo total simulado",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida estimada",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Conclusão da carteira",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      }
+    ]
+  },
+  {
+    "resolution": [
+      1920,
+      1080
+    ],
+    "narrative_keyboard": true,
+    "narrative_comparison": true,
+    "new_brief_and_orders": true,
+    "js_errors": [],
+    "decision_labels": [
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Término previsto",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Investimento",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Custo total simulado",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida estimada",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Conclusão da carteira",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "background_rgb": [
+          255.0,
+          255.0,
+          255.0
+        ],
+        "contrast": 3.8297293064309086
+      }
+    ]
+  }
+]

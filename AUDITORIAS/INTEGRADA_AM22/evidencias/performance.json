@@ -1,0 +1,55 @@
+{
+  "environment": "Linux/Python 3.12, execução local sintética; não é benchmark no Windows",
+  "cases": [
+    {
+      "units": 100,
+      "route_steps": 5,
+      "operations_per_scenario": 500,
+      "calculation_s": 0.14548510999975406,
+      "state_json_bytes": 235718,
+      "json_serialization_s": 0.004815852999854542,
+      "workload": {
+        "nominal_operations": 500,
+        "max_scenario_operations": 500,
+        "scenario_upper_bound": 7,
+        "operation_upper_bound": 3500,
+        "limits": {
+          "per_scenario": 25000,
+          "per_analysis": 250000
+        },
+        "within_limits": true,
+        "estimate_kind": "upper_bound",
+        "units": 100
+      }
+    },
+    {
+      "units": 2500,
+      "route_steps": 10,
+      "operations_per_scenario": 25000,
+      "calculation_s": 3.629036997000185,
+      "state_json_bytes": 5004967,
+      "json_serialization_s": 0.10119340300025215,
+      "workload": {
+        "nominal_operations": 25000,
+        "max_scenario_operations": 25000,
+        "scenario_upper_bound": 7,
+        "operation_upper_bound": 175000,
+        "limits": {
+          "per_scenario": 25000,
+          "per_analysis": 250000
+        },
+        "within_limits": true,
+        "estimate_kind": "upper_bound",
+        "units": 2500
+      }
+    }
+  ],
+  "default_start_s": 0.15933713100002933,
+  "default_uncertainty_12_s": 0.09124385400036772,
+  "excessive_workload": {
+    "error": "Este cálculo pode exigir até 192.500 operações em 7 cenários (27.500 por cenário). O limite desta versão é 25.000 por cenário e 250.000 por análise. Reduza quantidades ou etapas do roteiro, ou divida o estudo em lotes. Nenhum resultado foi substituído e nenhum cenário foi iniciado.",
+    "engine_called": false,
+    "run_preserved": true
+  },
+  "process_peak_rss_kib": 203380
+}
