@@ -1,0 +1,368 @@
+--- a/atelier/web/app.js
++++ b/atelier/web/app.js
+@@ -1201,7 +1201,7 @@
+    if(field==='route'){
+     original.route=inp.value;renderModelWorkload();return;
+    }
+-   original[field]=inp.dataset.numeric==='1'? Number(inp.value):inp.value;
++   original[field]=field==='prioridade'?(inp.validity.badInput?NaN:inp.value):(inp.dataset.numeric==='1'?Number(inp.value):inp.value);
+    renderModelWorkload();
+   });
+  });
+@@ -1251,7 +1251,15 @@
+  }
+  for(const raw of m.orders){
+   const order={...raw,id:String(raw.id||'').trim().toUpperCase(),quantidade:Number(raw.quantidade),
+-    prazo_h:Number(raw.prazo_h),multa_hora:Number(raw.multa_hora),prioridade:Number(raw.prioridade),release_h:Number(raw.release_h)||0};
++    prazo_h:Number(raw.prazo_h),multa_hora:Number(raw.multa_hora),release_h:Number(raw.release_h)||0};
++  delete order.prioridade;
++  if(raw.prioridade!==undefined&&!(typeof raw.prioridade==='string'&&raw.prioridade.trim()==='')){
++   const value=raw.prioridade;
++   const decimal=typeof value==='string'&&/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value.trim());
++   const priority=typeof value==='number'||decimal?Number(value):NaN;
++   if(!Number.isFinite(priority)||!Number.isInteger(priority))throw Error('Pedido '+order.id+': prioridade deve ser um inteiro finito ou ficar em branco.');
++   order.prioridade=priority;
++  }
+   if(typeof raw.route==='string')order.route=raw.route.split(';').map(s=>s.trim()).filter(Boolean).map(step=>{
+    const [id,minutes]=step.split(':');if(!id||!minutes)throw Error('Roteiro inválido em '+order.id);return [id.trim().toUpperCase(),Number(minutes)];
+   });
+--- a/tests/test_am19_distribution.py
++++ b/tests/test_am19_distribution.py
+@@ -59,5 +59,10 @@
+ def test_visual_package_sources_remain_identical_to_received_zip():
+     from hashlib import sha256
+     expected=json.loads((ROOT/'docs/AM19/base-reference.json').read_text('utf-8'))['sha256']
++    amendment=ROOT/'VERSAO_PRIORIDADE.json'
++    if amendment.is_file():
++        version=json.loads(amendment.read_text())
++        assert version['base_app_sha256']==expected['atelier/web/app.js']
++        expected['atelier/web/app.js']=version['app_sha256']
+     for name,digest in expected.items():
+         assert sha256((ROOT/name).read_bytes()).hexdigest()==digest,name
+--- /dev/null
++++ b/CONTINUIDADE_PRIORIDADE_2026.md
+@@ -0,0 +1,3 @@
++# Continuidade — PRIORIDADE-2026.1
++
++Base AM19 6f6c135. Branch correcao-prioridade-opcional. Corrige somente prioridade opcional no editor: ausência/branco omitem campo; inteiros explícitos são preservados; entradas inválidas são recusadas. 577 testes aprovados, zero falhas, dez subtestes. 21 casos novos e browser nas três resoluções passaram. Motor, evolução visual e dados locais preservados. Referência original da AM19 mantida com adendo de hash explícito em VERSAO_PRIORIDADE.json. Instale em pasta nova; patch exige AM19 limpa e cria outra pasta. Próximos achados (recuperação/Host-Origin/avaliação visual) não iniciados. Windows/projetor pendentes. Continuar sem agentes paralelos e com entregas verificadas no GitHub.
+--- /dev/null
++++ b/LEIA_PRIORIDADE_2026.md
+@@ -0,0 +1 @@
++Versão PRIORIDADE-2026.1 sobre AM19. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve projetos e instalação anteriores. Leia RELATORIO_PRIORIDADE_2026.md e CONTINUIDADE_PRIORIDADE_2026.md. O campo Prioridade pode ficar vazio; zero explícito é preservado. O aplicativo principal e sua identidade visual foram mantidos.
+--- /dev/null
++++ b/RELATORIO_PRIORIDADE_2026.md
+@@ -0,0 +1,31 @@
++# Prioridade opcional — correção exclusiva sobre AM19
++
++Base 6f6c13501a787113edaf062a32639445240d52a9, branch correcao-am19-contratos. Nova branch correcao-prioridade-opcional. Checkpoint b7d7459 registra a correção e seus testes. Não foi utilizada base antiga.
++
++## Reprodução
++
++Na AM19, um pedido sem prioridade é válido no backend. normalizedModel aplicava Number(undefined), produzindo NaN e serializando prioridade:null. A reaplicação era recusada com prioridade inválida. before.log reproduz a função original do commit solicitado e a validação posterior. Não depende de uma alteração do motor.
++
++## Contrato e implementação
++
++Campo ausente ou undefined é omitido. Campo em branco ou só espaços no editor é omitido quando o usuário aplica, permitindo retirar uma prioridade opcional. Inteiros explícitos, incluindo zero e negativos, permanecem com seu valor. Strings decimais válidas são convertidas em inteiro numérico, preservando a convenção do editor; exemplos 0, -2 e 1e2. Não se introduziu piso ou prioridade padrão no frontend.
++
++null explícito, booleanos, objetos, arrays, frações, textos inválidos e valores não finitos são rejeitados com mensagem antes da requisição. Representações hexadecimais não são tratadas como prioridades decimais. O handler do campo conserva o texto vazio em vez de convertê-lo silenciosamente em zero; badInput é conservado como inválido para o normalizador rejeitar. O backend e seus contratos de importação direta não foram alterados: null explícito ou prioridade vazia em um JSON importado continuam submetidos à validação existente. O campo vazio no editor é uma ação de remoção do campo opcional, não investimento zero nem prioridade zero.
++
++Produção alterada apenas em atelier/web/app.js: handler do editor e normalizedModel. A renderização, CSS, abertura, motor, seeds, fórmulas econômicas, registros e dados-base não mudaram. Não houve avanço para outros achados.
++
++O teste de preservação visual da AM19 congelava também app.js. A referência original docs/AM19/base-reference.json permanece intacta; VERSAO_PRIORIDADE.json declara o hash original e o hash desta alteração autorizada. O teste confere a ligação dos dois e continua verificando engine e demais arquivos originais. Não foi desativado nem trocado por aprovação incondicional.
++
++## Validação
++
++577 testes aprovados, zero falhas, dez subtestes aprovados. São 21 novos casos de ausência, campo vazio, inteiros explícitos e entradas inválidas; os modelos normalizados válidos também são verificados pelo validador Python. Browser HTTP real em 1280x720,1366x768,1920x1080: pedido sem prioridade reaplicado, zero explícito preservado, remoção do campo ao limpar, fração recusada sem POST nem substituição do modelo salvo, sem erros JavaScript nos fluxos. Valores não finitos numéricos também são protegidos por Number.isFinite no código; as strings NaN/Infinity integram os casos automatizados.
++
++Três experimentos oficiais preservados: SLA 100/40/100%, custo da decisão R$12.113,00, economia líquida R$4.103,68. Gráficos, ampliação e exportações passaram nas três resoluções. Modo Banca HTTP real, justificativa, registro e relatório passaram nas três resoluções. Logs acompanham a entrega. Não houve homologação nativa no Windows/BAT/projetor. As limitações de runners históricos documentadas na AM19 permanecem.
++
++## Entrega e continuidade
++
++ZIP completo, patch sobre a AM19 exata, relatório e continuidade na nova branch. O patch confere todos os hashes e cria pasta nova; não modifica a base. ZIP extraído e patch aplicado são comparados por SHA-256. Testes direcionados são executados no pacote extraído. Os arquivos publicados no GitHub são recuperados e conferidos antes da conclusão.
++
++Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve a instalação anterior e seus projetos. Próximas pendências permanecem independentes: recuperação de arquivos inválidos, Host/Origin e avaliação dos componentes visuais novos. Nenhuma dessas correções foi iniciada aqui.
++
++Reprodução em cópia: python -m pytest tests contract_tests atelier/tests -q; python -m pytest tests/test_optional_priority.py tests/test_am19_distribution.py -q; python -m atelier.tests.browser_optional_priority; python -m atelier.tests.validacao_experimentos_banca. Testes JavaScript usam Node e navegador usa Playwright/Chromium no Linux; o aplicativo principal não recebeu dependências novas.
+--- /dev/null
++++ b/VERSAO_PRIORIDADE.json
+@@ -0,0 +1,6 @@
++{
++  "version": "PRIORIDADE-2026.1",
++  "base_commit": "6f6c13501a787113edaf062a32639445240d52a9",
++  "base_app_sha256": "65357247765a9cf596f6fd3bc301226ec3d2311bc0680c79e311b0df2f8e27c9",
++  "app_sha256": "0d8591f22f9bd61f1abef08931a5d6a24001177a4531224ff29ba17d5aacfb17"
++}--- /dev/null
++++ b/atelier/tests/browser_optional_priority.py
+@@ -0,0 +1,36 @@
++from pathlib import Path
++from tempfile import TemporaryDirectory
++from threading import Thread
++from http.server import ThreadingHTTPServer
++import os
++from playwright.sync_api import sync_playwright,expect
++from atelier.service import Studio
++from atelier import server
++
++out=Path(os.environ.get('PRIORITY_QA_OUT','docs/PRIORIDADE/capturas'));out.mkdir(parents=True,exist_ok=True)
++with sync_playwright() as pw:
++ b=pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
++ for w,h in [(1280,720),(1366,768),(1920,1080)]:
++  with TemporaryDirectory() as d:
++   s=Studio(Path(d));station=next(iter(s.state['stations'].values())).copy();station.update(maquinas=1,operadores=1)
++   s.set_model({'stations':{'P':station},'orders':[{'id':'A','quantidade':2,'prazo_h':10,'multa_hora':1,'route':[['P',1]]}]});server.STUDIO=s
++   httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler);Thread(target=httpd.serve_forever,daemon=True).start()
++   p=b.new_page(viewport={'width':w,'height':h});errors=[];posts=[];p.on('pageerror',lambda e:errors.append(str(e)));p.on('request',lambda r:posts.append(r.url) if r.method=='POST' else None)
++   try:
++    p.goto(f'http://127.0.0.1:{httpd.server_port}/',wait_until='networkidle');p.wait_for_selector('#factory-a .station-group');p.evaluate('document.querySelector("#splash")?.remove()')
++    def editor():
++     p.locator('[data-nav=modelo]').click();p.locator('[data-model-tab=orders]').click()
++    def save():
++     with p.expect_response(lambda r:r.url.endswith('/api/model')) as ev:p.locator('#model-save').click()
++     assert ev.value.ok
++     expect(p.locator('#view-simulacao')).to_be_visible()
++    editor();save();assert 'prioridade' not in s.state['orders'][0]
++    editor();p.locator('[data-field=prioridade]').fill('0');save();assert s.state['orders'][0]['prioridade']==0
++    editor();p.locator('[data-field=prioridade]').fill('');save();assert 'prioridade' not in s.state['orders'][0]
++    editor();p.locator('[data-field=prioridade]').fill('1.5');count=len(posts);run=s.info()['run_id'];p.locator('#model-save').click()
++    expect(p.locator('#toast')).to_contain_text('prioridade')
++    assert len(posts)==count and s.info()['run_id']==run and 'prioridade' not in s.state['orders'][0]
++    p.screenshot(path=str(out/f'prioridade_{w}.png'));assert not errors,errors
++    print('PRIORITY BROWSER OK',w,h,flush=True)
++   finally:p.close();httpd.shutdown();httpd.server_close()
++ b.close()
+--- /dev/null
++++ b/docs/PRIORIDADE/evidencias/banca.log
+@@ -0,0 +1,4 @@
++3 EXPERIMENTOS APROVADOS
++A: 100.0 40.0 100.0 custos 16216.67 12113.0 4103.68
++B: [(0, 5.681763308299117, 84.12881249414335), (1, 5.681763308299117, 96.09692807908425), (2, 5.681763308299117, 108.06504366402514), (3, 5.681763308299117, 120.033159248966)]
++C: Manutenção expressa · CNC 21.57530617980079 +1 operador · CNC 19.973006391870044
+--- /dev/null
++++ b/docs/PRIORIDADE/evidencias/before.log
+@@ -0,0 +1,3 @@
++Input valid: []
++AM19 priority: None
++After editor: ['Ordem A: prioridade inválida.']
+--- /dev/null
++++ b/docs/PRIORIDADE/evidencias/browser-banca.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1280x720 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1366x768 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1920x1080 · progressive / dual panels / justification / record / report
+--- /dev/null
++++ b/docs/PRIORIDADE/evidencias/browser-charts.log
+@@ -0,0 +1,3 @@
++ACABAMENTO OK 1280 720 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1366 768 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1920 1080 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
+--- /dev/null
++++ b/docs/PRIORIDADE/evidencias/browser.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++PRIORITY BROWSER OK 1280 720
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++PRIORITY BROWSER OK 1366 768
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++PRIORITY BROWSER OK 1920 1080
+# Binary in overlay: docs/PRIORIDADE/evidencias/prioridade_1280.png
+# Binary in overlay: docs/PRIORIDADE/evidencias/prioridade_1366.png
+# Binary in overlay: docs/PRIORIDADE/evidencias/prioridade_1920.png
+--- /dev/null
++++ b/docs/PRIORIDADE/evidencias/regression.log
+@@ -0,0 +1,19 @@
++........................................................................ [ 12%]
++........................................................................ [ 24%]
++........................................................................ [ 37%]
++........................................................................ [ 49%]
++........................................................................ [ 62%]
++........................................................................ [ 74%]
++........................................................................ [ 87%]
++.............................................................. [ 98%]
++...........                                                              [100%]
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++577 passed, 1 warning, 10 subtests passed in 90.43s (0:01:30)
+--- /dev/null
++++ b/tests/test_optional_priority.py
+@@ -0,0 +1,21 @@
++import json,subprocess
++from pathlib import Path
++import pytest
++from simulation.validation import validate_model
++
++ROOT=Path(__file__).resolve().parents[1]
++JS="""const fs=require('fs'),vm=require('vm');const s=fs.readFileSync(process.argv[1],'utf8'),m=JSON.parse(fs.readFileSync(0,'utf8')),c={structuredClone,st:{editing:m}};vm.createContext(c);vm.runInContext(s.slice(s.indexOf('function normalizedModel('),s.indexOf('async function saveModel(')),c);try{process.stdout.write(JSON.stringify({model:c.normalizedModel()}));}catch(e){process.stdout.write(JSON.stringify({error:e.message}));}"""
++def normalize(value,missing=False):
++ station={'nome':'P','maquinas':1,'operadores':1,'operadores_por_maquina':1,'eficiencia_operador':1,'disponibilidade':1,'setup_min':0,'custo_maquina_h':1,'custo_operador_h':1}
++ order={'id':'A','quantidade':1,'prazo_h':10,'multa_hora':1,'route':[['P',1]]}
++ if not missing:order['prioridade']=value
++ return json.loads(subprocess.check_output(['node','-e',JS,str(ROOT/'atelier/web/app.js')],input=json.dumps({'stations':{'P':station},'orders':[order]}),text=True))
++@pytest.mark.parametrize('value',[None,'','  '])
++def test_absence_and_blank_omit_field(value):
++ r=normalize(value,missing=value is None)['model'];assert 'prioridade' not in r['orders'][0];assert not validate_model(**r)
++@pytest.mark.parametrize('value',[0,1,-2,99,'0',' -2 ','1e2'])
++def test_valid_explicit_integer_is_preserved(value):
++ r=normalize(value)['model'];assert r['orders'][0]['prioridade']==float(value);assert not validate_model(**r)
++@pytest.mark.parametrize('value',[None,True,False,{},[],1.5,'abc','NaN','Infinity','0x10','1,2'])
++def test_invalid_never_becomes_zero_or_null(value):
++ assert 'prioridade' in normalize(value)['error']

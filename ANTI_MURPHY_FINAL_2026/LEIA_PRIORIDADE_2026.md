@@ -1,0 +1,1 @@
+Versão PRIORIDADE-2026.1 sobre AM19. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve projetos e instalação anteriores. Leia RELATORIO_PRIORIDADE_2026.md e CONTINUIDADE_PRIORIDADE_2026.md. O campo Prioridade pode ficar vazio; zero explícito é preservado. O aplicativo principal e sua identidade visual foram mantidos.

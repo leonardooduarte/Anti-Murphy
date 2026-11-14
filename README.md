@@ -1,3 +1,10 @@
+# Versão atual: PRIORIDADE-2026.1 sobre AM19
+
+[Aplicativo completo](ENTREGAS/PRIORIDADE/ANTI_MURPHY_PRIORIDADE_COMPLETO_2026.zip) · [Patch](ENTREGAS/PRIORIDADE/ANTI_MURPHY_PATCH_PRIORIDADE_2026.zip) · [Relatório](ENTREGAS/PRIORIDADE/RELATORIO_PRIORIDADE_2026.md) · [Continuidade](ENTREGAS/PRIORIDADE/CONTINUIDADE_PRIORIDADE_2026.md).
+
+Ausência ou campo vazio omite prioridade; inteiros explícitos são preservados; valores inválidos são recusados antes do envio. Evolução visual preservada. 577 testes aprovados, zero falhas, dez subtestes; três experimentos e navegador nas três resoluções passaram. ZIP e patch conferem 617 arquivos. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Windows/projetor pendentes de validação nativa.
+
+---
 # Versão atual: AM19-2026.1 sobre Evolução Visual 02
 
 Base recebida: `ANTI_MURPHY_EVOLUCAO_VISUAL_02_COMPLETO.zip`, preservando AM15 e as correções anteriores. A evolução visual do pacote permanece byte a byte igual; esta etapa trata testes e distribuição.

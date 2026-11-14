@@ -1,0 +1,3 @@
+# Continuidade — PRIORIDADE-2026.1
+
+Base AM19 6f6c135. Branch correcao-prioridade-opcional. Corrige somente prioridade opcional no editor: ausência/branco omitem campo; inteiros explícitos são preservados; entradas inválidas são recusadas. 577 testes aprovados, zero falhas, dez subtestes. 21 casos novos e browser nas três resoluções passaram. Motor, evolução visual e dados locais preservados. Referência original da AM19 mantida com adendo de hash explícito em VERSAO_PRIORIDADE.json. Instale em pasta nova; patch exige AM19 limpa e cria outra pasta. Próximos achados (recuperação/Host-Origin/avaliação visual) não iniciados. Windows/projetor pendentes. Continuar sem agentes paralelos e com entregas verificadas no GitHub.
