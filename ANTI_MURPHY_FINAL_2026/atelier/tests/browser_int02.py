@@ -1,5 +1,6 @@
 """INT02: real short operations in audit/API/report; legacy/unknown UI transport fixtures."""
 import json,os,math
+from decimal import Decimal,ROUND_HALF_UP
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -34,7 +35,9 @@ with sync_playwright() as pw:
      expect(row.locator('.dash-status')).to_have_text('Atrasado')
      values=[number(row.locator('td').nth(i).inner_text()) for i in [1,2,3]]
      for actual,key in zip(values,['due_h','finish_h','slack_h']):
-      assert math.isclose(actual,expected[key],rel_tol=2e-6,abs_tol=1e-15),(actual,expected[key])
+      quantum=Decimal(10)**(math.floor(math.log10(abs(expected[key])))-5)
+      displayed=float(Decimal(str(expected[key])).quantize(quantum,rounding=ROUND_HALF_UP))
+      assert actual==displayed,(actual,displayed,expected[key])
      assert values[1]>0 and values[2]<0
     p.screenshot(path=str(out/f'auditoria_{w}.png'))
     p.locator('[data-nav=decisoes]').click()

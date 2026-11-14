@@ -1,0 +1,29 @@
+{
+  "engine": {
+    "OP": "CURTA",
+    "Cliente": "",
+    "Produto": "",
+    "Quantidade": 1,
+    "Prazo (h)": 0.0005,
+    "Conclusão (h)": 0.0,
+    "Atraso (h)": 0.0,
+    "Multa (R$)": 5.36,
+    "Status": "Atrasada",
+    "completion_h": 0.0010359130029347337,
+    "lateness_h": 0.0005359130029347337,
+    "penalty": 5.3591300293473365
+  },
+  "audit": {
+    "id": "CURTA",
+    "client": "",
+    "due_h": 0.0005,
+    "finish_h": 0.0010359130029347337,
+    "slack_h": -0.0005359130029347337,
+    "lateness_h": 0.0005359130029347337,
+    "is_late": true,
+    "timing_source": "precise",
+    "lateness_source": "precise",
+    "penalty": 5.36,
+    "units": 1
+  }
+}

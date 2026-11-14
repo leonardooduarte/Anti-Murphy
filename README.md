@@ -1,3 +1,10 @@
+# Versão atual: INT02-2026.1 sobre INT01
+
+[Aplicativo completo](ENTREGAS/INT02/ANTI_MURPHY_INT02_COMPLETO_2026.zip) · [Patch](ENTREGAS/INT02/ANTI_MURPHY_PATCH_INT02_2026.zip) · [Relatório](ENTREGAS/INT02/RELATORIO_INT02_2026.md) · [Continuidade](ENTREGAS/INT02/CONTINUIDADE_INT02_2026.md).
+
+Auditoria por pedido usa horários precisos, identifica dados legados e não apresenta valores indisponíveis como no prazo. A tabela do relatório conserva os sinais e os tempos curtos. Evolução visual preservada. 706 testes aprovados, zero falhas, dez subtestes; três experimentos e navegador nas três resoluções passaram. ZIP e patch conferem 697 arquivos. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Windows/projetor pendentes de validação nativa.
+
+---
 # Versão atual: INT01-2026.1 sobre AM22
 
 [Aplicativo completo](ENTREGAS/INT01/ANTI_MURPHY_INT01_COMPLETO_2026.zip) · [Patch](ENTREGAS/INT01/ANTI_MURPHY_PATCH_INT01_2026.zip) · [Relatório](ENTREGAS/INT01/RELATORIO_INT01_2026.md) · [Continuidade](ENTREGAS/INT01/CONTINUIDADE_INT01_2026.md).

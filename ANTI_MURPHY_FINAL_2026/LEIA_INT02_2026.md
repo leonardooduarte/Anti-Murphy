@@ -1,0 +1,1 @@
+INT02-2026.1 sobre INT01. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve versões e projetos anteriores. Leia RELATORIO_INT02_2026.md e CONTINUIDADE_INT02_2026.md. Auditoria por pedido conserva horários precisos, identifica legado e não classifica dados indisponíveis como no prazo. Windows nativo pendente.

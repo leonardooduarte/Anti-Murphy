@@ -1,0 +1,14 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const source=fs.readFileSync(process.argv[2],'utf8');
+const c={dashH:n=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' h'};vm.createContext(c);
+vm.runInContext(source.slice(source.indexOf('function auditTime('),source.indexOf('function dashAudit(')),c);
+assert.equal(c.auditTime(.0010359130029347337),'0,00103591 h');
+assert.equal(c.auditTime(-.0005359130029347337),'-0,000535913 h');
+assert.equal(c.auditTime(1e-12),'1,000e-12 h');assert.equal(c.auditTime(-1e-12),'-1,000e-12 h');
+assert.equal(c.auditTime(0),'0,00 h');assert.equal(c.auditTime(null),'—');assert.equal(c.auditTime(NaN),'—');
+assert.equal(c.auditTime(24.58),'24,58 h');
+assert.equal(c.auditSlackStatus(-5e-10,.5,false)[1],'ok');
+assert.equal(c.auditSlackStatus(-5e-10,.5,true)[1],'late');
+assert.equal(c.auditSlackStatus(null,.5,null)[1],'unknown');
+assert.equal(c.auditSlackStatus(1,.5)[1],'ok');
+process.stdout.write('12 verificações funcionais de apresentação/classificação aprovadas\n');

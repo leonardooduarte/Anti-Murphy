@@ -1,0 +1,1549 @@
+--- a/atelier/technical_audit.py
++++ b/atelier/technical_audit.py
+@@ -14,7 +14,7 @@
+     try:
+         v = float(value)
+         return v if isfinite(v) else None
+-    except (TypeError, ValueError):
++    except (TypeError, ValueError, OverflowError):
+         return None
+ 
+ 
+@@ -62,13 +62,30 @@
+             continue
+         detail = []
+         for row in result.get('orders', []):
+-            due, finish = _num(row.get('Prazo (h)')), _num(row.get('Conclusão (h)'))
+-            if due is None or finish is None:
+-                continue
+-            slack = round(due-finish, 3)
++            due = _num(row.get('Prazo (h)'))
++            precise_finish = 'completion_h' in row
++            finish = _num(row.get('completion_h') if precise_finish else row.get('Conclusão (h)'))
++            if finish is not None and finish < 0:
++                finish = None
++            slack = _num(due-finish) if due is not None and finish is not None else None
++            precise_lateness = 'lateness_h' in row
++            lateness = (_num(row.get('lateness_h')) if precise_lateness else
++                        max(0., -slack) if slack is not None else None)
++            if lateness is not None and lateness < 0:
++                lateness = None
++            is_late = None
++            if slack is not None and lateness is not None:
++                # Preserve the DES classification, including its existing
++                # numerical tolerance; never introduce a new timing floor.
++                is_late = (True if row.get('Status') == 'Atrasada' else
++                           False if row.get('Status') == 'No prazo' else lateness > 0)
+             detail.append({'id': row.get('OP'), 'client': row.get('Cliente'),
+                            'due_h': due, 'finish_h': finish, 'slack_h': slack,
+-                           'lateness_h': max(0, round(-slack, 3)),
++                           'lateness_h': lateness, 'is_late': is_late,
++                           'timing_source': ('precise' if precise_finish else 'legacy_rounded')
++                                            if slack is not None else 'unavailable',
++                           'lateness_source': ('precise' if precise_lateness else 'derived')
++                                              if lateness is not None else 'unavailable',
+                            'penalty': _num(row.get('Multa (R$)')),
+                            'units': by_id.get(row.get('OP'), {}).get('quantidade')})
+         out[name] = detail
+--- a/atelier/tests/test_technical_audit.py
++++ b/atelier/tests/test_technical_audit.py
+@@ -23,7 +23,11 @@
+             engine=analysis[scenario] if scenario!='response' else selected['result']
+             for row in engine['orders']:
+                 audited=next(r for r in audit['orders'][scenario] if r['id']==row['OP'])
+-                assert abs(audited['slack_h'] - round(row['Prazo (h)']-row['Conclusão (h)'],3))<1e-7
++                finish=row.get('completion_h',row['Conclusão (h)'])
++                assert audited['finish_h']==finish
++                assert audited['slack_h']==pytest.approx(row['Prazo (h)']-finish,abs=1e-12)
++                assert audited['lateness_h']==row['lateness_h']
++                assert audited['is_late']==(row['Status']=='Atrasada')
+         assert audit['quality']['modeled'] is False
+         assert audit['maintenance']['mtbf_h'] is None
+         assert audit['maintenance']['mttr_h'] is None
+--- a/atelier/web/app.js
++++ b/atelier/web/app.js
+@@ -985,19 +985,37 @@
+   dashUI.audit=result;renderDashboards();
+  }catch(e){$('dash-body').innerHTML=`<div class="dash-error" role="alert">Não foi possível abrir a auditoria técnica: ${esc(e.message)} <button class="subtle-button" data-audit-refresh>Repetir</button></div>`;}
+ }
+-function auditSlackStatus(slack,threshold){return slack<0?['Atrasado','late']:slack<=threshold?['Folga reduzida','risk']:['No prazo','ok'];}
++function auditTime(value){
++ if(typeof value!=='number'||!Number.isFinite(value))return '—';
++ const magnitude=Math.abs(value);
++ if(magnitude>0&&magnitude<.01){
++  const text=magnitude<1e-6?value.toExponential(3).replace('.',','):value.toLocaleString('pt-BR',{maximumSignificantDigits:6});
++  return text+' h';
++ }
++ return dashH(value);
++}
++function auditSlackStatus(slack,threshold,isLate){
++ if(!Number.isFinite(slack)||isLate===null)return ['Não calculado','unknown'];
++ const late=typeof isLate==='boolean'?isLate:slack<0;
++ if(late)return ['Atrasado','late'];
++ if(slack<0)return ['No prazo · tolerância do motor','ok'];
++ return slack<=threshold?['Folga reduzida','risk']:['No prazo','ok'];
++}
+ function dashAudit(){
+  const a=dashUI.audit;
+  if(!a)return '<div class="dash-loading">Consultando evidências calculadas…</div>';
+  const orders=a.orders[dashUI.scenario]||[];
+  const threshold=dashUI.riskMinutes/60;
+- const near=orders.filter(o=>o.slack_h>=0&&o.slack_h<=threshold).length;
+- const late=orders.filter(o=>o.slack_h<0).length;
++ const classes=orders.map(o=>auditSlackStatus(o.slack_h,threshold,o.is_late));
++ const near=classes.filter(x=>x[1]==='risk').length;
++ const late=classes.filter(x=>x[1]==='late').length;
++ const unknown=classes.filter(x=>x[1]==='unknown').length;
++ const legacy=orders.some(o=>o.timing_source==='legacy_rounded');
+  const diag=a.diagnostic,m=a.maintenance;
+- const auditRows=orders.map(o=>{const [label,tone]=auditSlackStatus(o.slack_h,threshold);return `<tr><td><button class="dash-table-link" data-dash-order="${esc(o.id)}"><strong>${esc(o.id)}</strong><small>${esc(o.client||'')}</small></button></td><td>${dashH(o.due_h)}</td><td>${dashH(o.finish_h)}</td><td class="${o.slack_h<0?'dash-negative':''}">${dashH(o.slack_h)}</td><td><span class="dash-status ${tone}">${label}</span></td></tr>`}).join('');
++ const auditRows=orders.map(o=>{const [label,tone]=auditSlackStatus(o.slack_h,threshold,o.is_late);return `<tr><td><button class="dash-table-link" data-dash-order="${esc(o.id)}"><strong>${esc(o.id)}</strong><small>${esc(o.client||'')}</small></button></td><td>${auditTime(o.due_h)}</td><td>${auditTime(o.finish_h)}</td><td class="${tone==='late'?'dash-negative':''}">${auditTime(o.slack_h)}</td><td><span class="dash-status ${tone}">${label}</span></td></tr>`}).join('');
+  return `<div class="audit-heading"><div><span>AUDITORIA DE ENGENHARIA / EXPERIMENTO ${esc(a.run_id)}</span><h2>Rastreabilidade e limites da decisão</h2><p>Verificações determinísticas e informações que o modelo ainda não representa.</p></div><button class="subtle-button" data-audit-refresh>Revalidar</button></div>
+- <div class="dash-stat-strip">${dashStat('Pedidos atrasados',integer(late),'Folga negativa')}${dashStat('Entregas com pouca folga',integer(near),'Dentro do limite configurado')}${dashStat('Indicador de gargalo',String(diag.scored_bottleneck||'—'),'Pontuação do motor')}${dashStat('Posto de maior espera',String(diag.highest_mean_wait||'—'),dashVal(diag.highest_mean_wait_min,1)+' min')}</div>
+- <article class="dash-panel"><header><div><h2>Folga por pedido · ${esc(dashScenarioLabels[dashUI.scenario])}</h2><p>Folga = prazo cadastrado − conclusão calculada; não equivale à probabilidade de atraso.</p></div><label class="audit-threshold">Limite de alerta <select id="dash-risk-limit">${[15,30,60,120].map(v=>`<option value="${v}" ${dashUI.riskMinutes===v?'selected':''}>${v} min</option>`).join('')}</select></label></header><div class="dash-scroll"><table class="dash-table"><thead><tr><th>Pedido</th><th>Prazo</th><th>Conclusão</th><th>Folga</th><th>Classificação</th></tr></thead><tbody>${auditRows||'<tr><td colspan="5">Sem resultados por pedido.</td></tr>'}</tbody></table></div></article>
++ <div class="dash-stat-strip">${dashStat('Pedidos atrasados',integer(late),'Classificação por pedido')}${dashStat('Entregas com pouca folga',integer(near),'Dentro do limite configurado')}${dashStat('Indicador de gargalo',String(diag.scored_bottleneck||'—'),'Pontuação do motor')}${dashStat('Posto de maior espera',String(diag.highest_mean_wait||'—'),dashVal(diag.highest_mean_wait_min,1)+' min')}</div>
++ <article class="dash-panel"><header><div><h2>Folga por pedido · ${esc(dashScenarioLabels[dashUI.scenario])}</h2><p>Folga = prazo cadastrado − conclusão calculada; não equivale à probabilidade de atraso.</p>${legacy?'<p data-audit-legacy>Horários legados arredondados: a precisão original não está disponível.</p>':''}${unknown?`<p data-audit-unknown>${unknown} pedido(s) com horário ou atraso não calculado; não são classificados como no prazo.</p>`:''}</div><label class="audit-threshold">Limite de alerta <select id="dash-risk-limit">${[15,30,60,120].map(v=>`<option value="${v}" ${dashUI.riskMinutes===v?'selected':''}>${v} min</option>`).join('')}</select></label></header><div class="dash-scroll"><table class="dash-table"><thead><tr><th>Pedido</th><th>Prazo</th><th>Conclusão</th><th>Folga</th><th>Classificação</th></tr></thead><tbody>${auditRows||'<tr><td colspan="5">Sem resultados por pedido.</td></tr>'}</tbody></table></div></article>
+  <div class="audit-grid"><article class="dash-panel"><header><div><h2>Diagnóstico da capacidade</h2><p>Três evidências diferentes do mesmo cenário</p></div></header><div class="audit-evidence"><div><span>Índice composto do motor</span><strong>${esc(diag.scored_bottleneck||'—')}</strong></div><div><span>Maior espera média</span><strong>${esc(diag.highest_mean_wait||'—')}</strong><small>${dashVal(diag.highest_mean_wait_min,1)} min</small></div><div><span>Maior fila registrada</span><strong>${esc(diag.largest_queue_station||'—')}</strong><small>${integer(diag.largest_queue_units)} un.</small></div></div><p class="audit-foot">${esc(diag.methodology)} ${esc(diag.validation)}</p><div class="audit-actions"><button data-dash-advanced="sensitivity">Testar sensibilidade de recursos →</button><button data-dash-go="simulacao">Inspecionar fábrica →</button></div></article>
+  <article class="dash-panel"><header><div><h2>Confiabilidade dos custos</h2><p>Identidades contábeis verificadas automaticamente</p></div></header><div class="audit-checks">${a.costs.checks.map(x=>`<div class="${x.ok?'passed':'failed'}"><span>${x.ok?'✓':'!'}</span>${esc(x.description)}</div>`).join('')}</div><p class="audit-foot">${esc(a.costs.basis)}</p></article></div>
+  <div class="audit-grid"><article class="dash-panel"><header><div><h2>Manutenção e disponibilidade</h2><p>Limites do experimento de parada</p></div></header><div class="audit-evidence"><div><span>Posto da parada</span><strong>${esc(m.station||'—')}</strong></div><div><span>Início programado</span><strong>${dashH(m.start_h)}</strong></div><div><span>Duração programada</span><strong>${dashH(m.scheduled_duration_h)}</strong></div></div><p class="audit-foot">Sem histórico de falhas e reparos: MTBF e MTTR estatísticos não são estimáveis. Redução do reparo expressa é uma hipótese, não comprovação de recursos de manutenção disponíveis.</p></article>
+@@ -1879,7 +1897,7 @@
+  const ref=metricFor('incident'),response=metricFor('response'),base=metricFor('normal');
+  const selected=d.alternatives.find(a=>a.signature===d.selected);
+  if(!ref||!selected){notify('Selecione uma resposta antes de gerar o relatório.',true);return}
+- const rows=(selected.order_impacts||[]).map(o=>{const slack=Number(o.due_h)-Number(o.after_h);return `<tr><td>${esc(o.id)}</td><td>${h(o.due_h)} h</td><td>${h(o.before_h)} h</td><td>${h(o.after_h)} h</td><td>${h(slack)} h</td><td>${o.late_after?'Atraso':slack<=.5?'Folga reduzida':'No prazo'}</td></tr>`;}).join('');
++ const rows=(selected.order_impacts||[]).map(o=>{const slack=Number.isFinite(o.due_h)&&Number.isFinite(o.after_h)?o.due_h-o.after_h:NaN;return `<tr><td>${esc(o.id)}</td><td>${auditTime(o.due_h)}</td><td>${auditTime(o.before_h)}</td><td>${auditTime(o.after_h)}</td><td>${auditTime(slack)}</td><td>${auditSlackStatus(slack,.5,o.late_after)[0]}</td></tr>`;}).join('');
+  const cards=(title,m)=>`<div class="comparison"><h3>${esc(title)}</h3><dl><dt>Conclusão prevista</dt><dd>${h(m?.makespan_h)} h</dd><dt>Pedidos no prazo</dt><dd>${h(m?.sla_pct)}%</dd><dt>Pedidos atrasados</dt><dd>${integer(m?.late_orders)}</dd><dt>Custo do cenário</dt><dd>${brlExact(m?.total_cost)}</dd></dl></div>`;
+  const review=d.decision_review||{},record=chosenRecord();
+  const reviewHtml=decisionReviewMarkup(review,false);
+@@ -1895,7 +1913,7 @@
+  <h2>Intervenção avaliada</h2><div class="callout"><h3>${esc(selected.action)}</h3><p>${esc(selected.rationale||'Alternativa enumerada pelo motor.')}</p><p>Operação: <b>${brlExact(response?.operating_cost)}</b> + penalidades: <b>${brlExact(response?.penalty_total)}</b> + investimento modelado: <b>${brlExact(selected.investment)}</b> = custo da decisão: <b>${brlExact(selected.decision_cost)}</b>.</p><p>Referência sem intervenção: <b>${brlExact(ref?.total_cost)}</b> · Diferença líquida estimada: <b>${brlExact(selected.savings)}</b>.</p></div>
+  <h2>Qualidade da escolha no conjunto enumerado</h2>${reviewHtml}${recordHtml}
+  <h2>Impacto por pedido</h2><table><thead><tr><th>Pedido</th><th>Prazo</th><th>Sem resposta</th><th>Com resposta</th><th>Folga B</th><th>Condição</th></tr></thead><tbody>${rows||'<tr><td colspan="6">Detalhamento indisponível</td></tr>'}</tbody></table>
+- <h2>Método econômico e indicadores</h2><p>Custos operacionais estimados por capacidade contratada (máquinas e operadores) durante o horizonte da programação; multas previstas por atraso em relação ao prazo cadastrado. O investimento modelado é somado separadamente no custo da decisão. Uma redução de makespan ou de custo modelado <strong>não é garantia de economia financeira efetiva</strong> sem verificar as parcelas evitáveis.</p><p>Folga = prazo − conclusão prevista. Folga negativa significa atraso; entre zero e 0,50 h indica atenção neste relatório. O indicador de gargalo do motor usa pontuação composta por utilização, espera e fila máxima; não demonstra, sozinho, a restrição estrutural de throughput.</p><h2>Hipóteses e limitações</h2><p>${esc(disclaimer)}</p><p>${esc((selected.restriction_reasons||[]).join(' · ')||'A conformidade industrial depende de validações externas e dos dados cadastrais reais.')}</p>
++ <h2>Método econômico e indicadores</h2><p>Custos operacionais estimados por capacidade contratada (máquinas e operadores) durante o horizonte da programação; multas previstas por atraso em relação ao prazo cadastrado. O investimento modelado é somado separadamente no custo da decisão. Uma redução de makespan ou de custo modelado <strong>não é garantia de economia financeira efetiva</strong> sem verificar as parcelas evitáveis.</p><p>Folga = prazo − conclusão prevista. A classificação de atraso preserva a tolerância numérica do motor. Folga entre zero e 0,50 h indica atenção neste relatório. O indicador de gargalo do motor usa pontuação composta por utilização, espera e fila máxima; não demonstra, sozinho, a restrição estrutural de throughput.</p><h2>Hipóteses e limitações</h2><p>${esc(disclaimer)}</p><p>${esc((selected.restriction_reasons||[]).join(' · ')||'A conformidade industrial depende de validações externas e dos dados cadastrais reais.')}</p>
+  <div class="foot">Experimento ${esc(d.run_id||'—')} · Dados do modelo local (${esc(d.source||'não informada')}). Fonte dos indicadores: resultados do motor de eventos discretos do Anti-Murphy. O relatório apresenta previsões de simulação e não constitui instrução para atuação física. Nenhuma ação foi aplicada em máquina real.</div></main></body></html>`;
+  const popup=window.open('','_blank');
+  if(!popup){const blob=new Blob([documentHtml],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='anti-murphy-relatorio-'+String(d.run_id||'estudo').replace(/[^a-z0-9_-]/gi,'_')+'.html';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);notify('Pop-up bloqueado. Relatório HTML salvo para abrir ou imprimir como PDF.');return;}
+--- a/tests/test_am19_distribution.py
++++ b/tests/test_am19_distribution.py
+@@ -69,5 +69,10 @@
+         version=json.loads(amendment.read_text())
+         assert version['base_app_sha256']==expected['atelier/web/app.js']
+         expected['atelier/web/app.js']=version['app_sha256']
++    amendment=ROOT/'VERSAO_INT02.json'
++    if amendment.is_file():
++        version=json.loads(amendment.read_text())
++        assert version['base_app_sha256']==expected['atelier/web/app.js']
++        expected['atelier/web/app.js']=version['app_sha256']
+     for name,digest in expected.items():
+         assert sha256((ROOT/name).read_bytes()).hexdigest()==digest,name
+--- /dev/null
++++ b/CONTINUIDADE_INT02_2026.md
+@@ -0,0 +1,9 @@
++# Continuidade — INT02-2026.1
++
++Base INT01, commit 1bbe141. Branch correcao-int02-precisao-auditoria; checkpoint b8f8338. Auditoria por pedido usa completion_h/lateness_h precisos e preserva folga sem arredondar. Fallback legado somente por ausência, com origem/aviso explícitos; inválidos ficam desconhecidos, sem zero fabricado. Classificação conserva o status/tolerância do DES; apresentação de horários curtos mantém sinal no painel e tabela do relatório. Nenhuma fórmula do motor mudou.
++
++706 testes aprovados, zero falhas, dez subtestes; 24 casos novos. Três experimentos oficiais preservados. Painel, API, três cenários e relatório/pop-up/download nas três resoluções; avisos legado/indisponível também conferidos com transporte controlado. Importação INT01, Modo Banca, gráficos e exportações novamente aprovados. Testes/hash anteriores atualizados de forma rastreável e mais específica, sem remoções.
++
++ZIP e patch devem reproduzir os mesmos arquivos; GitHub é recuperado e comparado antes da conclusão. Instale em pasta nova e preserve projetos e versões anteriores. Windows/BAT/projetor e validade industrial continuam pendentes.
++
++Próxima etapa: INT-03, biblioteca de experimentos tolerante a documentos inválidos. Reproduzir um arquivo [] na coleção junto a registros válidos; preservar originais, permitir consulta/gravação dos válidos e avisar problemas sem apagamento silencioso. Não avançar para contraste INT04, AM18/20/21 ou outras correções nessa etapa. Usar esta versão mais recente confirmada como base, sem voltar ao ZIP antigo. Sem agentes paralelos, uma branch/checkpoint por etapa, ZIP/patch, relatório e downloads verificados.
+--- /dev/null
++++ b/LEIA_INT02_2026.md
+@@ -0,0 +1 @@
++INT02-2026.1 sobre INT01. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve versões e projetos anteriores. Leia RELATORIO_INT02_2026.md e CONTINUIDADE_INT02_2026.md. Auditoria por pedido conserva horários precisos, identifica legado e não classifica dados indisponíveis como no prazo. Windows nativo pendente.
+--- /dev/null
++++ b/RELATORIO_INT02_2026.md
+@@ -0,0 +1,67 @@
++# INT-02 — precisão da auditoria por pedido
++
++## Base e escopo
++
++Base obrigatória: INT01-2026.1, commit 1bbe141ee4ee5d52aecbe109a8b2bb53d5088c92, branch correcao-int01-importacao-regra. Nova branch: correcao-int02-precisao-auditoria. Checkpoint b8f8338. Sem agentes paralelos. Não foi usado ZIP antigo nem reconstruído o aplicativo.
++
++Correção exclusiva dos horários, folgas, atrasos e sua classificação/apresentação na auditoria por pedido e tabela correspondente do relatório. Nenhuma fórmula ou função do motor DES foi alterada. Permanecem pendentes INT-03 (biblioteca com arquivo inválido), INT-04 (contraste), Windows/BAT/projetor e os caminhos históricos documentados. A INT-01 e demais versões anteriores são preservadas.
++
++## Reprodução e referência independente
++
++before.log registra a operação CURTA: ciclo 0,06 min (0,001 h antes da variação sintética), prazo 0,0005 h e multa 10.000/h. O motor calcula conclusão 0,0010359130029347337 h, atraso 0,0005359130029347337 h e multa apresentada R$5,36. A auditoria anterior lia Conclusão (h)=0,00 e publicava folga +0,001 h e atraso zero. O erro estava no consumidor da informação, não no makespan ou no throughput do motor.
++
++A referência é prazo menos conclusão precisa; o atraso é a diferença positiva em relação ao prazo. Os casos unitários usam Decimal para conferir diferenças e sinais em ciclos curtos e proximidade do prazo. before-tests.log contém os 24 casos do novo contrato executados contra uma extração INT01 intacta: todos falharam; isso não significa 24 defeitos independentes, pois parte das asserções verifica a nova identificação da origem dos dados. Uma primeira preparação do ensaio real não selecionava uma resposta quando não havia líder elegível; a preparação foi ajustada para examinar conscientemente uma alternativa existente, sem alterar o motor ou a seleção automática.
++
++## Contrato e implementação
++
++atelier/technical_audit.py, summarize_audit:
++
++- Usa completion_h quando presente e válido. Só utiliza Conclusão (h) se a chave precisa estiver ausente, compatibilizando dados legados.
++- Conserva finish_h e slack_h sem arredondar antes de comparar ou classificar. slack_h = due_h − finish_h.
++- Usa lateness_h preciso quando presente. Na sua ausência deriva max(0, −slack_h), identificando essa origem; não usa o atraso arredondado como prova de atraso nulo.
++- Campos precisos explicitamente inválidos (null, booleano, texto inválido, não finitos ou duração negativa) não são substituídos silenciosamente pelos valores arredondados. Valores indisponíveis ficam null e a classificação fica desconhecida.
++- Acrescenta timing_source (precise/legacy_rounded/unavailable), lateness_source (precise/derived/unavailable) e is_late. São campos aditivos; os campos existentes continuam numéricos ou null.
++- Conserva Status do motor, quando disponível, inclusive a tolerância numérica que já existia no DES. Não acrescenta outro piso nem muda o critério de SLA. Se o status não existir em um dado legado, a classificação deriva do atraso disponível.
++
++O fallback legado conserva o que foi publicado, mas não recupera precisão perdida. Por isso recebe identificação explícita e aviso. Um status legado conhecido pode refletir um atraso que seu horário arredondado não consegue resolver; o aviso não certifica os horários legados como exatos. Não há regravação de registros antigos.
++
++atelier/web/app.js:
++
++- auditTime aplica apresentação de seis algarismos significativos a horários não nulos menores que 0,01 h; abaixo de 1e-6 h usa notação científica de quatro algarismos. São regras de apresentação, não limites físicos ou alterações dos dados numéricos da API. Valores usuais conservam dashH; null e não finitos mostram travessão.
++- auditSlackStatus e dashAudit usam a classificação por pedido e os valores não arredondados. Um valor negativo dentro da tolerância já adotada pelo motor é identificado como no prazo com tolerância; indisponíveis são Não calculado. Contadores não classificam desconhecidos como no prazo.
++- O painel informa horários legados arredondados e quantidade de pedidos não calculados, quando aplicável.
++- generateReport usa o mesmo formato e classificação na tabela Impacto por pedido, preservando sinais e tempos curtos tanto no pop-up quanto no download HTML. Os formatos de outros cartões e gráficos não foram redesenhados nesta etapa. Não se afirma que todo formatador do programa mudou.
++
++A função _num passa também a tratar OverflowError como valor indisponível. Multas, custos, investimentos e fórmulas econômicas não foram recalculados nem alterados pela auditoria. O diagnóstico de gargalo e demais seções continuam com seus contratos anteriores.
++
++## Testes e arquivos alterados
++
++24 novos casos em tests/test_int02_audit_precision.py: diferenças exatas com Decimal; conclusão antes/no/depois do prazo; tolerância e classificação do motor; fallback apenas por ausência; zero preciso; seis conclusões precisas inválidas; seis atrasos precisos inválidos; origem legada; cenário real com máquinas paralelas, falha e manutenção temporal. O ensaio real confere os três cenários, igualdade de métricas e arquivos, e impede execução do motor durante a leitura da auditoria.
++
++atelier/tests/test_technical_audit.py deixa de cristalizar a comparação com conclusão arredondada e passa a conferir conclusão precisa, diferença prazo−conclusão, atraso e classificação do resultado DES. É atualização do contrato que reproduzia o defeito; o teste ficou mais específico e não foi apagado ou desativado.
++
++VERSAO_INT02.json e tests/test_am19_distribution.py acrescentam um elo à cadeia de hashes da alteração autorizada em app.js. Referência AM19, VERSAO_PRIORIDADE.json e VERSAO_INT01.json permanecem intactas; engine e demais fontes visuais continuam conferidas. Não foi criada aprovação incondicional de arquivos.
++
++atelier/tests/browser_int02.py: HTTP real e DES real em 1280x720, 1366x768 e 1920x1080. Confere os três cenários, sinais/valores apresentados, precisão JSON, relatório em pop-up e download. Só os avisos de dados legados/indisponíveis usam respostas de transporte controladas; a compatibilidade numérica é coberta diretamente no backend. Memória e todos os JSON do diretório de teste permanecem intactos. Sem erros JavaScript não tratados ou overflow horizontal do documento.
++
++A primeira asserção do ensaio de navegador usava tolerância relativa mais estreita que o arredondamento de seis algarismos exibidos. browser-initial.log foi preservado. O instrumento passou a conferir igualdade com arredondamento Decimal independente de seis algarismos, sem mudar os valores precisos, a apresentação do produto ou encobrir uma divergência numérica. O teste de API e os testes unitários continuam conferindo os valores não arredondados.
++
++Uma sondagem Node externa (format-probe.js/log) executa os helpers reais: 12 verificações de sinal, zero legítimo, indisponível, valores usuais, tempos submicroscópicos em notação científica e classificação com tolerância. Não altera a contagem da regressão.
++
++## Resultados finais
++
++706 testes aprovados, zero falhas, dez subtestes. Warning de depreciação do plugin AnyIO, sem falha funcional. Não houve exclusão ou desativação de testes para obter aprovação.
++
++Os três experimentos oficiais permaneceram iguais: A com SLA nominal/incidente/resposta 100/40/100%, custo total da decisão R$12.113,00 e economia líquida R$4.103,68; B e C conforme banca.log. Não houve ajuste artificial de números de referência.
++
++Importação INT-01 foi novamente conferida nas três resoluções: EDD/SPT/FIFO, download/upload em outro projeto, legado, inválidos e reabertura. Modo Banca com justificativa, registro e relatório, além de gráficos/ampliação/exportações, também passou nas três resoluções. Dados locais e motor foram preservados.
++
++Depois, ZIP extraído e patch aplicado são comparados por SHA-256; testes direcionados rodam na extração; arquivos publicados no GitHub são recuperados e comparados antes de concluir a entrega.
++
++Comandos: python -m pytest tests contract_tests atelier/tests -q -p no:cacheprovider; python -m pytest tests/test_int02_audit_precision.py atelier/tests/test_technical_audit.py tests/test_am19_distribution.py -q -p no:cacheprovider; python -m atelier.tests.validacao_experimentos_banca; python -m atelier.tests.browser_int02; python -m atelier.tests.browser_int01; python -m atelier.tests.browser_acabamento_final; python docs/AM19/evidencias/actual_http_browser.py. Chromium/Playwright são dependências de desenvolvimento no Linux, não requisitos novos do aplicativo principal.
++
++## Entrega e continuidade
++
++ZIP completo atualizado, patch sobre os 669 arquivos INT01, relatório, continuidade, logs e evidências. O aplicador exige a base correta e cria uma pasta nova, sem alterar a origem. As versões, ZIPs e auditoria anteriores continuam no GitHub. Extraia em pasta nova; preserve sua instalação e projetos antes de experimentar a atualização.
++
++Não foi realizada validação nativa do Windows, BAT ou projetor, nem homologação industrial. A precisão dos horários depende dos dados do motor; resultados legados sem precisão não são reconstruídos por aproximação oculta. Próxima etapa recomendada: INT-03, leitura resiliente da biblioteca, exclusivamente sobre esta versão ou sucessora imediata confirmada.
+--- /dev/null
++++ b/VERSAO_INT02.json
+@@ -0,0 +1,6 @@
++{
++  "version": "INT02-2026.1",
++  "base_commit": "1bbe141ee4ee5d52aecbe109a8b2bb53d5088c92",
++  "base_app_sha256": "b05152ce353059ffba88aa6662b598bf02a80687c136a146de8db341484659ba",
++  "app_sha256": "47466b5a88df500d1ac5aec5453afe5638b3a76a930c9b4a1e1e9b013d9fa3c9"
++}--- /dev/null
++++ b/atelier/tests/browser_int02.py
+@@ -0,0 +1,70 @@
++"""INT02: real short operations in audit/API/report; legacy/unknown UI transport fixtures."""
++import json,os,math
++from decimal import Decimal,ROUND_HALF_UP
++from copy import deepcopy
++from pathlib import Path
++from tempfile import TemporaryDirectory
++from threading import Thread
++from http.server import ThreadingHTTPServer
++from playwright.sync_api import sync_playwright,expect
++from atelier.service import Studio
++from atelier import server
++
++out=Path(os.environ.get('INT02_QA_OUT','docs/INT02/capturas'));out.mkdir(parents=True,exist_ok=True)
++def number(text):return float(text.replace(' h','').replace(',','.'))
++with sync_playwright() as pw:
++ b=pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
++ for w,h in [(1280,720),(1366,768),(1920,1080)]:
++  with TemporaryDirectory() as d:
++   folder=Path(d);s=Studio(folder)
++   station={'nome':'P','maquinas':2,'operadores':2,'operadores_por_maquina':1,'eficiencia_operador':1,'disponibilidade':1,'custo_maquina_h':10,'custo_operador_h':5,'setup_min':0}
++   s.set_model({'stations':{'P':station},'orders':[{'id':'CURTA','quantidade':2,'prazo_h':.0005,'multa_hora':10000,'route':[['P',.06]]}]})
++   s.calculate({'station':'P','start_h':.0001,'duration_h':.001,'delay_h':0})
++   chosen=next(r for r in s.info()['alternatives'] if r['action'].startswith('Manutenção expressa'));s.select(chosen['signature'])
++   before=s.info();disk={p:p.read_bytes() for p in folder.rglob('*.json')};server.STUDIO=s
++   httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler);Thread(target=httpd.serve_forever,daemon=True).start()
++   p=b.new_page(viewport={'width':w,'height':h},accept_downloads=True);errors=[];p.on('pageerror',lambda e:errors.append(str(e)))
++   try:
++    p.goto(f'http://127.0.0.1:{httpd.server_port}/',wait_until='networkidle');p.wait_for_selector('#factory-a .station-group');p.evaluate('document.querySelector("#splash")?.remove()')
++    p.locator('[data-nav=paineis]').click()
++    with p.expect_response(lambda r:r.url.endswith('/api/technical-audit')) as ev:p.locator('[data-dash-tab=auditoria]').click()
++    assert ev.value.ok;data=ev.value.json()
++    for scenario in ['normal','incident','response']:
++     p.locator('#dash-scenario').select_option(scenario)
++     row=p.locator('#dash-body table tbody tr').first;expected=data['orders'][scenario][0]
++     expect(row.locator('.dash-status')).to_have_text('Atrasado')
++     values=[number(row.locator('td').nth(i).inner_text()) for i in [1,2,3]]
++     for actual,key in zip(values,['due_h','finish_h','slack_h']):
++      quantum=Decimal(10)**(math.floor(math.log10(abs(expected[key])))-5)
++      displayed=float(Decimal(str(expected[key])).quantize(quantum,rounding=ROUND_HALF_UP))
++      assert actual==displayed,(actual,displayed,expected[key])
++     assert values[1]>0 and values[2]<0
++    p.screenshot(path=str(out/f'auditoria_{w}.png'))
++    p.locator('[data-nav=decisoes]').click()
++    with p.expect_popup() as ev:p.locator('#decision-report').click()
++    popup=ev.value;popup.wait_for_load_state();row=popup.locator('table tbody tr').first
++    assert 'CURTA' in row.inner_text() and 'Atrasado' in row.inner_text()
++    assert number(row.locator('td').nth(3).inner_text())>0
++    assert number(row.locator('td').nth(4).inner_text())<0
++    (out/f'relatorio_{w}.html').write_text(popup.content());popup.screenshot(path=str(out/f'relatorio_{w}.png'));popup.close()
++    p.evaluate('window.open=()=>null')
++    with p.expect_download() as ev:p.locator('#decision-report').click()
++    downloaded=Path(ev.value.path()).read_text();assert '0,0005 h' in downloaded and 'Atrasado' in downloaded
++    # Only legacy/invalid fixture transport is synthetic; normal cases above use real HTTP/DES.
++    fixture=deepcopy(data)
++    for rows in fixture['orders'].values():
++     for entry in rows:entry['timing_source']='legacy_rounded'
++    p.route('**/api/technical-audit',lambda route:route.fulfill(status=200,json=fixture))
++    p.locator('[data-nav=paineis]').click();p.locator('[data-dash-tab=auditoria]').click();p.locator('[data-audit-refresh]').click()
++    expect(p.locator('[data-audit-legacy]')).to_be_visible()
++    fixture=deepcopy(data)
++    for rows in fixture['orders'].values():
++     for entry in rows:entry.update(finish_h=None,slack_h=None,lateness_h=None,is_late=None,timing_source='unavailable')
++    p.locator('[data-audit-refresh]').click()
++    expect(p.locator('[data-audit-unknown]')).to_be_visible();expect(p.locator('#dash-body table .dash-status')).to_have_text('Não calculado')
++    assert s.info()==before and all(p.read_bytes()==content for p,content in disk.items())
++    assert not errors,errors
++    assert p.evaluate('document.documentElement.scrollWidth<=innerWidth+3')
++    print('INT02 BROWSER OK',w,h,'3 cenários, precisão API, sinais, relatório/pop-up/download, legado e desconhecido',flush=True)
++   finally:p.close();httpd.shutdown();httpd.server_close()
++ b.close()
+--- /dev/null
++++ b/docs/INT02/evidencias/after.log
+@@ -0,0 +1,29 @@
++{
++  "engine": {
++    "OP": "CURTA",
++    "Cliente": "",
++    "Produto": "",
++    "Quantidade": 1,
++    "Prazo (h)": 0.0005,
++    "Conclusão (h)": 0.0,
++    "Atraso (h)": 0.0,
++    "Multa (R$)": 5.36,
++    "Status": "Atrasada",
++    "completion_h": 0.0010359130029347337,
++    "lateness_h": 0.0005359130029347337,
++    "penalty": 5.3591300293473365
++  },
++  "audit": {
++    "id": "CURTA",
++    "client": "",
++    "due_h": 0.0005,
++    "finish_h": 0.0010359130029347337,
++    "slack_h": -0.0005359130029347337,
++    "lateness_h": 0.0005359130029347337,
++    "is_late": true,
++    "timing_source": "precise",
++    "lateness_source": "precise",
++    "penalty": 5.36,
++    "units": 1
++  }
++}
+# Binary in overlay: docs/INT02/evidencias/auditoria_1280.png
+# Binary in overlay: docs/INT02/evidencias/auditoria_1366.png
+# Binary in overlay: docs/INT02/evidencias/auditoria_1920.png
+--- /dev/null
++++ b/docs/INT02/evidencias/banca.log
+@@ -0,0 +1,4 @@
++3 EXPERIMENTOS APROVADOS
++A: 100.0 40.0 100.0 custos 16216.67 12113.0 4103.68
++B: [(0, 5.681763308299117, 84.12881249414335), (1, 5.681763308299117, 96.09692807908425), (2, 5.681763308299117, 108.06504366402514), (3, 5.681763308299117, 120.033159248966)]
++C: Manutenção expressa · CNC 21.57530617980079 +1 operador · CNC 19.973006391870044
+--- /dev/null
++++ b/docs/INT02/evidencias/before-tests-initial.log
+@@ -0,0 +1,317 @@
++FFFFFFFFFFFFFFFFFFFFFFFF                                                 [100%]
++=================================== FAILURES ===================================
++_______ test_precise_completion_and_deadline_difference_keep_sign[0.001] _______
++
++finish = 0.001
++
++    @pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++    def test_precise_completion_and_deadline_difference_keep_sign(finish):
++        expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++        late=max(0.,-expected)
++        actual=snapshot(row(completion_h=finish,lateness_h=late))
++>       assert actual['finish_h']==finish
++E       assert 0.0 == 0.001
++
++tests/test_int02_audit_precision.py:27: AssertionError
++______ test_precise_completion_and_deadline_difference_keep_sign[0.0003] _______
++
++finish = 0.0003
++
++    @pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++    def test_precise_completion_and_deadline_difference_keep_sign(finish):
++        expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++        late=max(0.,-expected)
++        actual=snapshot(row(completion_h=finish,lateness_h=late))
++>       assert actual['finish_h']==finish
++E       assert 0.0 == 0.0003
++
++tests/test_int02_audit_precision.py:27: AssertionError
++______ test_precise_completion_and_deadline_difference_keep_sign[0.0005] _______
++
++finish = 0.0005
++
++    @pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++    def test_precise_completion_and_deadline_difference_keep_sign(finish):
++        expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++        late=max(0.,-expected)
++        actual=snapshot(row(completion_h=finish,lateness_h=late))
++>       assert actual['finish_h']==finish
++E       assert 0.0 == 0.0005
++
++tests/test_int02_audit_precision.py:27: AssertionError
++___ test_precise_completion_and_deadline_difference_keep_sign[0.0005000005] ____
++
++finish = 0.0005000005
++
++    @pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++    def test_precise_completion_and_deadline_difference_keep_sign(finish):
++        expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++        late=max(0.,-expected)
++        actual=snapshot(row(completion_h=finish,lateness_h=late))
++>       assert actual['finish_h']==finish
++E       assert 0.0 == 0.0005000005
++
++tests/test_int02_audit_precision.py:27: AssertionError
++____ test_precise_completion_and_deadline_difference_keep_sign[0.000500002] ____
++
++finish = 0.000500002
++
++    @pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++    def test_precise_completion_and_deadline_difference_keep_sign(finish):
++        expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++        late=max(0.,-expected)
++        actual=snapshot(row(completion_h=finish,lateness_h=late))
++>       assert actual['finish_h']==finish
++E       assert 0.0 == 0.000500002
++
++tests/test_int02_audit_precision.py:27: AssertionError
++_ test_engine_deadline_classification_is_preserved_without_new_tolerance[0.0005000005-No prazo-False] _
++
++finish = 0.0005000005, status = 'No prazo', is_late = False
++
++    @pytest.mark.parametrize('finish,status,is_late',[(.0005000005,'No prazo',False),(.000500002,'Atrasada',True)])
++    def test_engine_deadline_classification_is_preserved_without_new_tolerance(finish,status,is_late):
++        actual=snapshot(row(completion_h=finish,lateness_h=finish-.0005,Status=status))
++>       assert actual['is_late'] is is_late
++               ^^^^^^^^^^^^^^^^^
++E       KeyError: 'is_late'
++
++tests/test_int02_audit_precision.py:36: KeyError
++_ test_engine_deadline_classification_is_preserved_without_new_tolerance[0.000500002-Atrasada-True] _
++
++finish = 0.000500002, status = 'Atrasada', is_late = True
++
++    @pytest.mark.parametrize('finish,status,is_late',[(.0005000005,'No prazo',False),(.000500002,'Atrasada',True)])
++    def test_engine_deadline_classification_is_preserved_without_new_tolerance(finish,status,is_late):
++        actual=snapshot(row(completion_h=finish,lateness_h=finish-.0005,Status=status))
++>       assert actual['is_late'] is is_late
++               ^^^^^^^^^^^^^^^^^
++E       KeyError: 'is_late'
++
++tests/test_int02_audit_precision.py:36: KeyError
++____ test_legacy_completion_falls_back_only_when_precise_key_is_absent[0.0] ____
++
++finish = 0.0
++
++    @pytest.mark.parametrize('finish',[0.,1.23])
++    def test_legacy_completion_falls_back_only_when_precise_key_is_absent(finish):
++        actual=snapshot(row(**{'Conclusão (h)':finish}))
++        assert actual['finish_h']==finish
++>       assert actual['slack_h']==.0005-finish
++E       assert 0.001 == (0.0005 - 0.0)
++
++tests/test_int02_audit_precision.py:44: AssertionError
++___ test_legacy_completion_falls_back_only_when_precise_key_is_absent[1.23] ____
++
++finish = 1.23
++
++    @pytest.mark.parametrize('finish',[0.,1.23])
++    def test_legacy_completion_falls_back_only_when_precise_key_is_absent(finish):
++        actual=snapshot(row(**{'Conclusão (h)':finish}))
++        assert actual['finish_h']==finish
++>       assert actual['slack_h']==.0005-finish
++E       assert -1.23 == (0.0005 - 1.23)
++
++tests/test_int02_audit_precision.py:44: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[None] _
++
++invalid = None
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++tests/test_int02_audit_precision.py:52: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[True] _
++
++invalid = True
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++tests/test_int02_audit_precision.py:52: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[bad] _
++
++invalid = 'bad'
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++tests/test_int02_audit_precision.py:52: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[nan] _
++
++invalid = nan
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++tests/test_int02_audit_precision.py:52: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[inf] _
++
++invalid = inf
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++tests/test_int02_audit_precision.py:52: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[-1.0] _
++
++invalid = -1.0
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++tests/test_int02_audit_precision.py:52: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[None] _____________
++
++invalid = None
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++tests/test_int02_audit_precision.py:61: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[True] _____________
++
++invalid = True
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++tests/test_int02_audit_precision.py:61: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[bad] ______________
++
++invalid = 'bad'
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++tests/test_int02_audit_precision.py:61: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[nan] ______________
++
++invalid = nan
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++tests/test_int02_audit_precision.py:61: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[inf] ______________
++
++invalid = inf
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++tests/test_int02_audit_precision.py:61: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[-1.0] _____________
++
++invalid = -1.0
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++tests/test_int02_audit_precision.py:61: AssertionError
++___ test_legacy_classification_is_retained_and_rounded_origin_is_identified ____
++
++    def test_legacy_classification_is_retained_and_rounded_origin_is_identified():
++        actual=snapshot(row(Status='Atrasada'))
++>       assert actual['is_late'] is True
++               ^^^^^^^^^^^^^^^^^
++E       KeyError: 'is_late'
++
++tests/test_int02_audit_precision.py:68: KeyError
++____ test_precise_zero_is_retained_and_not_replaced_by_nonzero_legacy_value ____
++
++    def test_precise_zero_is_retained_and_not_replaced_by_nonzero_legacy_value():
++        actual=snapshot(row(completion_h=0.,lateness_h=0.,**{'Conclusão (h)':7}))
++>       assert actual['finish_h']==0.
++E       assert 7.0 == 0.0
++
++tests/test_int02_audit_precision.py:74: AssertionError
++___ test_real_short_cycle_all_scenarios_read_only_and_core_metrics_unchanged ___
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-65/test_real_short_cycle_all_scen0')
++
++    def test_real_short_cycle_all_scenarios_read_only_and_core_metrics_unchanged(tmp_path):
++        s=Studio(tmp_path)
++        station={'nome':'P','maquinas':2,'operadores':2,'operadores_por_maquina':1,'eficiencia_operador':1,'disponibilidade':1,'custo_maquina_h':10,'custo_operador_h':5,'setup_min':0}
++        s.set_model({'stations':{'P':station},'orders':[{'id':'A','quantidade':2,'prazo_h':.0005,'multa_hora':10000,'route':[['P',.06]]}]})
++        s.calculate({'station':'P','start_h':.0001,'duration_h':.001,'delay_h':0})
++        before=deepcopy(s.info());disk={p:p.read_bytes() for p in tmp_path.rglob('*.json')}
++        analysis=current_analysis(s.state);selected=selected_action(s.state,analysis)
++        with patch('atelier.service.execute',side_effect=AssertionError('audit must not simulate')):
++            audited=s.technical_audit()
++>       for key,result in [('normal',analysis['normal']),('incident',analysis['incident']),('response',selected['result'])]:
++                                                                                                       ^^^^^^^^^^^^^^^^^^
++E       TypeError: 'NoneType' object is not subscriptable
++
++tests/test_int02_audit_precision.py:87: TypeError
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++=========================== short test summary info ============================
++FAILED tests/test_int02_audit_precision.py::test_precise_completion_and_deadline_difference_keep_sign[0.001]
++FAILED tests/test_int02_audit_precision.py::test_precise_completion_and_deadline_difference_keep_sign[0.0003]
++FAILED tests/test_int02_audit_precision.py::test_precise_completion_and_deadline_difference_keep_sign[0.0005]
++FAILED tests/test_int02_audit_precision.py::test_precise_completion_and_deadline_difference_keep_sign[0.0005000005]
++FAILED tests/test_int02_audit_precision.py::test_precise_completion_and_deadline_difference_keep_sign[0.000500002]
++FAILED tests/test_int02_audit_precision.py::test_engine_deadline_classification_is_preserved_without_new_tolerance[0.0005000005-No prazo-False]
++FAILED tests/test_int02_audit_precision.py::test_engine_deadline_classification_is_preserved_without_new_tolerance[0.000500002-Atrasada-True]
++FAILED tests/test_int02_audit_precision.py::test_legacy_completion_falls_back_only_when_precise_key_is_absent[0.0]
++FAILED tests/test_int02_audit_precision.py::test_legacy_completion_falls_back_only_when_precise_key_is_absent[1.23]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[None]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[True]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[bad]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[nan]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[inf]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[-1.0]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_lateness_remains_unknown[None]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_lateness_remains_unknown[True]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_lateness_remains_unknown[bad]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_lateness_remains_unknown[nan]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_lateness_remains_unknown[inf]
++FAILED tests/test_int02_audit_precision.py::test_invalid_explicit_lateness_remains_unknown[-1.0]
++FAILED tests/test_int02_audit_precision.py::test_legacy_classification_is_retained_and_rounded_origin_is_identified
++FAILED tests/test_int02_audit_precision.py::test_precise_zero_is_retained_and_not_replaced_by_nonzero_legacy_value
++FAILED tests/test_int02_audit_precision.py::test_real_short_cycle_all_scenarios_read_only_and_core_metrics_unchanged
++24 failed, 1 warning in 0.51s
+--- /dev/null
++++ b/docs/INT02/evidencias/before-tests.log
+@@ -0,0 +1,320 @@
++FFFFFFFFFFFFFFFFFFFFFFFF                                                 [100%]
++=================================== FAILURES ===================================
++_______ test_precise_completion_and_deadline_difference_keep_sign[0.001] _______
++
++finish = 0.001
++
++    @pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++    def test_precise_completion_and_deadline_difference_keep_sign(finish):
++        expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++        late=max(0.,-expected)
++        actual=snapshot(row(completion_h=finish,lateness_h=late))
++>       assert actual['finish_h']==finish
++E       assert 0.0 == 0.001
++
++../../../int02/test_before.py:27: AssertionError
++______ test_precise_completion_and_deadline_difference_keep_sign[0.0003] _______
++
++finish = 0.0003
++
++    @pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++    def test_precise_completion_and_deadline_difference_keep_sign(finish):
++        expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++        late=max(0.,-expected)
++        actual=snapshot(row(completion_h=finish,lateness_h=late))
++>       assert actual['finish_h']==finish
++E       assert 0.0 == 0.0003
++
++../../../int02/test_before.py:27: AssertionError
++______ test_precise_completion_and_deadline_difference_keep_sign[0.0005] _______
++
++finish = 0.0005
++
++    @pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++    def test_precise_completion_and_deadline_difference_keep_sign(finish):
++        expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++        late=max(0.,-expected)
++        actual=snapshot(row(completion_h=finish,lateness_h=late))
++>       assert actual['finish_h']==finish
++E       assert 0.0 == 0.0005
++
++../../../int02/test_before.py:27: AssertionError
++___ test_precise_completion_and_deadline_difference_keep_sign[0.0005000005] ____
++
++finish = 0.0005000005
++
++    @pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++    def test_precise_completion_and_deadline_difference_keep_sign(finish):
++        expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++        late=max(0.,-expected)
++        actual=snapshot(row(completion_h=finish,lateness_h=late))
++>       assert actual['finish_h']==finish
++E       assert 0.0 == 0.0005000005
++
++../../../int02/test_before.py:27: AssertionError
++____ test_precise_completion_and_deadline_difference_keep_sign[0.000500002] ____
++
++finish = 0.000500002
++
++    @pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++    def test_precise_completion_and_deadline_difference_keep_sign(finish):
++        expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++        late=max(0.,-expected)
++        actual=snapshot(row(completion_h=finish,lateness_h=late))
++>       assert actual['finish_h']==finish
++E       assert 0.0 == 0.000500002
++
++../../../int02/test_before.py:27: AssertionError
++_ test_engine_deadline_classification_is_preserved_without_new_tolerance[0.0005000005-No prazo-False] _
++
++finish = 0.0005000005, status = 'No prazo', is_late = False
++
++    @pytest.mark.parametrize('finish,status,is_late',[(.0005000005,'No prazo',False),(.000500002,'Atrasada',True)])
++    def test_engine_deadline_classification_is_preserved_without_new_tolerance(finish,status,is_late):
++        actual=snapshot(row(completion_h=finish,lateness_h=finish-.0005,Status=status))
++>       assert actual['is_late'] is is_late
++               ^^^^^^^^^^^^^^^^^
++E       KeyError: 'is_late'
++
++../../../int02/test_before.py:36: KeyError
++_ test_engine_deadline_classification_is_preserved_without_new_tolerance[0.000500002-Atrasada-True] _
++
++finish = 0.000500002, status = 'Atrasada', is_late = True
++
++    @pytest.mark.parametrize('finish,status,is_late',[(.0005000005,'No prazo',False),(.000500002,'Atrasada',True)])
++    def test_engine_deadline_classification_is_preserved_without_new_tolerance(finish,status,is_late):
++        actual=snapshot(row(completion_h=finish,lateness_h=finish-.0005,Status=status))
++>       assert actual['is_late'] is is_late
++               ^^^^^^^^^^^^^^^^^
++E       KeyError: 'is_late'
++
++../../../int02/test_before.py:36: KeyError
++____ test_legacy_completion_falls_back_only_when_precise_key_is_absent[0.0] ____
++
++finish = 0.0
++
++    @pytest.mark.parametrize('finish',[0.,1.23])
++    def test_legacy_completion_falls_back_only_when_precise_key_is_absent(finish):
++        actual=snapshot(row(**{'Conclusão (h)':finish}))
++        assert actual['finish_h']==finish
++>       assert actual['slack_h']==.0005-finish
++E       assert 0.001 == (0.0005 - 0.0)
++
++../../../int02/test_before.py:44: AssertionError
++___ test_legacy_completion_falls_back_only_when_precise_key_is_absent[1.23] ____
++
++finish = 1.23
++
++    @pytest.mark.parametrize('finish',[0.,1.23])
++    def test_legacy_completion_falls_back_only_when_precise_key_is_absent(finish):
++        actual=snapshot(row(**{'Conclusão (h)':finish}))
++        assert actual['finish_h']==finish
++>       assert actual['slack_h']==.0005-finish
++E       assert -1.23 == (0.0005 - 1.23)
++
++../../../int02/test_before.py:44: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[None] _
++
++invalid = None
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++../../../int02/test_before.py:52: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[True] _
++
++invalid = True
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++../../../int02/test_before.py:52: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[bad] _
++
++invalid = 'bad'
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++../../../int02/test_before.py:52: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[nan] _
++
++invalid = nan
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++../../../int02/test_before.py:52: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[inf] _
++
++invalid = inf
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++../../../int02/test_before.py:52: AssertionError
++_ test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[-1.0] _
++
++invalid = -1.0
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++        actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++>       assert actual['finish_h'] is None
++E       assert 0.0 is None
++
++../../../int02/test_before.py:52: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[None] _____________
++
++invalid = None
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++../../../int02/test_before.py:61: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[True] _____________
++
++invalid = True
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++../../../int02/test_before.py:61: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[bad] ______________
++
++invalid = 'bad'
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++../../../int02/test_before.py:61: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[nan] ______________
++
++invalid = nan
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++../../../int02/test_before.py:61: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[inf] ______________
++
++invalid = inf
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++../../../int02/test_before.py:61: AssertionError
++_____________ test_invalid_explicit_lateness_remains_unknown[-1.0] _____________
++
++invalid = -1.0
++
++    @pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++    def test_invalid_explicit_lateness_remains_unknown(invalid):
++        actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++>       assert actual['lateness_h'] is None
++E       assert 0 is None
++
++../../../int02/test_before.py:61: AssertionError
++___ test_legacy_classification_is_retained_and_rounded_origin_is_identified ____
++
++    def test_legacy_classification_is_retained_and_rounded_origin_is_identified():
++        actual=snapshot(row(Status='Atrasada'))
++>       assert actual['is_late'] is True
++               ^^^^^^^^^^^^^^^^^
++E       KeyError: 'is_late'
++
++../../../int02/test_before.py:68: KeyError
++____ test_precise_zero_is_retained_and_not_replaced_by_nonzero_legacy_value ____
++
++    def test_precise_zero_is_retained_and_not_replaced_by_nonzero_legacy_value():
++        actual=snapshot(row(completion_h=0.,lateness_h=0.,**{'Conclusão (h)':7}))
++>       assert actual['finish_h']==0.
++E       assert 7.0 == 0.0
++
++../../../int02/test_before.py:74: AssertionError
++___ test_real_short_cycle_all_scenarios_read_only_and_core_metrics_unchanged ___
++
++tmp_path = PosixPath('/tmp/pytest-of-agent/pytest-67/test_real_short_cycle_all_scen0')
++
++    def test_real_short_cycle_all_scenarios_read_only_and_core_metrics_unchanged(tmp_path):
++        s=Studio(tmp_path)
++        station={'nome':'P','maquinas':2,'operadores':2,'operadores_por_maquina':1,'eficiencia_operador':1,'disponibilidade':1,'custo_maquina_h':10,'custo_operador_h':5,'setup_min':0}
++        s.set_model({'stations':{'P':station},'orders':[{'id':'A','quantidade':2,'prazo_h':.0005,'multa_hora':10000,'route':[['P',.06]]}]})
++        s.calculate({'station':'P','start_h':.0001,'duration_h':.001,'delay_h':0})
++        chosen=next(r for r in s.info()['alternatives'] if r['action'].startswith('Manutenção expressa'))
++        s.select(chosen['signature'])
++        before=deepcopy(s.info());disk={p:p.read_bytes() for p in tmp_path.rglob('*.json')}
++        analysis=current_analysis(s.state);selected=selected_action(s.state,analysis)
++        with patch('atelier.service.execute',side_effect=AssertionError('audit must not simulate')):
++            audited=s.technical_audit()
++        for key,result in [('normal',analysis['normal']),('incident',analysis['incident']),('response',selected['result'])]:
++            expected=result['orders'][0];actual=audited['orders'][key][0]
++>           assert actual['finish_h']==expected['completion_h']
++E           assert 0.0 == 0.00103362480208176
++
++../../../int02/test_before.py:91: AssertionError
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++=========================== short test summary info ============================
++FAILED ../../../int02/test_before.py::test_precise_completion_and_deadline_difference_keep_sign[0.001]
++FAILED ../../../int02/test_before.py::test_precise_completion_and_deadline_difference_keep_sign[0.0003]
++FAILED ../../../int02/test_before.py::test_precise_completion_and_deadline_difference_keep_sign[0.0005]
++FAILED ../../../int02/test_before.py::test_precise_completion_and_deadline_difference_keep_sign[0.0005000005]
++FAILED ../../../int02/test_before.py::test_precise_completion_and_deadline_difference_keep_sign[0.000500002]
++FAILED ../../../int02/test_before.py::test_engine_deadline_classification_is_preserved_without_new_tolerance[0.0005000005-No prazo-False]
++FAILED ../../../int02/test_before.py::test_engine_deadline_classification_is_preserved_without_new_tolerance[0.000500002-Atrasada-True]
++FAILED ../../../int02/test_before.py::test_legacy_completion_falls_back_only_when_precise_key_is_absent[0.0]
++FAILED ../../../int02/test_before.py::test_legacy_completion_falls_back_only_when_precise_key_is_absent[1.23]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[None]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[True]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[bad]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[nan]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[inf]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero[-1.0]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_lateness_remains_unknown[None]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_lateness_remains_unknown[True]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_lateness_remains_unknown[bad]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_lateness_remains_unknown[nan]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_lateness_remains_unknown[inf]
++FAILED ../../../int02/test_before.py::test_invalid_explicit_lateness_remains_unknown[-1.0]
++FAILED ../../../int02/test_before.py::test_legacy_classification_is_retained_and_rounded_origin_is_identified
++FAILED ../../../int02/test_before.py::test_precise_zero_is_retained_and_not_replaced_by_nonzero_legacy_value
++FAILED ../../../int02/test_before.py::test_real_short_cycle_all_scenarios_read_only_and_core_metrics_unchanged
++24 failed, 1 warning in 0.47s
+--- /dev/null
++++ b/docs/INT02/evidencias/before.log
+@@ -0,0 +1,26 @@
++{
++  "engine": {
++    "OP": "CURTA",
++    "Cliente": "",
++    "Produto": "",
++    "Quantidade": 1,
++    "Prazo (h)": 0.0005,
++    "Conclusão (h)": 0.0,
++    "Atraso (h)": 0.0,
++    "Multa (R$)": 5.36,
++    "Status": "Atrasada",
++    "completion_h": 0.0010359130029347337,
++    "lateness_h": 0.0005359130029347337,
++    "penalty": 5.3591300293473365
++  },
++  "audit": {
++    "id": "CURTA",
++    "client": "",
++    "due_h": 0.0005,
++    "finish_h": 0.0,
++    "slack_h": 0.001,
++    "lateness_h": 0,
++    "penalty": 5.36,
++    "units": 1
++  }
++}
+--- /dev/null
++++ b/docs/INT02/evidencias/browser-banca.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1280x720 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1366x768 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1920x1080 · progressive / dual panels / justification / record / report
+--- /dev/null
++++ b/docs/INT02/evidencias/browser-charts.log
+@@ -0,0 +1,3 @@
++ACABAMENTO OK 1280 720 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1366 768 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1920 1080 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
+--- /dev/null
++++ b/docs/INT02/evidencias/browser-initial.log
+@@ -0,0 +1,32 @@
++Traceback (most recent call last):
++  File "<frozen runpy>", line 198, in _run_module_as_main
++  File "<frozen runpy>", line 88, in _run_code
++  File "/workspace/work/prioridade/repo/ANTI_MURPHY_FINAL_2026/atelier/tests/browser_int02.py", line 37, in <module>
++    assert math.isclose(actual,expected[key],rel_tol=2e-6,abs_tol=1e-15),(actual,expected[key])
++           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++AssertionError: (0.00103591, 0.0010359130029347337)
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++[http] "GET /api/technical-audit HTTP/1.1" 200 -
+--- /dev/null
++++ b/docs/INT02/evidencias/browser-int01.log
+@@ -0,0 +1,135 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++INT01 BROWSER OK 1280 720 EDD/SPT/FIFO, outro projeto, download/upload, legado, inválidos e reabertura
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++INT01 BROWSER OK 1366 768 EDD/SPT/FIFO, outro projeto, download/upload, legado, inválidos e reabertura
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/model/export HTTP/1.1" 200 -
++[http] "GET /api/projects HTTP/1.1" 200 -
++[http] "POST /api/project/create HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++[http] "POST /api/model HTTP/1.1" 400 -
++INT01 BROWSER OK 1920 1080 EDD/SPT/FIFO, outro projeto, download/upload, legado, inválidos e reabertura
+--- /dev/null
++++ b/docs/INT02/evidencias/browser.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++[http] "GET /api/technical-audit HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++INT02 BROWSER OK 1280 720 3 cenários, precisão API, sinais, relatório/pop-up/download, legado e desconhecido
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++[http] "GET /api/technical-audit HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++INT02 BROWSER OK 1366 768 3 cenários, precisão API, sinais, relatório/pop-up/download, legado e desconhecido
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/dashboards HTTP/1.1" 200 -
++[http] "GET /api/technical-audit HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++INT02 BROWSER OK 1920 1080 3 cenários, precisão API, sinais, relatório/pop-up/download, legado e desconhecido
+--- /dev/null
++++ b/docs/INT02/evidencias/format-probe.js
+@@ -0,0 +1,14 @@
++const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
++const source=fs.readFileSync(process.argv[2],'utf8');
++const c={dashH:n=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' h'};vm.createContext(c);
++vm.runInContext(source.slice(source.indexOf('function auditTime('),source.indexOf('function dashAudit(')),c);
++assert.equal(c.auditTime(.0010359130029347337),'0,00103591 h');
++assert.equal(c.auditTime(-.0005359130029347337),'-0,000535913 h');
++assert.equal(c.auditTime(1e-12),'1,000e-12 h');assert.equal(c.auditTime(-1e-12),'-1,000e-12 h');
++assert.equal(c.auditTime(0),'0,00 h');assert.equal(c.auditTime(null),'—');assert.equal(c.auditTime(NaN),'—');
++assert.equal(c.auditTime(24.58),'24,58 h');
++assert.equal(c.auditSlackStatus(-5e-10,.5,false)[1],'ok');
++assert.equal(c.auditSlackStatus(-5e-10,.5,true)[1],'late');
++assert.equal(c.auditSlackStatus(null,.5,null)[1],'unknown');
++assert.equal(c.auditSlackStatus(1,.5)[1],'ok');
++process.stdout.write('12 verificações funcionais de apresentação/classificação aprovadas\n');
+--- /dev/null
++++ b/docs/INT02/evidencias/format-probe.log
+@@ -0,0 +1 @@
++12 verificações funcionais de apresentação/classificação aprovadas
+--- /dev/null
++++ b/docs/INT02/evidencias/regression.log
+@@ -0,0 +1,19 @@
++........................................................................ [ 10%]
++........................................................................ [ 20%]
++........................................................................ [ 30%]
++........................................................................ [ 40%]
++........................................................................ [ 50%]
++........................................................................ [ 61%]
++........................................................................ [ 71%]
++........................................................................ [ 81%]
++..................................................................................................................................     [100%]
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++706 passed, 1 warning, 10 subtests passed in 154.60s (0:02:34)
+--- /dev/null
++++ b/docs/INT02/evidencias/relatorio_1280.html
+@@ -0,0 +1,10 @@
++<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Anti-Murphy · Relatório 8c28c9aac9f7</title><style>
++ @page{size:A4;margin:17mm}*{box-sizing:border-box}body{margin:0;background:#E8ECEB;font-family:Arial,Helvetica,sans-serif;color:#1D292D;font-size:12px;line-height:1.5}main{max-width:900px;background:white;min-height:100vh;margin:0 auto;padding:36px 45px}header{display:flex;justify-content:space-between;gap:16px;border-bottom:4px solid #FF681B;padding-bottom:20px;margin-bottom:26px}.logo{font-size:20px;letter-spacing:.09em;font-weight:800}.mark{display:inline-block;border-left:5px solid #FF681B;padding-left:11px}.meta{font-size:11px;color:#59716A;text-align:right}h1{font-size:24px;margin:0 0 7px}h2{font-size:15px;border-bottom:1px solid #DCE5E0;margin:27px 0 13px;padding-bottom:8px}h3{font-size:14px;margin:0 0 9px}.lead{font-size:13px;color:#3E5750}.comparison-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:15px}.comparison{border:1px solid #D7E2DC;padding:15px}.comparison h3{font-size:12px}.comparison dl{display:grid;grid-template-columns:1fr auto;gap:6px;margin:0}.comparison dt{color:#56736A}.comparison dd{margin:0;text-align:right;font-weight:700}table{border-collapse:collapse;width:100%;font-size:11px}th,td{text-align:left;border-bottom:1px solid #DFE6E0;padding:9px 7px}th{background:#F1F4F1;color:#2A4540}p{margin:8px 0}.callout{border-left:3px solid #FF681B;background:#F4F6F2;padding:15px 18px;margin:16px 0}.print{display:flex;justify-content:end;padding:16px;background:#DDE6DF}.print button{background:#1D292D;border:0;color:white;padding:11px 18px;cursor:pointer}.decision-quality{border:1px solid #CEDAD8;background:#F4F7F5;padding:13px 17px;margin:12px 0}.review-warning{border-left:4px solid #FF681B}.review-heading span{display:block;color:#657D7D;font-size:9px;letter-spacing:.06em}.review-heading strong{display:block;margin-top:3px;color:#1D292D}.review-caution{color:#50686C;font-size:10px}.report-draft{background:#FFF2E8;padding:11px 14px;border-left:3px solid #FF681B}.executive-summary{background:#F1F5F1;border:1px solid #D7E2DC;border-left:4px solid #FF681B;padding:14px 17px;margin:14px 0 18px}.executive-summary>span{color:#526B64;font-size:9px;font-weight:700;letter-spacing:.08em}.executive-summary>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:12px 0}.executive-summary strong{font-size:16px;color:#1D292D;line-height:1.2}.executive-summary small{display:block;font-size:9px;color:#56736A;font-weight:400;padding-top:5px}.executive-summary p{font-size:10px;color:#536D63}.foot{font-size:11px;color:#607970;margin-top:25px;line-height:1.6}@media print{body{background:white}main{padding:0;min-height:auto}.print{display:none}.comparison{break-inside:avoid}h2{break-after:avoid}}
++ </style></head><body><div class="print"><button id="print-report">Imprimir ou salvar como PDF</button></div><main><header><div class="mark logo">ANTI-MURPHY</div><div class="meta">Estudo 8c28c9aac9f7<br>Projeto: Projeto principal<br>Emissão: 13/11/2026</div></header>
++ <h1>Análise de impacto na produção</h1><p class="lead">Posto: <b>P</b> · Início da parada: <b>0,0001 h</b> · Duração: <b>0,001 h</b> · Resposta após: <b>0,00 h</b></p>
++ <section class="executive-summary"><span>RESULTADO DO EXPERIMENTO · EVIDÊNCIA SINTÉTICA</span><div><strong>1 → 1<small>pedidos atrasados (A → B)</small></strong><strong>0,00% → 0,00%<small>SLA simulado</small></strong><strong>-R$&nbsp;1.794,98<small>diferença econômica modelada</small></strong></div><p>Alternativa selecionada: Manutenção expressa · P. Estes resultados não certificam viabilidade física nem economia de caixa.</p></section><h2>Comparação de cenários</h2><div class="comparison-grid"><div class="comparison"><h3>Operação nominal</h3><dl><dt>Conclusão prevista</dt><dd>0,001036 h</dd><dt>Pedidos no prazo</dt><dd>0,00%</dd><dt>Pedidos atrasados</dt><dd>1</dd><dt>Custo do cenário</dt><dd>R$&nbsp;5,39</dd></dl></div><div class="comparison"><h3>Falha sem resposta</h3><dl><dt>Conclusão prevista</dt><dd>0,002036 h</dd><dt>Pedidos no prazo</dt><dd>0,00%</dd><dt>Pedidos atrasados</dt><dd>1</dd><dt>Custo do cenário</dt><dd>R$&nbsp;15,42</dd></dl></div><div class="comparison"><h3>Resposta selecionada</h3><dl><dt>Conclusão prevista</dt><dd>0,001536 h</dd><dt>Pedidos no prazo</dt><dd>0,00%</dd><dt>Pedidos atrasados</dt><dd>1</dd><dt>Custo do cenário</dt><dd>R$&nbsp;10,41</dd></dl></div></div>
++ <h2>Intervenção avaliada</h2><div class="callout"><h3>Manutenção expressa · P</h3><p>Reduz pela metade o reparo restante a partir da decisão. O tempo de parada já ocorrido é preservado.</p><p>Operação: <b>R$&nbsp;0,05</b> + penalidades: <b>R$&nbsp;10,36</b> + investimento modelado: <b>R$&nbsp;1.800,00</b> = custo da decisão: <b>R$&nbsp;1.810,41</b>.</p><p>Referência sem intervenção: <b>R$&nbsp;15,42</b> · Diferença líquida estimada: <b>-R$&nbsp;1.794,98</b>.</p></div>
++ <h2>Qualidade da escolha no conjunto enumerado</h2><section class="decision-quality review-warning" aria-label="Critérios do modelo"><div class="review-heading"><span>CONDIÇÕES NÃO ATENDIDAS</span><strong>Esta seleção não atende integralmente aos critérios modelados</strong></div><p>Confira viabilidade, orçamento e meta de SLA antes de registrar. Somente alternativas enumeradas que atendem aos critérios modelados; não comprova ótimo global, disponibilidade de recursos nem viabilidade industrial.</p></section><p class="report-draft">RELATÓRIO DE ANÁLISE · ainda não há decisão registrada para esta alternativa e este experimento.</p>
++ <h2>Impacto por pedido</h2><table><thead><tr><th>Pedido</th><th>Prazo</th><th>Sem resposta</th><th>Com resposta</th><th>Folga B</th><th>Condição</th></tr></thead><tbody><tr><td>CURTA</td><td>0,0005 h</td><td>0,00203591 h</td><td>0,00153591 h</td><td>-0,00103591 h</td><td>Atrasado</td></tr></tbody></table>
++ <h2>Método econômico e indicadores</h2><p>Custos operacionais estimados por capacidade contratada (máquinas e operadores) durante o horizonte da programação; multas previstas por atraso em relação ao prazo cadastrado. O investimento modelado é somado separadamente no custo da decisão. Uma redução de makespan ou de custo modelado <strong>não é garantia de economia financeira efetiva</strong> sem verificar as parcelas evitáveis.</p><p>Folga = prazo − conclusão prevista. A classificação de atraso preserva a tolerância numérica do motor. Folga entre zero e 0,50 h indica atenção neste relatório. O indicador de gargalo do motor usa pontuação composta por utilização, espera e fila máxima; não demonstra, sozinho, a restrição estrutural de throughput.</p><h2>Hipóteses e limitações</h2><p>Cenário sintético de apoio à decisão, não monitoramento em tempo real. Restrições de habilitação individual, setups dependentes de sequência, buffers finitos e recursos de manutenção não foram integralmente verificados. O motor não simula refugo, retrabalho nem inspeção de qualidade. MTBF/MTTR exigem histórico de falhas não disponível.</p><p>Entregas abaixo do mínimo exigido</p>
++ <div class="foot">Experimento 8c28c9aac9f7 · Dados do modelo local (Modelo editado pelo usuário). Fonte dos indicadores: resultados do motor de eventos discretos do Anti-Murphy. O relatório apresenta previsões de simulação e não constitui instrução para atuação física. Nenhuma ação foi aplicada em máquina real.</div></main></body></html># Binary in overlay: docs/INT02/evidencias/relatorio_1280.png
+--- /dev/null
++++ b/docs/INT02/evidencias/relatorio_1366.html
+@@ -0,0 +1,10 @@
++<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Anti-Murphy · Relatório 8c28c9aac9f7</title><style>
++ @page{size:A4;margin:17mm}*{box-sizing:border-box}body{margin:0;background:#E8ECEB;font-family:Arial,Helvetica,sans-serif;color:#1D292D;font-size:12px;line-height:1.5}main{max-width:900px;background:white;min-height:100vh;margin:0 auto;padding:36px 45px}header{display:flex;justify-content:space-between;gap:16px;border-bottom:4px solid #FF681B;padding-bottom:20px;margin-bottom:26px}.logo{font-size:20px;letter-spacing:.09em;font-weight:800}.mark{display:inline-block;border-left:5px solid #FF681B;padding-left:11px}.meta{font-size:11px;color:#59716A;text-align:right}h1{font-size:24px;margin:0 0 7px}h2{font-size:15px;border-bottom:1px solid #DCE5E0;margin:27px 0 13px;padding-bottom:8px}h3{font-size:14px;margin:0 0 9px}.lead{font-size:13px;color:#3E5750}.comparison-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:15px}.comparison{border:1px solid #D7E2DC;padding:15px}.comparison h3{font-size:12px}.comparison dl{display:grid;grid-template-columns:1fr auto;gap:6px;margin:0}.comparison dt{color:#56736A}.comparison dd{margin:0;text-align:right;font-weight:700}table{border-collapse:collapse;width:100%;font-size:11px}th,td{text-align:left;border-bottom:1px solid #DFE6E0;padding:9px 7px}th{background:#F1F4F1;color:#2A4540}p{margin:8px 0}.callout{border-left:3px solid #FF681B;background:#F4F6F2;padding:15px 18px;margin:16px 0}.print{display:flex;justify-content:end;padding:16px;background:#DDE6DF}.print button{background:#1D292D;border:0;color:white;padding:11px 18px;cursor:pointer}.decision-quality{border:1px solid #CEDAD8;background:#F4F7F5;padding:13px 17px;margin:12px 0}.review-warning{border-left:4px solid #FF681B}.review-heading span{display:block;color:#657D7D;font-size:9px;letter-spacing:.06em}.review-heading strong{display:block;margin-top:3px;color:#1D292D}.review-caution{color:#50686C;font-size:10px}.report-draft{background:#FFF2E8;padding:11px 14px;border-left:3px solid #FF681B}.executive-summary{background:#F1F5F1;border:1px solid #D7E2DC;border-left:4px solid #FF681B;padding:14px 17px;margin:14px 0 18px}.executive-summary>span{color:#526B64;font-size:9px;font-weight:700;letter-spacing:.08em}.executive-summary>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:12px 0}.executive-summary strong{font-size:16px;color:#1D292D;line-height:1.2}.executive-summary small{display:block;font-size:9px;color:#56736A;font-weight:400;padding-top:5px}.executive-summary p{font-size:10px;color:#536D63}.foot{font-size:11px;color:#607970;margin-top:25px;line-height:1.6}@media print{body{background:white}main{padding:0;min-height:auto}.print{display:none}.comparison{break-inside:avoid}h2{break-after:avoid}}
++ </style></head><body><div class="print"><button id="print-report">Imprimir ou salvar como PDF</button></div><main><header><div class="mark logo">ANTI-MURPHY</div><div class="meta">Estudo 8c28c9aac9f7<br>Projeto: Projeto principal<br>Emissão: 13/11/2026</div></header>
++ <h1>Análise de impacto na produção</h1><p class="lead">Posto: <b>P</b> · Início da parada: <b>0,0001 h</b> · Duração: <b>0,001 h</b> · Resposta após: <b>0,00 h</b></p>
++ <section class="executive-summary"><span>RESULTADO DO EXPERIMENTO · EVIDÊNCIA SINTÉTICA</span><div><strong>1 → 1<small>pedidos atrasados (A → B)</small></strong><strong>0,00% → 0,00%<small>SLA simulado</small></strong><strong>-R$&nbsp;1.794,98<small>diferença econômica modelada</small></strong></div><p>Alternativa selecionada: Manutenção expressa · P. Estes resultados não certificam viabilidade física nem economia de caixa.</p></section><h2>Comparação de cenários</h2><div class="comparison-grid"><div class="comparison"><h3>Operação nominal</h3><dl><dt>Conclusão prevista</dt><dd>0,001036 h</dd><dt>Pedidos no prazo</dt><dd>0,00%</dd><dt>Pedidos atrasados</dt><dd>1</dd><dt>Custo do cenário</dt><dd>R$&nbsp;5,39</dd></dl></div><div class="comparison"><h3>Falha sem resposta</h3><dl><dt>Conclusão prevista</dt><dd>0,002036 h</dd><dt>Pedidos no prazo</dt><dd>0,00%</dd><dt>Pedidos atrasados</dt><dd>1</dd><dt>Custo do cenário</dt><dd>R$&nbsp;15,42</dd></dl></div><div class="comparison"><h3>Resposta selecionada</h3><dl><dt>Conclusão prevista</dt><dd>0,001536 h</dd><dt>Pedidos no prazo</dt><dd>0,00%</dd><dt>Pedidos atrasados</dt><dd>1</dd><dt>Custo do cenário</dt><dd>R$&nbsp;10,41</dd></dl></div></div>
++ <h2>Intervenção avaliada</h2><div class="callout"><h3>Manutenção expressa · P</h3><p>Reduz pela metade o reparo restante a partir da decisão. O tempo de parada já ocorrido é preservado.</p><p>Operação: <b>R$&nbsp;0,05</b> + penalidades: <b>R$&nbsp;10,36</b> + investimento modelado: <b>R$&nbsp;1.800,00</b> = custo da decisão: <b>R$&nbsp;1.810,41</b>.</p><p>Referência sem intervenção: <b>R$&nbsp;15,42</b> · Diferença líquida estimada: <b>-R$&nbsp;1.794,98</b>.</p></div>
++ <h2>Qualidade da escolha no conjunto enumerado</h2><section class="decision-quality review-warning" aria-label="Critérios do modelo"><div class="review-heading"><span>CONDIÇÕES NÃO ATENDIDAS</span><strong>Esta seleção não atende integralmente aos critérios modelados</strong></div><p>Confira viabilidade, orçamento e meta de SLA antes de registrar. Somente alternativas enumeradas que atendem aos critérios modelados; não comprova ótimo global, disponibilidade de recursos nem viabilidade industrial.</p></section><p class="report-draft">RELATÓRIO DE ANÁLISE · ainda não há decisão registrada para esta alternativa e este experimento.</p>
++ <h2>Impacto por pedido</h2><table><thead><tr><th>Pedido</th><th>Prazo</th><th>Sem resposta</th><th>Com resposta</th><th>Folga B</th><th>Condição</th></tr></thead><tbody><tr><td>CURTA</td><td>0,0005 h</td><td>0,00203591 h</td><td>0,00153591 h</td><td>-0,00103591 h</td><td>Atrasado</td></tr></tbody></table>
++ <h2>Método econômico e indicadores</h2><p>Custos operacionais estimados por capacidade contratada (máquinas e operadores) durante o horizonte da programação; multas previstas por atraso em relação ao prazo cadastrado. O investimento modelado é somado separadamente no custo da decisão. Uma redução de makespan ou de custo modelado <strong>não é garantia de economia financeira efetiva</strong> sem verificar as parcelas evitáveis.</p><p>Folga = prazo − conclusão prevista. A classificação de atraso preserva a tolerância numérica do motor. Folga entre zero e 0,50 h indica atenção neste relatório. O indicador de gargalo do motor usa pontuação composta por utilização, espera e fila máxima; não demonstra, sozinho, a restrição estrutural de throughput.</p><h2>Hipóteses e limitações</h2><p>Cenário sintético de apoio à decisão, não monitoramento em tempo real. Restrições de habilitação individual, setups dependentes de sequência, buffers finitos e recursos de manutenção não foram integralmente verificados. O motor não simula refugo, retrabalho nem inspeção de qualidade. MTBF/MTTR exigem histórico de falhas não disponível.</p><p>Entregas abaixo do mínimo exigido</p>
++ <div class="foot">Experimento 8c28c9aac9f7 · Dados do modelo local (Modelo editado pelo usuário). Fonte dos indicadores: resultados do motor de eventos discretos do Anti-Murphy. O relatório apresenta previsões de simulação e não constitui instrução para atuação física. Nenhuma ação foi aplicada em máquina real.</div></main></body></html># Binary in overlay: docs/INT02/evidencias/relatorio_1366.png
+--- /dev/null
++++ b/docs/INT02/evidencias/relatorio_1920.html
+@@ -0,0 +1,10 @@
++<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Anti-Murphy · Relatório 8c28c9aac9f7</title><style>
++ @page{size:A4;margin:17mm}*{box-sizing:border-box}body{margin:0;background:#E8ECEB;font-family:Arial,Helvetica,sans-serif;color:#1D292D;font-size:12px;line-height:1.5}main{max-width:900px;background:white;min-height:100vh;margin:0 auto;padding:36px 45px}header{display:flex;justify-content:space-between;gap:16px;border-bottom:4px solid #FF681B;padding-bottom:20px;margin-bottom:26px}.logo{font-size:20px;letter-spacing:.09em;font-weight:800}.mark{display:inline-block;border-left:5px solid #FF681B;padding-left:11px}.meta{font-size:11px;color:#59716A;text-align:right}h1{font-size:24px;margin:0 0 7px}h2{font-size:15px;border-bottom:1px solid #DCE5E0;margin:27px 0 13px;padding-bottom:8px}h3{font-size:14px;margin:0 0 9px}.lead{font-size:13px;color:#3E5750}.comparison-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:15px}.comparison{border:1px solid #D7E2DC;padding:15px}.comparison h3{font-size:12px}.comparison dl{display:grid;grid-template-columns:1fr auto;gap:6px;margin:0}.comparison dt{color:#56736A}.comparison dd{margin:0;text-align:right;font-weight:700}table{border-collapse:collapse;width:100%;font-size:11px}th,td{text-align:left;border-bottom:1px solid #DFE6E0;padding:9px 7px}th{background:#F1F4F1;color:#2A4540}p{margin:8px 0}.callout{border-left:3px solid #FF681B;background:#F4F6F2;padding:15px 18px;margin:16px 0}.print{display:flex;justify-content:end;padding:16px;background:#DDE6DF}.print button{background:#1D292D;border:0;color:white;padding:11px 18px;cursor:pointer}.decision-quality{border:1px solid #CEDAD8;background:#F4F7F5;padding:13px 17px;margin:12px 0}.review-warning{border-left:4px solid #FF681B}.review-heading span{display:block;color:#657D7D;font-size:9px;letter-spacing:.06em}.review-heading strong{display:block;margin-top:3px;color:#1D292D}.review-caution{color:#50686C;font-size:10px}.report-draft{background:#FFF2E8;padding:11px 14px;border-left:3px solid #FF681B}.executive-summary{background:#F1F5F1;border:1px solid #D7E2DC;border-left:4px solid #FF681B;padding:14px 17px;margin:14px 0 18px}.executive-summary>span{color:#526B64;font-size:9px;font-weight:700;letter-spacing:.08em}.executive-summary>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:12px 0}.executive-summary strong{font-size:16px;color:#1D292D;line-height:1.2}.executive-summary small{display:block;font-size:9px;color:#56736A;font-weight:400;padding-top:5px}.executive-summary p{font-size:10px;color:#536D63}.foot{font-size:11px;color:#607970;margin-top:25px;line-height:1.6}@media print{body{background:white}main{padding:0;min-height:auto}.print{display:none}.comparison{break-inside:avoid}h2{break-after:avoid}}
++ </style></head><body><div class="print"><button id="print-report">Imprimir ou salvar como PDF</button></div><main><header><div class="mark logo">ANTI-MURPHY</div><div class="meta">Estudo 8c28c9aac9f7<br>Projeto: Projeto principal<br>Emissão: 13/11/2026</div></header>
++ <h1>Análise de impacto na produção</h1><p class="lead">Posto: <b>P</b> · Início da parada: <b>0,0001 h</b> · Duração: <b>0,001 h</b> · Resposta após: <b>0,00 h</b></p>
++ <section class="executive-summary"><span>RESULTADO DO EXPERIMENTO · EVIDÊNCIA SINTÉTICA</span><div><strong>1 → 1<small>pedidos atrasados (A → B)</small></strong><strong>0,00% → 0,00%<small>SLA simulado</small></strong><strong>-R$&nbsp;1.794,98<small>diferença econômica modelada</small></strong></div><p>Alternativa selecionada: Manutenção expressa · P. Estes resultados não certificam viabilidade física nem economia de caixa.</p></section><h2>Comparação de cenários</h2><div class="comparison-grid"><div class="comparison"><h3>Operação nominal</h3><dl><dt>Conclusão prevista</dt><dd>0,001036 h</dd><dt>Pedidos no prazo</dt><dd>0,00%</dd><dt>Pedidos atrasados</dt><dd>1</dd><dt>Custo do cenário</dt><dd>R$&nbsp;5,39</dd></dl></div><div class="comparison"><h3>Falha sem resposta</h3><dl><dt>Conclusão prevista</dt><dd>0,002036 h</dd><dt>Pedidos no prazo</dt><dd>0,00%</dd><dt>Pedidos atrasados</dt><dd>1</dd><dt>Custo do cenário</dt><dd>R$&nbsp;15,42</dd></dl></div><div class="comparison"><h3>Resposta selecionada</h3><dl><dt>Conclusão prevista</dt><dd>0,001536 h</dd><dt>Pedidos no prazo</dt><dd>0,00%</dd><dt>Pedidos atrasados</dt><dd>1</dd><dt>Custo do cenário</dt><dd>R$&nbsp;10,41</dd></dl></div></div>
++ <h2>Intervenção avaliada</h2><div class="callout"><h3>Manutenção expressa · P</h3><p>Reduz pela metade o reparo restante a partir da decisão. O tempo de parada já ocorrido é preservado.</p><p>Operação: <b>R$&nbsp;0,05</b> + penalidades: <b>R$&nbsp;10,36</b> + investimento modelado: <b>R$&nbsp;1.800,00</b> = custo da decisão: <b>R$&nbsp;1.810,41</b>.</p><p>Referência sem intervenção: <b>R$&nbsp;15,42</b> · Diferença líquida estimada: <b>-R$&nbsp;1.794,98</b>.</p></div>
++ <h2>Qualidade da escolha no conjunto enumerado</h2><section class="decision-quality review-warning" aria-label="Critérios do modelo"><div class="review-heading"><span>CONDIÇÕES NÃO ATENDIDAS</span><strong>Esta seleção não atende integralmente aos critérios modelados</strong></div><p>Confira viabilidade, orçamento e meta de SLA antes de registrar. Somente alternativas enumeradas que atendem aos critérios modelados; não comprova ótimo global, disponibilidade de recursos nem viabilidade industrial.</p></section><p class="report-draft">RELATÓRIO DE ANÁLISE · ainda não há decisão registrada para esta alternativa e este experimento.</p>
++ <h2>Impacto por pedido</h2><table><thead><tr><th>Pedido</th><th>Prazo</th><th>Sem resposta</th><th>Com resposta</th><th>Folga B</th><th>Condição</th></tr></thead><tbody><tr><td>CURTA</td><td>0,0005 h</td><td>0,00203591 h</td><td>0,00153591 h</td><td>-0,00103591 h</td><td>Atrasado</td></tr></tbody></table>
++ <h2>Método econômico e indicadores</h2><p>Custos operacionais estimados por capacidade contratada (máquinas e operadores) durante o horizonte da programação; multas previstas por atraso em relação ao prazo cadastrado. O investimento modelado é somado separadamente no custo da decisão. Uma redução de makespan ou de custo modelado <strong>não é garantia de economia financeira efetiva</strong> sem verificar as parcelas evitáveis.</p><p>Folga = prazo − conclusão prevista. A classificação de atraso preserva a tolerância numérica do motor. Folga entre zero e 0,50 h indica atenção neste relatório. O indicador de gargalo do motor usa pontuação composta por utilização, espera e fila máxima; não demonstra, sozinho, a restrição estrutural de throughput.</p><h2>Hipóteses e limitações</h2><p>Cenário sintético de apoio à decisão, não monitoramento em tempo real. Restrições de habilitação individual, setups dependentes de sequência, buffers finitos e recursos de manutenção não foram integralmente verificados. O motor não simula refugo, retrabalho nem inspeção de qualidade. MTBF/MTTR exigem histórico de falhas não disponível.</p><p>Entregas abaixo do mínimo exigido</p>
++ <div class="foot">Experimento 8c28c9aac9f7 · Dados do modelo local (Modelo editado pelo usuário). Fonte dos indicadores: resultados do motor de eventos discretos do Anti-Murphy. O relatório apresenta previsões de simulação e não constitui instrução para atuação física. Nenhuma ação foi aplicada em máquina real.</div></main></body></html># Binary in overlay: docs/INT02/evidencias/relatorio_1920.png
+--- /dev/null
++++ b/tests/test_int02_audit_precision.py
+@@ -0,0 +1,97 @@
++"""Independent per-order timing references, including legacy and deadline edges."""
++from copy import deepcopy
++from decimal import Decimal
++import json
++from unittest.mock import patch
++import pytest
++from atelier.technical_audit import summarize_audit
++from atelier.service import Studio
++from simulation.nexus import current_analysis,selected_action
++
++
++def snapshot(row):
++    result={'orders':[deepcopy(row)],'stations':[]}
++    return summarize_audit({'incident':result,'normal':result,'run_id':'unit'},None,
++                           [{'id':'A','quantidade':1}],{},'P','hash')['orders']['normal'][0]
++
++
++def row(**extra):
++    return {'OP':'A','Prazo (h)':.0005,'Conclusão (h)':0.,'Multa (R$)':5.,**extra}
++
++
++@pytest.mark.parametrize('finish',[.001,.0003,.0005,.0005000005,.000500002])
++def test_precise_completion_and_deadline_difference_keep_sign(finish):
++    expected=float(Decimal(str(.0005))-Decimal(str(finish)))
++    late=max(0.,-expected)
++    actual=snapshot(row(completion_h=finish,lateness_h=late))
++    assert actual['finish_h']==finish
++    assert actual['slack_h']==pytest.approx(expected,abs=1e-18)
++    assert actual['lateness_h']==pytest.approx(late,abs=1e-18)
++    assert actual['timing_source']=='precise'
++
++
++@pytest.mark.parametrize('finish,status,is_late',[(.0005000005,'No prazo',False),(.000500002,'Atrasada',True)])
++def test_engine_deadline_classification_is_preserved_without_new_tolerance(finish,status,is_late):
++    actual=snapshot(row(completion_h=finish,lateness_h=finish-.0005,Status=status))
++    assert actual['is_late'] is is_late
++    assert actual['slack_h']<0
++
++
++@pytest.mark.parametrize('finish',[0.,1.23])
++def test_legacy_completion_falls_back_only_when_precise_key_is_absent(finish):
++    actual=snapshot(row(**{'Conclusão (h)':finish}))
++    assert actual['finish_h']==finish
++    assert actual['slack_h']==.0005-finish
++    assert actual['timing_source']=='legacy_rounded'
++    assert actual['lateness_source']=='derived'
++
++
++@pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++def test_invalid_explicit_precise_completion_is_not_replaced_by_rounded_zero(invalid):
++    actual=snapshot(row(completion_h=invalid,lateness_h=.1))
++    assert actual['finish_h'] is None
++    assert actual['slack_h'] is None
++    assert actual['is_late'] is None
++    assert actual['timing_source']=='unavailable'
++
++
++@pytest.mark.parametrize('invalid',[None,True,'bad',float('nan'),float('inf'),-1.])
++def test_invalid_explicit_lateness_remains_unknown(invalid):
++    actual=snapshot(row(completion_h=.001,lateness_h=invalid))
++    assert actual['lateness_h'] is None
++    assert actual['is_late'] is None
++    assert actual['lateness_source']=='unavailable'
++
++
++def test_legacy_classification_is_retained_and_rounded_origin_is_identified():
++    actual=snapshot(row(Status='Atrasada'))
++    assert actual['is_late'] is True
++    assert actual['timing_source']=='legacy_rounded'
++
++
++def test_precise_zero_is_retained_and_not_replaced_by_nonzero_legacy_value():
++    actual=snapshot(row(completion_h=0.,lateness_h=0.,**{'Conclusão (h)':7}))
++    assert actual['finish_h']==0.
++    assert actual['slack_h']==.0005
++
++
++def test_real_short_cycle_all_scenarios_read_only_and_core_metrics_unchanged(tmp_path):
++    s=Studio(tmp_path)
++    station={'nome':'P','maquinas':2,'operadores':2,'operadores_por_maquina':1,'eficiencia_operador':1,'disponibilidade':1,'custo_maquina_h':10,'custo_operador_h':5,'setup_min':0}
++    s.set_model({'stations':{'P':station},'orders':[{'id':'A','quantidade':2,'prazo_h':.0005,'multa_hora':10000,'route':[['P',.06]]}]})
++    s.calculate({'station':'P','start_h':.0001,'duration_h':.001,'delay_h':0})
++    chosen=next(r for r in s.info()['alternatives'] if r['action'].startswith('Manutenção expressa'))
++    s.select(chosen['signature'])
++    before=deepcopy(s.info());disk={p:p.read_bytes() for p in tmp_path.rglob('*.json')}
++    analysis=current_analysis(s.state);selected=selected_action(s.state,analysis)
++    with patch('atelier.service.execute',side_effect=AssertionError('audit must not simulate')):
++        audited=s.technical_audit()
++    for key,result in [('normal',analysis['normal']),('incident',analysis['incident']),('response',selected['result'])]:
++        expected=result['orders'][0];actual=audited['orders'][key][0]
++        assert actual['finish_h']==expected['completion_h']
++        assert actual['slack_h']==expected['Prazo (h)']-expected['completion_h']
++        assert actual['lateness_h']==expected['lateness_h']
++        assert actual['is_late']==(expected['Status']=='Atrasada')
++    assert s.info()==before
++    assert all(p.read_bytes()==data for p,data in disk.items())
++    assert audited['costs']['all_reconciled']
