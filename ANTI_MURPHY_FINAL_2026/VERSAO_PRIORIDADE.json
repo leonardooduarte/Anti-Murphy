@@ -1,0 +1,6 @@
+{
+  "version": "PRIORIDADE-2026.1",
+  "base_commit": "6f6c13501a787113edaf062a32639445240d52a9",
+  "base_app_sha256": "65357247765a9cf596f6fd3bc301226ec3d2311bc0680c79e311b0df2f8e27c9",
+  "app_sha256": "0d8591f22f9bd61f1abef08931a5d6a24001177a4531224ff29ba17d5aacfb17"
+}

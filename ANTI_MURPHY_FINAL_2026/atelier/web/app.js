@@ -1201,7 +1201,7 @@ function renderModel(){
    if(field==='route'){
     original.route=inp.value;renderModelWorkload();return;
    }
-   original[field]=inp.dataset.numeric==='1'? Number(inp.value):inp.value;
+   original[field]=field==='prioridade'?(inp.validity.badInput?NaN:inp.value):(inp.dataset.numeric==='1'?Number(inp.value):inp.value);
    renderModelWorkload();
   });
  });
@@ -1251,7 +1251,15 @@ function normalizedModel(){
  }
  for(const raw of m.orders){
   const order={...raw,id:String(raw.id||'').trim().toUpperCase(),quantidade:Number(raw.quantidade),
-    prazo_h:Number(raw.prazo_h),multa_hora:Number(raw.multa_hora),prioridade:Number(raw.prioridade),release_h:Number(raw.release_h)||0};
+    prazo_h:Number(raw.prazo_h),multa_hora:Number(raw.multa_hora),release_h:Number(raw.release_h)||0};
+  delete order.prioridade;
+  if(raw.prioridade!==undefined&&!(typeof raw.prioridade==='string'&&raw.prioridade.trim()==='')){
+   const value=raw.prioridade;
+   const decimal=typeof value==='string'&&/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value.trim());
+   const priority=typeof value==='number'||decimal?Number(value):NaN;
+   if(!Number.isFinite(priority)||!Number.isInteger(priority))throw Error('Pedido '+order.id+': prioridade deve ser um inteiro finito ou ficar em branco.');
+   order.prioridade=priority;
+  }
   if(typeof raw.route==='string')order.route=raw.route.split(';').map(s=>s.trim()).filter(Boolean).map(step=>{
    const [id,minutes]=step.split(':');if(!id||!minutes)throw Error('Roteiro inválido em '+order.id);return [id.trim().toUpperCase(),Number(minutes)];
   });

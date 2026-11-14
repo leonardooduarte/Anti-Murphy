@@ -59,5 +59,10 @@ def test_real_primary_launcher_serves_local_app_without_site_packages(tmp_path):
 def test_visual_package_sources_remain_identical_to_received_zip():
     from hashlib import sha256
     expected=json.loads((ROOT/'docs/AM19/base-reference.json').read_text('utf-8'))['sha256']
+    amendment=ROOT/'VERSAO_PRIORIDADE.json'
+    if amendment.is_file():
+        version=json.loads(amendment.read_text())
+        assert version['base_app_sha256']==expected['atelier/web/app.js']
+        expected['atelier/web/app.js']=version['app_sha256']
     for name,digest in expected.items():
         assert sha256((ROOT/name).read_bytes()).hexdigest()==digest,name
