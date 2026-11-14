@@ -1,0 +1,546 @@
+--- a/atelier/service.py
++++ b/atelier/service.py
+@@ -122,68 +122,79 @@
+         self._last_config=None
+         self._recovery_warning=None
+         self._workload_blocked=False
+-        p=storage/'projeto.json'
+-        if p.exists():
+-            try:
+-                data=json.loads(p.read_text('utf-8'))
+-                if not validate_model(data['stations'],data['orders']):
+-                    self.state['stations']=data['stations']; self.state['orders']=data['orders']
+-                    self.state['nx_source']='Projeto local recuperado'
+-                    self.state['nx_rule']=data.get('dispatch_rule','EDD')
+-            except (OSError,ValueError,KeyError,TypeError):pass
+         self.project_id='principal'
+         self.projects_dir=self.storage/'projetos'
+         self.experiments_dir=self.storage/'experimentos'
+         self.projects_dir.mkdir(parents=True,exist_ok=True)
+         self.experiments_dir.mkdir(parents=True,exist_ok=True)
+-        active=self.storage/'projeto_ativo.json'
+-        startup_spec={'station':'CNC' if 'CNC' in self.state['stations'] else next(iter(self.state['stations'])),
+-                      'start_h':4,'duration_h':8,'budget':10000,'min_sla':80,'delay_h':2}
++        startup_spec={'station':'CNC','start_h':4,'duration_h':8,
++                      'budget':10000,'min_sla':80,'delay_h':2}
++        issues=[]
++
++        def read(path):
++            data=json.loads(path.read_text('utf-8'))
++            if not isinstance(data,dict):
++                raise ValueError('documento deve ser um objeto JSON')
++            return data
++
++        def validated(data, pid):
++            # Validate the entire candidate before publishing any part of it.
++            self._project_file(pid)
++            errors=validate_model(data['stations'],data['orders'])
++            if errors or _operability_errors(data['stations'],data['orders']):
++                raise ValueError('modelo inválido')
++            rule=data.get('dispatch_rule','EDD')
++            if rule not in ('EDD','SPT','FIFO'):
++                raise ValueError('regra de despacho inválida')
++            if 'spec' in data and not isinstance(data['spec'],dict):
++                raise ValueError('configuração do experimento inválida')
++            spec={**asdict(ExperimentSpec()),**data.get('spec',{})}
++            if 'spec' not in data:
++                spec.update({k:v for k,v in startup_spec.items() if k in spec})
++                spec['station']='CNC' if 'CNC' in data['stations'] else next(iter(data['stations']))
++            ExperimentSpec(**spec).validate(data['stations'])
++            if spec['objective']=='critical' and spec['critical_order'] not in {o['id'] for o in data['orders']}:
++                raise ValueError('pedido prioritário inexistente')
++            delay=float(data.get('delay_h',2.))
++            if not 0<=delay<=168:
++                raise ValueError('espera da intervenção inválida')
++            return data,pid,{**spec,'delay_h':delay},rule
++
++        failures=(OSError,ValueError,TypeError,KeyError,AttributeError,IndexError,OverflowError,StudioError)
++        candidate=None
++        active=storage/'projeto_ativo.json'
+         if active.exists():
+             try:
+-                selected=json.loads(active.read_text('utf-8')).get('id','')
+-                project=self._project_file(selected)
+-                if project.is_file():
+-                    data=json.loads(project.read_text('utf-8'))
+-                    if not validate_model(data['stations'],data['orders']):
+-                        self.project_id=selected
+-                        self.state['stations']=data['stations']
+-                        self.state['orders']=data['orders']
+-                        self.state['nx_rule']=data.get('dispatch_rule','EDD')
+-                        startup_spec.update(data.get('spec') or {})
+-                        startup_spec['delay_h']=data.get('delay_h',startup_spec['delay_h'])
+-            except (OSError,ValueError,TypeError,KeyError):pass
+-        # Recover a previously confirmed model if the current active pointer or
+-        # project carries a stale/invalid priority or an incomplete write.
+-        try:
+-            ExperimentSpec(**{**asdict(ExperimentSpec()), **{k:v for k,v in startup_spec.items() if k in asdict(ExperimentSpec())}}).validate(self.state['stations'])
+-            if _operability_errors(self.state['stations'],self.state['orders']):
+-                raise ValueError('Projeto contém posto sem equipe para os pedidos.')
+-            if self.state.get('nx_rule') not in ('EDD','SPT','FIFO'):
+-                raise ValueError('Regra de despacho persistida inválida.')
+-            if (startup_spec.get('objective')=='critical' and startup_spec.get('critical_order') not in {o['id'] for o in self.state['orders']}):
+-                raise ValueError('Prioridade persistida faz referência a pedido inexistente.')
+-        except (ValueError,TypeError,KeyError) as exc:
+-            checkpoint=self.storage/'projeto_confirmado.json'
+-            recovered=False
+-            if checkpoint.exists():
+-                try:
+-                    saved=json.loads(checkpoint.read_text('utf-8'))
+-                    if not (validate_model(saved['stations'],saved['orders'])+_operability_errors(saved['stations'],saved['orders'])):
+-                        candidate_spec={**asdict(ExperimentSpec()),**(saved.get('spec') or {})}
+-                        ExperimentSpec(**candidate_spec).validate(saved['stations'])
+-                        self.state['stations']=saved['stations'];self.state['orders']=saved['orders']
+-                        self.state['nx_rule']=saved.get('dispatch_rule','EDD')
+-                        startup_spec=candidate_spec;self.project_id=saved.get('id','principal')
+-                        recovered=True
+-                except (OSError,ValueError,TypeError,KeyError):pass
+-            if not recovered:
+-                self.state['stations']=deepcopy(STATIONS_BASE)
+-                self.state['orders']=deepcopy(ORDERS_BASE)
+-                self.state['nx_rule']='EDD';self.project_id='principal'
+-                startup_spec=asdict(ExperimentSpec())
+-            self._recovery_warning='Configuração inválida na abertura; recuperada a última versão confirmada ou o exemplo padrão.'
+-        startup_spec['station']=startup_spec['station'] if startup_spec['station'] in self.state['stations'] else next(iter(self.state['stations']))
++                pid=read(active)['id']
++                candidate=validated(read(self._project_file(pid)),pid)
++            except failures:
++                issues.append('projeto ativo inválido ou indisponível')
++        # A confirmed document includes the complete model and experiment.
++        # Prefer it to projeto.json, which intentionally stores only the model.
++        checkpoint=storage/'projeto_confirmado.json'
++        if candidate is None and checkpoint.exists():
++            try:
++                data=read(checkpoint)
++                candidate=validated(data,data.get('id','principal'))
++                if not active.exists():issues.append('referência do projeto ativo ausente')
++            except failures:
++                issues.append('última versão confirmada inválida ou indisponível')
++        basic=storage/'projeto.json'
++        if candidate is None and basic.exists():
++            try:
++                candidate=validated(read(basic),'principal')
++            except failures:
++                issues.append('modelo local inválido ou indisponível')
++        if candidate is not None:
++            data,self.project_id,startup_spec,rule=candidate
++            self.state['stations']=data['stations'];self.state['orders']=data['orders']
++            self.state['nx_rule']=rule
++            self.state['nx_source']='Projeto local recuperado'
++        if issues:
++            origin='última configuração local válida' if candidate else 'exemplo padrão'
++            self._recovery_warning=('Abertura com recuperação: '+ '; '.join(issues)+
++                '. Exibindo '+origin+'. Arquivos originais preservados; nenhuma gravação automática foi realizada. '
++                'Confira os dados antes de aplicar ou salvar alterações.')
+         try:
+             self.calculate(startup_spec,initial=True)
+         except WorkloadLimitError as exc:
+@@ -222,10 +233,12 @@
+             paths=[self.storage/'projeto.json',self._project_file(pid),
+                    self.storage/'projeto_ativo.json',self.storage/'projeto_confirmado.json']
+             # A second reader must not change revisions merely by starting.
+-            if self._initializing and not self._recovery_warning and all(p.is_file() for p in paths):
++            if self._initializing and (self._recovery_warning or all(p.is_file() for p in paths)):
+                 return
+             self._persist_model_locked(state,project_id,name)
+             self._storage_revision=project_revision(self.storage)
++            if not self._initializing:
++                self._recovery_warning=None
+ 
+     def _persist_model_locked(self, state=None, project_id=None, name=None):
+         """Stage all local model files; publish no memory until disk confirms."""
+--- /dev/null
++++ b/CONTINUIDADE_RECUPERACAO_2026.md
+@@ -0,0 +1,7 @@
++# Continuidade — RECUPERACAO-2026.1
++
++Base e9ba7a2 (prioridade opcional sobre AM19). Branch correcao-recuperacao-local, checkpoint 0ff38d2. Corrige exclusivamente abertura com dados inválidos: valida candidato completo, recupera checkpoint antes do modelo básico e informa fallback. Abertura com recuperação não regrava originais nem checkpoint; salvamento explícito permanece permitido e limpa aviso após sucesso. 20 testes novos; regressão 597 aprovados, zero falhas, dez subtestes; três experimentos preservados; recuperação, gráficos/exportações e Modo Banca nas três resoluções.
++
++ZIP e patch são conferidos por extração e comparação de hashes; patch exige a versão de prioridade e cria pasta nova. Instale em pasta nova e preserve sua versão e seus projetos. Consulte relatório para limites do fallback legado e da preservação após salvamento explícito. Windows/BAT/projetor ainda pendentes.
++
++Próxima etapa recomendada: AM22, validação local de Host/Origin, reproduzindo o achado na base desta entrega. Não iniciada. Depois, auditoria integrada e ensaio real no Windows/projetor, incluindo os componentes visuais recebidos. Não presumir que documentos antigos de status reflitam o último commit. Continuar sem agentes paralelos, uma etapa por branch, checkpoints, ZIP, patch e links verificados.
+--- /dev/null
++++ b/LEIA_RECUPERACAO_2026.md
+@@ -0,0 +1 @@
++RECUPERACAO-2026.1 sobre PRIORIDADE/AM19. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve instalação e projetos anteriores. Leia RELATORIO_RECUPERACAO_2026.md e CONTINUIDADE_RECUPERACAO_2026.md. Abertura com recuperação mostra aviso e preserva arquivos originais; confira os dados antes de aplicar/salvar. Windows nativo pendente.
+--- /dev/null
++++ b/RELATORIO_RECUPERACAO_2026.md
+@@ -0,0 +1,33 @@
++# Recuperação local — complemento exclusivo da AM01
++
++Base: PRIORIDADE-2026.1, commit e9ba7a25f754ed4c8bf63ccb86db4d42344c0013. Branch correcao-recuperacao-local. Checkpoint 0ff38d2. Evolução visual, correção de prioridade, AM19 e demais entregas preservadas. Não foi utilizado ZIP antigo.
++
++## Defeitos reproduzidos
++
++before.log registra dois casos sobre a base exata: projeto ativo com JSON corrompido abria sem aviso, com duração padrão de 8 h no lugar das 5 h confirmadas; ponteiro com id ../invalido provocava StudioError e impedia a abertura. O checkpoint não foi alterado nessa reprodução, mas não era consultado pelo primeiro caminho. Portanto, a recuperação aparente não garantia recuperação do experimento completo. A cópia de reprodução usou diretório temporário e não projetos reais.
++
++## Contrato e solução
++
++atelier/service.py, Studio._initialize: o candidato completo é validado antes de publicar modelo, regra ou experimento. A ordem é projeto ativo válido; última configuração confirmada válida; modelo básico legado válido; exemplo padrão. O modelo básico não contém os parâmetros completos do experimento: ao utilizá-lo, aplicam-se os defaults compatíveis e mostra-se aviso se houve falha anterior. Ausência total de dados em uma instalação nova continua sendo inicialização normal.
++
++JSON malformado, estrutura incompatível, modelo inválido, identificador inválido, regra inválida, referência a pedido prioritário inexistente e parâmetros inválidos impedem o uso daquele candidato. O tratamento é restrito à leitura e validação de cada candidato; falhas de programação e de simulação não são engolidas por um except genérico. O identificador do ponteiro e o do checkpoint são validados pelo contrato existente, sem permitir caminhos externos.
++
++Studio._persist_model: durante uma abertura com recuperação, não grava projeto.json, projeto_ativo.json, projeto_confirmado.json ou documentos de projeto. Os originais, inclusive os danificados, permanecem disponíveis. Reabrir não destrói evidências nem substitui o último checkpoint. O aviso explica a recuperação e orienta conferir os dados antes de aplicar ou salvar. Uma ação explícita de salvamento usa a transação existente e limpa o aviso após sucesso; a reabertura carrega o estado confirmado. Esta etapa não acrescenta histórico ilimitado nem backup automático após uma ação explícita: para conservar indefinidamente um arquivo danificado, copie a pasta antes de salvar. O lock local e as verificações de revisão da AM12 continuam ativos.
++
++O helper interno validated valida o conjunto modelo/regra/spec/espera antes de substituir qualquer parte do estado. Não alteramos o motor DES, fórmulas, custos, investimentos, prioridades opcionais, CSS, HTML ou JavaScript. Os arquivos visuais e simulation/engine.py permanecem idênticos à base; a regressão também verifica os hashes visuais herdados.
++
++## Testes
++
++20 casos novos em tests/test_startup_recovery.py: JSON truncado, array, null, documento ausente, identificadores inválidos, modelo inválido, regra, spec, pedido crítico e espera inválidos; checkpoint inutilizável em cinco variantes; todas as fontes inválidas; ponteiro ausente; reabertura saudável; salvamento explícito após recuperação. As verificações comparam o conteúdo de todos os JSON e repetem a abertura para demonstrar preservação. Não alteramos nem desativamos testes antigos.
++
++atelier/tests/browser_startup_recovery.py: servidor HTTP real, aviso visível, restauração dos parâmetros, arquivos intactos antes de salvar, aplicação explícita e reabertura, sem erro JavaScript em 1280x720, 1366x768 e 1920x1080. Capturas e logs acompanham a entrega.
++
++Regressão: 597 aprovados, zero falhas, dez subtestes. Três experimentos oficiais preservados: A com SLA 100/40/100%, custo total da decisão R$12.113,00 e economia líquida R$4.103,68; B e C mantiveram os resultados registrados no log. Gráficos/exportações e Modo Banca com justificativa, registro e relatório foram conferidos nas três resoluções. Eventual warning do plugin AnyIO é de depreciação, não falha funcional.
++
++Comandos: python -m pytest tests contract_tests atelier/tests -q; python -m pytest tests/test_startup_recovery.py tests/test_am19_distribution.py -q; python -m atelier.tests.validacao_experimentos_banca; python -m atelier.tests.browser_startup_recovery; python -m atelier.tests.browser_acabamento_final; python docs/AM19/evidencias/actual_http_browser.py. Os testes de navegador usam Chromium/Playwright no Linux.
++
++## Entrega e limites
++
++ZIP completo com recursos essenciais e arquivos anteriores; patch aplicado sobre uma extração limpa da base e criando pasta nova; relatório, continuidade, logs e hashes. Extração do ZIP e aplicação do patch devem produzir os mesmos arquivos, conferidos por SHA-256. A publicação é recuperada do GitHub e comparada aos arquivos locais antes de declarar conclusão.
++
++Não houve validação nativa no Windows, BAT ou projetor. Não se promete resistência a toda falha física nem recuperação de conteúdo inexistente em todas as fontes. Arquivos de dados do usuário não foram modificados. Runners históricos e limitações documentadas nas entregas anteriores permanecem. Host/Origin, avaliação visual e outros achados não foram alterados.
+--- /dev/null
++++ b/atelier/tests/browser_startup_recovery.py
+@@ -0,0 +1,41 @@
++"""Real HTTP recovery warning, preserved files and explicit save at three sizes."""
++import json,os
++from pathlib import Path
++from tempfile import TemporaryDirectory
++from threading import Thread
++from http.server import ThreadingHTTPServer
++from playwright.sync_api import sync_playwright,expect
++from atelier.service import Studio
++from atelier import server
++
++out=Path(os.environ.get('RECOVERY_QA_OUT','docs/RECUPERACAO/capturas'));out.mkdir(parents=True,exist_ok=True)
++with sync_playwright() as pw:
++    browser=pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
++    for w,h in [(1280,720),(1366,768),(1920,1080)]:
++        with TemporaryDirectory() as d:
++            folder=Path(d);Studio(folder).calculate({'min_sla':73,'duration_h':5})
++            (folder/'projeto_ativo.json').write_text('{"id":"../invalid"}')
++            before={p:p.read_bytes() for p in folder.rglob('*.json')}
++            studio=Studio(folder);server.STUDIO=studio
++            httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler)
++            Thread(target=httpd.serve_forever,daemon=True).start()
++            page=browser.new_page(viewport={'width':w,'height':h});errors=[]
++            page.on('pageerror',lambda e:errors.append(str(e)))
++            try:
++                page.goto(f'http://127.0.0.1:{httpd.server_port}/',wait_until='networkidle')
++                expect(page.locator('#toast')).to_contain_text('Abertura com recuperação')
++                page.evaluate('document.querySelector("#splash")?.remove()')
++                assert studio.info()['spec']['min_sla']==73
++                assert all(p.read_bytes()==b for p,b in before.items())
++                page.screenshot(path=str(out/f'recuperacao_{w}.png'))
++                page.locator('[data-nav=modelo]').click()
++                with page.expect_response(lambda r:r.url.endswith('/api/model')) as ev:
++                    page.locator('#model-save').click()
++                assert ev.value.ok
++                assert not studio.info()['recovery_warning']
++                assert Studio(folder).info()['spec']['min_sla']==73
++                assert not errors,errors
++                print('RECOVERY BROWSER OK',w,h,flush=True)
++            finally:
++                page.close();httpd.shutdown();httpd.server_close()
++    browser.close()
+--- /dev/null
++++ b/docs/RECUPERACAO/evidencias/banca.log
+@@ -0,0 +1,4 @@
++3 EXPERIMENTOS APROVADOS
++A: 100.0 40.0 100.0 custos 16216.67 12113.0 4103.68
++B: [(0, 5.681763308299117, 84.12881249414335), (1, 5.681763308299117, 96.09692807908425), (2, 5.681763308299117, 108.06504366402514), (3, 5.681763308299117, 120.033159248966)]
++C: Manutenção expressa · CNC 21.57530617980079 +1 operador · CNC 19.973006391870044
+--- /dev/null
++++ b/docs/RECUPERACAO/evidencias/before.log
+@@ -0,0 +1,2 @@
++json warning= None duration= 8 checkpoint_preserved= True
++id StudioError Identificador de projeto inválido.
+--- /dev/null
++++ b/docs/RECUPERACAO/evidencias/browser-banca.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1280x720 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1366x768 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiments HTTP/1.1" 200 -
++Modo Banca premium OK 1920x1080 · progressive / dual panels / justification / record / report
+--- /dev/null
++++ b/docs/RECUPERACAO/evidencias/browser-charts.log
+@@ -0,0 +1,3 @@
++ACABAMENTO OK 1280 720 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1366 768 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1920 1080 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
+--- /dev/null
++++ b/docs/RECUPERACAO/evidencias/browser.log
+@@ -0,0 +1,75 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++RECOVERY BROWSER OK 1280 720
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++RECOVERY BROWSER OK 1366 768
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/model HTTP/1.1" 200 -
++RECOVERY BROWSER OK 1920 1080
+# Binary in overlay: docs/RECUPERACAO/evidencias/recuperacao_1280.png
+# Binary in overlay: docs/RECUPERACAO/evidencias/recuperacao_1366.png
+# Binary in overlay: docs/RECUPERACAO/evidencias/recuperacao_1920.png
+--- /dev/null
++++ b/docs/RECUPERACAO/evidencias/regression.log
+@@ -0,0 +1,19 @@
++........................................................................ [ 12%]
++........................................................................ [ 24%]
++........................................................................ [ 36%]
++........................................................................ [ 48%]
++........................................................................ [ 60%]
++........................................................................ [ 72%]
++........................................................................ [ 84%]
++.............................................................. [ 94%]
++...............................                                          [100%]
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++597 passed, 1 warning, 10 subtests passed in 109.64s (0:01:49)
+--- /dev/null
++++ b/tests/test_startup_recovery.py
+@@ -0,0 +1,93 @@
++"""Recovery must never overwrite the evidence or publish partial candidates."""
++import json
++from pathlib import Path
++
++import pytest
++from atelier.service import Studio
++
++
++def files(folder):
++    return {str(p.relative_to(folder)):p.read_bytes() for p in folder.rglob('*.json')}
++
++
++@pytest.fixture
++def saved(tmp_path):
++    studio=Studio(tmp_path)
++    studio.calculate({'duration_h':5,'min_sla':73,'delay_h':3,'rule':'SPT'})
++    return tmp_path
++
++
++@pytest.mark.parametrize('damage', ['json','array','null','missing','id','id_null','model','rule','spec','critical','delay'])
++def test_active_damage_recovers_complete_checkpoint_and_preserves_all_files(saved,damage):
++    active=saved/'projeto_ativo.json';project=saved/'projetos/principal.json'
++    body=json.loads(project.read_text())
++    if damage=='json':project.write_text('{broken')
++    elif damage=='array':project.write_text('[]')
++    elif damage=='null':project.write_text('null')
++    elif damage=='missing':project.unlink()
++    elif damage=='id':active.write_text('{"id":"../outside"}')
++    elif damage=='id_null':active.write_text('{"id":null}')
++    else:
++        if damage=='model':body['orders']=None
++        if damage=='rule':body['dispatch_rule']='INVALID'
++        if damage=='spec':body['spec']={'station':'inexistente'}
++        if damage=='critical':body['spec'].update(objective='critical',critical_order='inexistente')
++        if damage=='delay':body['delay_h']=float('inf')
++        project.write_text(json.dumps(body))
++    before=files(saved)
++    for _ in range(2):
++        info=Studio(saved).info()
++        assert info['recovery_warning']
++        assert info['spec']['duration_h']==5
++        assert info['spec']['min_sla']==73
++        assert info['rule']=='SPT'
++        assert files(saved)==before
++
++
++@pytest.mark.parametrize('damage',['json','id','rule','critical','spec'])
++def test_invalid_checkpoint_is_never_used_or_overwritten(saved,damage):
++    (saved/'projeto_ativo.json').write_text('{broken')
++    path=saved/'projeto_confirmado.json';body=json.loads(path.read_text())
++    if damage=='json':path.write_text('{broken')
++    else:
++        if damage=='id':body['id']='../outside'
++        if damage=='rule':body['dispatch_rule']='INVALID'
++        if damage=='critical':body['spec'].update(objective='critical',critical_order='missing')
++        if damage=='spec':body['spec']={'duration_h':None}
++        path.write_text(json.dumps(body))
++    before=files(saved);info=Studio(saved).info()
++    assert info['recovery_warning']
++    assert info['spec']['duration_h']==8 # basic model has no experiment spec
++    assert files(saved)==before
++
++
++def test_all_invalid_uses_demo_without_overwriting_any_source(saved):
++    for p in saved.rglob('*.json'):p.write_text('null')
++    before=files(saved);info=Studio(saved).info()
++    assert 'exemplo padrão' in info['recovery_warning']
++    assert info['run_id']
++    assert files(saved)==before
++
++
++def test_missing_pointer_prefers_full_checkpoint(saved):
++    (saved/'projeto_ativo.json').unlink();before=files(saved)
++    info=Studio(saved).info()
++    assert info['spec']['min_sla']==73
++    assert info['recovery_warning']
++    assert files(saved)==before
++
++
++def test_healthy_reopen_preserves_bytes_without_warning(saved):
++    before=files(saved);info=Studio(saved).info()
++    assert not info['recovery_warning']
++    assert files(saved)==before
++
++
++def test_explicit_apply_after_recovery_can_save_and_reopen(saved):
++    (saved/'projeto_ativo.json').write_text('{broken')
++    studio=Studio(saved)
++    assert studio.info()['recovery_warning']
++    studio.calculate({'min_sla':79})
++    reopened=Studio(saved).info()
++    assert reopened['spec']['min_sla']==79
++    assert not reopened['recovery_warning']

@@ -1,0 +1,1 @@
+RECUPERACAO-2026.1 sobre PRIORIDADE/AM19. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve instalação e projetos anteriores. Leia RELATORIO_RECUPERACAO_2026.md e CONTINUIDADE_RECUPERACAO_2026.md. Abertura com recuperação mostra aviso e preserva arquivos originais; confira os dados antes de aplicar/salvar. Windows nativo pendente.

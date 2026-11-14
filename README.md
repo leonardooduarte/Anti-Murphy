@@ -1,3 +1,10 @@
+# Versão atual: RECUPERACAO-2026.1 sobre PRIORIDADE/AM19
+
+[Aplicativo completo](ENTREGAS/RECUPERACAO/ANTI_MURPHY_RECUPERACAO_COMPLETO_2026.zip) · [Patch](ENTREGAS/RECUPERACAO/ANTI_MURPHY_PATCH_RECUPERACAO_2026.zip) · [Relatório](ENTREGAS/RECUPERACAO/RELATORIO_RECUPERACAO_2026.md) · [Continuidade](ENTREGAS/RECUPERACAO/CONTINUIDADE_RECUPERACAO_2026.md).
+
+Abertura com arquivos inválidos recupera uma configuração válida, informa o usuário e preserva originais sem gravação automática. Evolução visual preservada. 597 testes aprovados, zero falhas, dez subtestes; três experimentos e navegador nas três resoluções passaram. ZIP e patch conferem 631 arquivos. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Windows/projetor pendentes de validação nativa.
+
+---
 # Versão atual: PRIORIDADE-2026.1 sobre AM19
 
 [Aplicativo completo](ENTREGAS/PRIORIDADE/ANTI_MURPHY_PRIORIDADE_COMPLETO_2026.zip) · [Patch](ENTREGAS/PRIORIDADE/ANTI_MURPHY_PATCH_PRIORIDADE_2026.zip) · [Relatório](ENTREGAS/PRIORIDADE/RELATORIO_PRIORIDADE_2026.md) · [Continuidade](ENTREGAS/PRIORIDADE/CONTINUIDADE_PRIORIDADE_2026.md).
