@@ -1,3 +1,10 @@
+# Versão atual: INT04-2026.1 sobre INT03
+
+[Aplicativo completo](ENTREGAS/INT04/ANTI_MURPHY_INT04_COMPLETO_2026.zip) · [Patch](ENTREGAS/INT04/ANTI_MURPHY_PATCH_INT04_2026.zip) · [Relatório](ENTREGAS/INT04/RELATORIO_INT04_2026.md) · [Continuidade](ENTREGAS/INT04/CONTINUIDADE_INT04_2026.md).
+
+Rótulos de métricas em análise/decisões passam a 14 px, com contraste medido de 6,68:1. Ocorrência intermitente do teste de 50 postos e repetições aprovadas estão documentadas no relatório. Evolução visual preservada. 732 testes aprovados, zero falhas, dez subtestes; três experimentos e navegador nas três resoluções passaram. ZIP e patch conferem 748 arquivos. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Windows/projetor pendentes de validação nativa.
+
+---
 # Versão atual: INT03-2026.1 sobre INT02
 
 [Aplicativo completo](ENTREGAS/INT03/ANTI_MURPHY_INT03_COMPLETO_2026.zip) · [Patch](ENTREGAS/INT03/ANTI_MURPHY_PATCH_INT03_2026.zip) · [Relatório](ENTREGAS/INT03/RELATORIO_INT03_2026.md) · [Continuidade](ENTREGAS/INT03/CONTINUIDADE_INT03_2026.md).

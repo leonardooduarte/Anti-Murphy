@@ -1,0 +1,1 @@
+INT04-2026.1 sobre INT03. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve versões e projetos anteriores. Leia RELATORIO_INT04_2026.md e CONTINUIDADE_INT04_2026.md. Rótulos de métricas em análise/decisões passam a 14 px e contraste medido 6,68:1. Windows/projetor pendentes de validação nativa.

@@ -1,0 +1,560 @@
+[
+  {
+    "resolution": [
+      1280,
+      720
+    ],
+    "view": "analise",
+    "labels": [
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 130,
+          "height": 15.5,
+          "bottom": 2477.21875
+        },
+        "value_top": 2477.21875,
+        "scroll_width": 130,
+        "client_width": 130,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Término previsto",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 130,
+          "height": 15.5,
+          "bottom": 2477.21875
+        },
+        "value_top": 2477.21875,
+        "scroll_width": 130,
+        "client_width": 130,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Investimento",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 130,
+          "height": 15.5,
+          "bottom": 2535.71875
+        },
+        "value_top": 2535.71875,
+        "scroll_width": 130,
+        "client_width": 130,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 130,
+          "height": 15.5,
+          "bottom": 2535.71875
+        },
+        "value_top": 2535.71875,
+        "scroll_width": 130,
+        "client_width": 130,
+        "contrast": 3.8297293064309086
+      }
+    ]
+  },
+  {
+    "resolution": [
+      1280,
+      720
+    ],
+    "view": "decisoes",
+    "labels": [
+      {
+        "text": "Custo total simulado",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 255,
+          "height": 15.5,
+          "bottom": 493.640625
+        },
+        "value_top": 493.640625,
+        "scroll_width": 255,
+        "client_width": 255,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 255,
+          "height": 15.5,
+          "bottom": 493.640625
+        },
+        "value_top": 493.640625,
+        "scroll_width": 255,
+        "client_width": 255,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida estimada",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 255,
+          "height": 15.5,
+          "bottom": 552.140625
+        },
+        "value_top": 552.140625,
+        "scroll_width": 255,
+        "client_width": 255,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Conclusão da carteira",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 255,
+          "height": 15.5,
+          "bottom": 552.140625
+        },
+        "value_top": 552.140625,
+        "scroll_width": 255,
+        "client_width": 255,
+        "contrast": 3.8297293064309086
+      }
+    ]
+  },
+  {
+    "resolution": [
+      1366,
+      768
+    ],
+    "view": "analise",
+    "labels": [
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 130,
+          "height": 15.5,
+          "bottom": 2488.828125
+        },
+        "value_top": 2488.828125,
+        "scroll_width": 130,
+        "client_width": 130,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Término previsto",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 130,
+          "height": 15.5,
+          "bottom": 2488.828125
+        },
+        "value_top": 2488.828125,
+        "scroll_width": 130,
+        "client_width": 130,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Investimento",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 130,
+          "height": 15.5,
+          "bottom": 2547.328125
+        },
+        "value_top": 2547.328125,
+        "scroll_width": 130,
+        "client_width": 130,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 130,
+          "height": 15.5,
+          "bottom": 2547.328125
+        },
+        "value_top": 2547.328125,
+        "scroll_width": 130,
+        "client_width": 130,
+        "contrast": 3.8297293064309086
+      }
+    ]
+  },
+  {
+    "resolution": [
+      1366,
+      768
+    ],
+    "view": "decisoes",
+    "labels": [
+      {
+        "text": "Custo total simulado",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 276.5,
+          "height": 15.5,
+          "bottom": 476.234375
+        },
+        "value_top": 476.234375,
+        "scroll_width": 277,
+        "client_width": 277,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 276.5,
+          "height": 15.5,
+          "bottom": 476.234375
+        },
+        "value_top": 476.234375,
+        "scroll_width": 277,
+        "client_width": 277,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida estimada",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 276.5,
+          "height": 15.5,
+          "bottom": 534.734375
+        },
+        "value_top": 534.734375,
+        "scroll_width": 277,
+        "client_width": 277,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Conclusão da carteira",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 276.5,
+          "height": 15.5,
+          "bottom": 534.734375
+        },
+        "value_top": 534.734375,
+        "scroll_width": 277,
+        "client_width": 277,
+        "contrast": 3.8297293064309086
+      }
+    ]
+  },
+  {
+    "resolution": [
+      1920,
+      1080
+    ],
+    "view": "analise",
+    "labels": [
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 145,
+          "height": 15.5,
+          "bottom": 2526.65625
+        },
+        "value_top": 2526.65625,
+        "scroll_width": 145,
+        "client_width": 145,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Término previsto",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 145,
+          "height": 15.5,
+          "bottom": 2526.65625
+        },
+        "value_top": 2526.65625,
+        "scroll_width": 145,
+        "client_width": 145,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Investimento",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 145,
+          "height": 15.5,
+          "bottom": 2585.15625
+        },
+        "value_top": 2585.15625,
+        "scroll_width": 145,
+        "client_width": 145,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 145,
+          "height": 15.5,
+          "bottom": 2585.15625
+        },
+        "value_top": 2585.15625,
+        "scroll_width": 145,
+        "client_width": 145,
+        "contrast": 3.8297293064309086
+      }
+    ]
+  },
+  {
+    "resolution": [
+      1920,
+      1080
+    ],
+    "view": "decisoes",
+    "labels": [
+      {
+        "text": "Custo total simulado",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 408,
+          "height": 15.5,
+          "bottom": 503.046875
+        },
+        "value_top": 503.046875,
+        "scroll_width": 408,
+        "client_width": 408,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Pedidos no prazo",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 408,
+          "height": 15.5,
+          "bottom": 503.046875
+        },
+        "value_top": 503.046875,
+        "scroll_width": 408,
+        "client_width": 408,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Economia líquida estimada",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 408,
+          "height": 15.5,
+          "bottom": 561.546875
+        },
+        "value_top": 561.546875,
+        "scroll_width": 408,
+        "client_width": 408,
+        "contrast": 3.8297293064309086
+      },
+      {
+        "text": "Conclusão da carteira",
+        "color": "rgb(117, 134, 129)",
+        "font_px": 10,
+        "line_height": "15.5px",
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "opacity": 1,
+        "box": {
+          "width": 408,
+          "height": 15.5,
+          "bottom": 561.546875
+        },
+        "value_top": 561.546875,
+        "scroll_width": 408,
+        "client_width": 408,
+        "contrast": 3.8297293064309086
+      }
+    ]
+  }
+]

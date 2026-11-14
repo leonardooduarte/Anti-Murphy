@@ -1,0 +1,2437 @@
+--- a/atelier/web/styles.css
++++ b/atelier/web/styles.css
+@@ -10,7 +10,7 @@
+ .timeline{padding:14px 16px 12px;border-top:1px solid var(--line);background:#fff}.timeline-top{display:flex;align-items:center;gap:17px;margin-bottom:9px}.timeline-controls{display:flex;gap:6px;align-items:center}.transport-primary,.transport{display:flex;align-items:center;justify-content:center;width:31px;height:31px;border:1px solid var(--ink);border-radius:3px}.transport-primary{color:#fff;background:var(--ink)}.transport{background:transparent;border-color:#CBD5CF;color:var(--ink)}.transport-primary svg,.transport svg{width:13px;height:13px}#speed-control{height:31px;border:1px solid #CBD5CF;background:#F7F9F6;border-radius:3px;color:var(--ink);font-weight:600;padding:0 6px;font-size:11px}.timeline-head{display:flex;gap:15px;align-items:center;flex:1;font-size:11px}.timeline-head strong{font-size:14px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.timeline-head span{color:#6D807B}.timeline-head span:last-child{margin-left:auto}.timeline input[type=range]{width:100%;accent-color:var(--orange);height:5px;cursor:pointer;margin:7px 0}.timeline-marks{display:flex;justify-content:space-between;color:#7C908A;font-size:10px}.timeline-marks .incident-mark{color:#C85834}.work-orders-head{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-top:1px solid var(--line)}.work-orders-head span{font-size:10px;font-weight:700;letter-spacing:.10em;color:#5B6D69}.orders-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid var(--line)}.order-mini{padding:11px 13px;border-right:1px solid var(--line);background:#FBFCF9;min-width:0;cursor:pointer}.order-mini:last-child{border-right:0}.order-mini:hover,.order-mini.selected{background:#EFF4EF}.order-mini.selected{box-shadow:inset 0 3px var(--orange)}.order-mini strong{font-size:11px;display:block}.order-mini small{display:block;font-size:10px;color:#657973;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.order-mini .bar-track{height:4px;background:#DFE7E1;margin-top:12px;display:block}.order-mini .bar-fill{height:100%;background:#42816B;display:block;transition:width .2s}.order-mini.delayed .bar-fill{background:#DB8258}.inspector{background:#fff;border:1px solid var(--line);min-height:400px}.inspector-head{display:flex;justify-content:space-between;align-items:center;background:#F0F3EE;border-bottom:1px solid var(--line);padding:13px 16px;font-size:10px;font-weight:700;letter-spacing:.10em;color:#566C66}.inspector-head.secondary{border-top:1px solid var(--line)}.inspect-marker{font-size:9px;color:#35755F;letter-spacing:0}.inspect-marker.alert{color:#C6573A}.inspect-body,.incident-detail{padding:20px 17px}.inspect-body h2{font-size:24px;margin-bottom:3px}.inspect-body p{font-size:12px;color:#687E77}.inspect-status-line{display:flex;gap:8px;align-items:center;font-size:12px;margin:18px 0;font-weight:650}.status-pill{width:7px;height:7px;background:#4D987C;border-radius:50%}.status-pill.down{background:#FF681B}.inspect-data{border-top:1px solid var(--line);margin:8px 0 0}.inspect-row{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);font-size:12px}.inspect-row span{color:#6D8179}.inspect-row b{font-weight:650;text-align:right}.incident-detail h3{font-size:16px}.incident-detail p{font-size:12px;color:#5E7470;margin-top:7px;line-height:1.6}.inspector-action{padding:0 17px 17px}.inspector-foot{font-size:11px;color:#78918C;margin-top:14px;line-height:1.5}
+ /* Editors and analysis: dense, readable work surfaces */
+ .editor-note{display:flex;align-items:center;gap:12px;background:#FFF7EF;border:1px solid #EDD9C7;color:#705A49;padding:13px 16px;font-size:12px;margin-bottom:22px}.editor-mark{width:4px;height:21px;background:var(--orange);flex-shrink:0}.model-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:0;border:1px solid var(--line);background:#fff}.tab-buttons,.model-actions{display:flex;align-items:center;gap:8px}.tab-buttons button{border:0;background:transparent;padding:17px 19px;font-size:13px;color:#607770;border-bottom:3px solid transparent;font-weight:600}.tab-buttons button.active{color:var(--ink);border-bottom-color:var(--orange)}.tab-buttons span{font-size:10px;color:#72817B;margin-left:5px}.model-actions{padding:7px 12px}.model-actions .subtle-button{min-height:33px}.table-container{overflow-x:auto;background:#fff;border:1px solid var(--line);border-top:0}.data-table{border-collapse:collapse;width:100%;font-size:12px}.data-table th{text-align:left;padding:13px 12px;background:#F4F6F2;color:#60736D;white-space:nowrap;font-size:10px;letter-spacing:.065em;text-transform:uppercase;border-bottom:1px solid var(--line);font-weight:750}.data-table td{border-bottom:1px solid #E9EEE8;padding:9px 11px;white-space:nowrap;color:#263B3C}.data-table tbody tr:hover{background:#F8FAF5}.data-table input,.data-table select{border:1px solid transparent;background:transparent;min-width:65px;width:100%;max-width:270px;color:#24383A;padding:7px 5px;font-size:12px}.data-table input:focus{background:#fff;border-color:#90A9A3}.data-table td:first-child{font-weight:650}.data-table .row-remove{border:0;color:#A55A48;background:transparent;font-size:16px}.model-assistant{padding:22px 0;color:#627772}.model-assistant h3{color:var(--ink);font-size:14px;margin-bottom:7px}.model-assistant p{font-size:12px}.model-assistant code,.archive-footer code{background:#E7ECE6;padding:4px 6px;font-size:11px;color:#375650}
+-.analysis-setup{background:#fff;border:1px solid var(--line);padding:18px 22px;margin-bottom:17px;display:grid;grid-template-columns:1fr 1fr;gap:27px}.form-section+.form-section{padding-left:25px;border-left:1px solid var(--line)}.form-section h3{margin-bottom:12px}.fields-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.form-section .fields-grid{grid-template-columns:repeat(2,minmax(0,1fr))}label{display:block;color:#5D746D;font-size:11px;font-weight:650}input[type=text],input[type=number],select,textarea{background:#fff;border:1px solid #CED8CE;border-radius:3px;padding:9px 10px;color:var(--ink)}.fields-grid input,.fields-grid select{width:100%;display:block;margin-top:5px;min-height:36px}.impact-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background:var(--ink);color:white;margin-bottom:18px}.impact-metrics .metric-unit{border-right-color:#394B4E}.impact-metrics .metric-label{color:#A5B9B6}.impact-metrics .metric-foot{color:#AABCB7}.analytics-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:17px}.analytics-table,.analytics-detail,.lab-workspace>div,.decisions-grid>div,.history-layout>div,.tools-archive{background:#fff;border:1px solid var(--line);min-width:0}.table-title{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 19px;border-bottom:1px solid var(--line)}.table-title span{font-size:11px;color:#6C8179}.table-title h2{font-size:16px}.table-scroll{max-height:460px;overflow:auto}.table-scroll .data-table th{position:sticky;top:0;z-index:1}.data-table tr.pickable{cursor:pointer}.data-table tr.pickable.selected{background:#FFF3E8;box-shadow:inset 3px 0 var(--orange)}.data-table .positive{color:#237762;font-weight:650}.data-table .negative{color:#B24A30;font-weight:650}.data-table .neutral{color:#738581}.tiny-tag{display:inline-block;padding:3px 7px;font-size:10px;font-weight:650;white-space:nowrap;background:#EEF4ED;color:#2C7864}.tiny-tag.caution{background:#FFF1E7;color:#A45032}.tiny-tag.none{background:#EEF1EF;color:#698077}.analytics-detail #alternative-detail{padding:18px}.alt-name{font-size:18px;line-height:1.4;margin-bottom:10px}.alt-metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--line);margin-top:16px;padding-top:16px}.alt-metrics small{font-size:10px;color:#758681;display:block}.alt-metrics strong{font-size:20px;display:block;letter-spacing:-.045em}.alt-description{font-size:12px;color:#637870;line-height:1.6;margin-top:13px}.alt-warning{padding:11px;border-left:3px solid #E2A16F;background:#FFF6EC;color:#785943;font-size:11px;margin:13px 0}.alt-buttons{display:grid;gap:8px;margin-top:15px}.order-table-title{margin-top:19px;background:#fff;border:1px solid var(--line)}#impact-orders.table-container{border-top:0}
++.analysis-setup{background:#fff;border:1px solid var(--line);padding:18px 22px;margin-bottom:17px;display:grid;grid-template-columns:1fr 1fr;gap:27px}.form-section+.form-section{padding-left:25px;border-left:1px solid var(--line)}.form-section h3{margin-bottom:12px}.fields-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.form-section .fields-grid{grid-template-columns:repeat(2,minmax(0,1fr))}label{display:block;color:#5D746D;font-size:11px;font-weight:650}input[type=text],input[type=number],select,textarea{background:#fff;border:1px solid #CED8CE;border-radius:3px;padding:9px 10px;color:var(--ink)}.fields-grid input,.fields-grid select{width:100%;display:block;margin-top:5px;min-height:36px}.impact-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background:var(--ink);color:white;margin-bottom:18px}.impact-metrics .metric-unit{border-right-color:#394B4E}.impact-metrics .metric-label{color:#A5B9B6}.impact-metrics .metric-foot{color:#AABCB7}.analytics-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:17px}.analytics-table,.analytics-detail,.lab-workspace>div,.decisions-grid>div,.history-layout>div,.tools-archive{background:#fff;border:1px solid var(--line);min-width:0}.table-title{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 19px;border-bottom:1px solid var(--line)}.table-title span{font-size:11px;color:#6C8179}.table-title h2{font-size:16px}.table-scroll{max-height:460px;overflow:auto}.table-scroll .data-table th{position:sticky;top:0;z-index:1}.data-table tr.pickable{cursor:pointer}.data-table tr.pickable.selected{background:#FFF3E8;box-shadow:inset 3px 0 var(--orange)}.data-table .positive{color:#237762;font-weight:650}.data-table .negative{color:#B24A30;font-weight:650}.data-table .neutral{color:#738581}.tiny-tag{display:inline-block;padding:3px 7px;font-size:10px;font-weight:650;white-space:nowrap;background:#EEF4ED;color:#2C7864}.tiny-tag.caution{background:#FFF1E7;color:#A45032}.tiny-tag.none{background:#EEF1EF;color:#698077}.analytics-detail #alternative-detail{padding:18px}.alt-name{font-size:18px;line-height:1.4;margin-bottom:10px}.alt-metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--line);margin-top:16px;padding-top:16px}.alt-metrics small{font-size:14px;line-height:1.4;color:#48615D;display:block}.alt-metrics strong{font-size:20px;display:block;letter-spacing:-.045em}.alt-description{font-size:12px;color:#637870;line-height:1.6;margin-top:13px}.alt-warning{padding:11px;border-left:3px solid #E2A16F;background:#FFF6EC;color:#785943;font-size:11px;margin:13px 0}.alt-buttons{display:grid;gap:8px;margin-top:15px}.order-table-title{margin-top:19px;background:#fff;border:1px solid var(--line)}#impact-orders.table-container{border-top:0}
+ .lab-nav{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:17px}.lab-nav button{border:1px solid var(--line);background:#fff;color:#577069;padding:11px 17px;font-size:12px;font-weight:650;border-radius:2px}.lab-nav button.active{background:var(--ink);color:white;border-color:var(--ink)}.lab-workspace{display:grid;grid-template-columns:300px minmax(0,1fr);gap:17px}.lab-form,.lab-results{padding:20px}.lab-form h3{font-size:18px;margin-bottom:10px}.lab-form p{font-size:13px;color:#61776F;line-height:1.6;margin-bottom:22px}.lab-form>label{margin-bottom:16px}.lab-form input{width:100%;margin-top:7px}.lab-footnote{font-size:11px;color:#7B8C86;margin-top:19px;line-height:1.5}.lab-results{padding:0!important;min-height:390px}.lab-plot{padding:21px}.plot-row{display:grid;grid-template-columns:165px minmax(0,1fr) 130px;gap:15px;align-items:center;margin:18px 0}.plot-row span{font-size:12px;color:#425854;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.plot-rail{height:17px;background:#E9EFE9}.plot-fill{height:100%;background:#578A7C;min-width:2px;transition:width .45s cubic-bezier(.2,.7,.2,1)}.plot-row.emphasis .plot-fill{background:var(--orange)}.plot-row strong{text-align:right;font-size:13px}.lab-secondary{font-size:11px;color:#71857D}.empty-state{padding:45px 18px;color:#7A8E86;font-size:13px;text-align:center}.tools-archive{margin-top:20px;padding:20px 22px;display:grid;grid-template-columns:1fr 1fr;gap:18px}.tools-archive h3{font-size:15px}.tools-archive p{font-size:12px;color:#6B8078;margin-top:7px}.archive-tags{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;align-content:start}.archive-tags span{padding:6px 10px;border:1px solid var(--line);font-size:10px;color:#5D746D}.tools-archive .archive-footer{grid-column:1/-1;font-size:11px;margin:0;border-top:1px solid var(--line);padding-top:10px}
+ .decisions-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}.decision-form>.table-title,.assistant-panel>.table-title{margin:0}.decision-form>#decision-selected{padding:20px}.record-label{margin:18px 20px}.record-label textarea{display:block;width:100%;margin-top:8px;resize:vertical;line-height:1.6}.decision-warning{border-left:3px solid #D1A375;background:#FFF6EA;color:#725C48;padding:12px 14px;font-size:11px;margin:0 20px 15px;line-height:1.5}.decision-form>.primary-button{width:calc(100% - 40px);margin:0 20px 20px}.assistant-panel>p{font-size:12px;color:#657D74;padding:17px 20px 0}.assistant-mode{font-size:9px!important;background:#E5F2EA;color:#397A5D!important;padding:5px 7px}.assistant-messages{min-height:280px;max-height:445px;overflow:auto;display:flex;flex-direction:column;gap:11px;padding:18px 20px}.assistant-placeholder{color:#7B928A;background:#F5F7F2;padding:27px 20px;text-align:center;font-size:12px}.assistant-message{padding:13px 15px;border-left:2px solid #A1C9BA;background:#F1F5F0;white-space:pre-wrap;font-size:12px;line-height:1.65}.assistant-message.question{background:#F9FAF7;border-left-color:#B6BEBA;color:#3C5653}.assistant-message strong{display:block;font-size:10px;margin-bottom:5px;color:#6A8078;letter-spacing:.05em}.suggestion-row{display:flex;gap:7px;flex-wrap:wrap;padding:0 20px 16px}.suggestion-row button{border:1px solid #D4DFD5;color:#52756C;background:#fff;padding:6px 9px;font-size:10px}#assistant-form{border-top:1px solid var(--line);padding:15px 20px;display:flex;gap:8px}#assistant-input{flex:1;min-width:0;font-size:12px}#assistant-form button{border:0;background:var(--ink);color:#fff;width:39px;border-radius:3px;display:grid;place-items:center}#assistant-form svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}.history-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}.history-list{padding:12px;max-height:650px;overflow:auto}.history-item{display:block;width:100%;border:1px solid transparent;border-bottom-color:var(--line);text-align:left;background:#fff;padding:14px 11px;cursor:pointer}.history-item:hover,.history-item.active{background:#F5F8F3;border-left:2px solid var(--orange)}.history-item strong{display:block;font-size:12px}.history-item small{font-size:10px;color:#738780}.history-detail{padding:20px;overflow:auto}.history-detail pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.5;color:#586E67;background:#F5F7F3;padding:17px}.history-detail h3{font-size:19px}.history-detail p{font-size:12px;margin-top:9px;color:#6C817A}.history-detail .inspect-row{margin-top:12px}
+ /* Toast, dialog and boot sequence */
+--- /dev/null
++++ b/CONTINUIDADE_INT04_2026.md
+@@ -0,0 +1,11 @@
++# Continuidade — INT04-2026.1
++
++Base INT03 974f38e. Branch correcao-int04-legibilidade; checkpoint 2059b39. Alteração exclusiva em .alt-metrics small de atelier/web/styles.css: 10→14 px, line-height 1.4, #758681→#48615D. Contraste medido 3,829729→6,680486:1 sobre branco em análise/decisões, nas três resoluções. Não foi redesenhado o programa nem alterado motor, HTML, JavaScript, fórmulas ou dados.
++
++732 testes aprovados, zero falhas, dez subtestes. Novo roteiro de browser mede 24 rótulos em duas áreas/três resoluções, com contraste >=4,5:1, fontes >=14 px e geometria sem corte/sobreposição. Modo Banca, gráficos/exportações e mapa com 1/5/9/16/50 postos também conferidos. Três experimentos oficiais preservados. ZIP/patch comparados em base limpa e arquivos do GitHub recuperados antes da conclusão.
++
++A execução inicial do teste AM15 falhou no limite de enquadramento de 50 postos/1280x720; base INT03 e versão atual passaram nos 15 casos quando executadas separadamente. Logs inicial, base e repetição são preservados. Causa não demonstrada, sem alteração do mapa ou das asserções. Monitorar essa ocorrência na verificação final; não a tratar como defeito de mapa corrigido.
++
++INT01/02/03/04 tiveram correções entregues. Próximo passo recomendado: uma verificação final focada da versão combinada, inicialmente sem modificar código, e ensaio no Windows/BAT/projetor real. Conferir importar/exportar/reabrir regra; curto ciclo na auditoria/relatório; biblioteca com arquivos válidos/inválidos; legibilidade; roteiro completo da banca. Não repetir desenvolvimento amplo nem iniciar novos recursos por padrão.
++
++Ainda não há homologação nativa Windows/projetor, auditoria WCAG completa ou validação industrial. AM18 é manutenção gradual; AM20/21 são caminhos históricos adicionais. Instalar em pasta nova, manter cópia e usar sempre a versão imediatamente anterior confirmada. Sem agentes paralelos, checkpoints e entregas verificadas para qualquer correção futura necessária.
+--- /dev/null
++++ b/LEIA_INT04_2026.md
+@@ -0,0 +1 @@
++INT04-2026.1 sobre INT03. Extraia em pasta nova e execute INICIAR_ANTI_MURPHY.bat. Preserve versões e projetos anteriores. Leia RELATORIO_INT04_2026.md e CONTINUIDADE_INT04_2026.md. Rótulos de métricas em análise/decisões passam a 14 px e contraste medido 6,68:1. Windows/projetor pendentes de validação nativa.
+--- /dev/null
++++ b/RELATORIO_INT04_2026.md
+@@ -0,0 +1,49 @@
++# INT-04 — contraste e legibilidade pontuais
++
++## Base e escopo
++
++Base INT03-2026.1, commit 974f38e70634ee6250878036fbd8759fc315bd17, branch correcao-int03-biblioteca-resiliente. Nova branch correcao-int04-legibilidade; checkpoint 2059b39. Sem agentes paralelos. Não houve reconstrução, uso de ZIP antigo ou correção de outros achados.
++
++Único arquivo de produção alterado: atelier/web/styles.css, regra .alt-metrics small. A alteração alcança os rótulos dos indicadores da alternativa na análise e nas decisões. Não muda todo o texto do aplicativo nem redesenha telas. HTML, JavaScript, motor DES, fórmulas, dados, navegação, abertura e demais folhas CSS são preservados.
++
++## Reprodução e critérios
++
++O navegador da versão INT03 mediu as duas áreas em 1280x720,1366x768,1920x1080. Os 24 rótulos observados usavam fonte de 10 px, cor rgb(117,134,129) (#758681), fundo branco e contraste 3,829729:1. O limiar adotado é 4,5:1 para texto normal, conforme WCAG 1.4.3 AA. Fonte de 10 px é uma evidência de densidade/legibilidade; a WCAG não estabelece 14 px como mínimo universal.
++
++A medição aguarda o término da animação de entrada da área. As primeiras tentativas do instrumento mediam durante a transição de opacidade do painel; não se alterou a animação do produto para fazer o teste passar. Os resultados consolidados antes da alteração estão em before.log e before/medicoes.json, com capturas correspondentes. A comparação usa cores computadas e luminância sRGB linearizada, sem arredondar o contraste para decidir a aprovação.
++
++## Alteração
++
++Antes: .alt-metrics small com font-size:10px e color:#758681.
++
++Depois: font-size:14px, line-height:1.4 e color:#48615D. O tom já pertence à identidade do aplicativo; não foi introduzida outra paleta. display:block e toda a estrutura dos indicadores permanecem.
++
++Resultado medido: 14 px e contraste mínimo **6,680486:1** nas duas áreas e nas três resoluções. A ampliação e o espaçamento dão mais presença aos rótulos, enquanto os valores conservam suas dimensões/peso e a hierarquia existente. O objetivo é leitura, sem modificar o significado dos indicadores ou esconder conteúdo.
++
++A referência AM19 não congelava styles.css entre seus arquivos selecionados. Não foi necessário alterar ou afrouxar seu teste de preservação. VERSAO_INT04.json registra o hash da folha-base, o hash final e o critério aplicado; o manifesto do pacote compara todos os 719 arquivos-base e confirma que a única alteração anterior à documentação/teste novos é styles.css. Referências de prioridade e INT01/02/03 permanecem intactas.
++
++## Validação
++
++atelier/tests/browser_int04.py é o teste funcional novo: lê o estilo real no navegador por HTTP, calcula contraste, verifica o tamanho de fonte, largura disponível e separação entre rótulo e valor. Testa as duas áreas em três resoluções, com 24 rótulos medidos. Compara também estado de cálculo e bytes de todos os JSON temporários antes/depois, sem simular de novo ou registrar decisões. Não é teste textual que espelha uma declaração CSS.
++
++O modo INT04_EXPECT_BEFORE=1 verifica a reprodução da fonte de 10 px e contraste abaixo de 4,5. O modo normal exige >=14 px e >=4,5:1, sem corte horizontal do rótulo ou sobreposição com o valor e sem overflow horizontal do documento. Sem exceções JavaScript não tratadas nos fluxos. Capturas antes/depois e medicoes.json acompanham a entrega.
++
++Regressão completa: **732 testes aprovados, zero falhas e dez subtestes aprovados**. A contagem não aumentou porque o novo teste é um roteiro de navegador, executado separadamente. Warning de depreciação do plugin AnyIO, sem falha funcional. Não houve exclusão, desativação ou mudança de testes existentes para obter aprovação.
++
++Modo Banca HTTP real, seis etapas, justificativa, registro e relatório passaram nas três resoluções. Gráficos, ampliação e exportações passaram nas três resoluções. AM15 verificou foco/enquadramento com 1/5/9/16/50 postos em cada resolução, incluindo os controles de foco por teclado; os rótulos do mapa e sua geometria não foram alterados.
++
++Uma execução inicial do runner AM15, em paralelo com outras validações, falhou no enquadramento de 50 postos em 1280x720 (limite inferior medido 441,79 frente a 371,30). O log foi preservado como browser-am15-initial.log. A base INT03 executada separadamente passou nos 15 casos, e a versão atual reexecutada separadamente também passou nos 15. Não houve alteração de mapa, script AM15 ou asserções para obter essa repetição. A causa da ocorrência intermitente não foi demonstrada; ela fica registrada para monitoramento na verificação final, sem atribuí-la ao ajuste de rótulos nem declarar um defeito de mapa corrigido nesta etapa.
++
++Os três experimentos oficiais permaneceram iguais: A com SLA nominal/incidente/resposta 100/40/100%, custo total da decisão R$12.113,00 e economia líquida R$4.103,68; B e C conforme banca.log. Nenhum número de referência foi ajustado. Os testes de importação INT01, precisão INT02 e biblioteca INT03 permanecem na regressão.
++
++Comandos: python -m pytest tests contract_tests atelier/tests -q -p no:cacheprovider; python -m atelier.tests.validacao_experimentos_banca; python -m atelier.tests.browser_int04; python -m atelier.tests.browser_am15; python -m atelier.tests.browser_acabamento_final; python docs/AM19/evidencias/actual_http_browser.py. Roteiros de navegador requerem Playwright/Chromium no Linux; não são dependências novas do aplicativo principal.
++
++## Entrega e limites
++
++ZIP completo atualizado, patch reproduzível sobre INT03, relatório, continuidade, medições, logs e comparação antes/depois. O aplicador confere a base e cria outra pasta, sem modificar a origem. O ZIP é extraído; patch aplicado sobre base limpa e comparação de hashes confirmam os mesmos arquivos. Testes da distribuição e medição de navegador são executados na extração; os arquivos publicados no GitHub são recuperados e comparados aos locais antes de declarar conclusão.
++
++Este resultado é localizado: não certifica acessibilidade integral, contraste de todos os componentes, experiência de pessoas com deficiência ou legibilidade em qualquer projetor. Windows, BAT, escala de tela e projetor não foram validados nativamente. Cores e fontes devem ser conferidas nas condições reais da apresentação.
++
++Os quatro achados INT01–INT04 identificados na auditoria AM22 receberam etapas próprias de correção. Isso não substitui uma verificação final da combinação das versões. Recomendo uma rodada final focada nesses contratos e um ensaio real no Windows/projetor, sem iniciar novas funcionalidades, redesenho ou reorganização ampla como substituto da homologação. As pendências históricas AM18/20/21 e a calibração industrial não foram resolvidas por uma alteração de tipografia.
++
++Extraia o aplicativo em uma pasta nova e preserve versões e projetos anteriores. A versão INT03 continua no GitHub como recuperação. Não se exige aplicar patch se for utilizado o ZIP completo.
+--- /dev/null
++++ b/VERSAO_INT04.json
+@@ -0,0 +1,10 @@
++{
++  "version": "INT04-2026.1",
++  "base_commit": "974f38e70634ee6250878036fbd8759fc315bd17",
++  "base_css_sha256": "8d14f3dbd1c2b41880f22028912a6751896ad7bda3e9239356aab476e2029509",
++  "css_sha256": "375942e24c4f44fbc43a3023ba674c404de24c76369eed7274af8d324ee806fe",
++  "selector": ".alt-metrics small",
++  "font_px": 14,
++  "color": "#48615D",
++  "contrast_minimum": 4.5
++}--- /dev/null
++++ b/atelier/tests/browser_int04.py
+@@ -0,0 +1,49 @@
++"""INT04 measured contrast/typography and geometry in both affected views."""
++import json,math,os,re
++from pathlib import Path
++from tempfile import TemporaryDirectory
++from threading import Thread
++from http.server import ThreadingHTTPServer
++from playwright.sync_api import sync_playwright,expect
++from atelier import server
++from atelier.service import Studio
++
++out=Path(os.environ.get('INT04_QA_OUT','docs/INT04/capturas'));out.mkdir(parents=True,exist_ok=True)
++before=os.environ.get('INT04_EXPECT_BEFORE')=='1';results=[]
++def lum(rgb):
++ values=[v/255 for v in rgb];values=[v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4 for v in values]
++ return sum(v*w for v,w in zip(values,[.2126,.7152,.0722]))
++with sync_playwright() as pw:
++ b=pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
++ for w,h in [(1280,720),(1366,768),(1920,1080)]:
++  with TemporaryDirectory() as d:
++   s=Studio(Path(d));state=s.info();disk={p:p.read_bytes() for p in Path(d).rglob('*.json')};server.STUDIO=s
++   httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler);Thread(target=httpd.serve_forever,daemon=True).start()
++   p=b.new_page(viewport={'width':w,'height':h});errors=[];p.on('pageerror',lambda e:errors.append(str(e)))
++   try:
++    p.goto(f'http://127.0.0.1:{httpd.server_port}/',wait_until='networkidle');p.wait_for_selector('#factory-a .station-group');p.evaluate('document.querySelector("#splash")?.remove()')
++    for view in ['analise','decisoes']:
++     p.locator(f'[data-nav={view}]').click();labels=p.locator(f'#view-{view} .alt-metrics small');expect(labels.first).to_be_visible();p.locator(f'#view-{view}').evaluate('(e)=>Promise.all(e.getAnimations().map(a=>a.finished))')
++     measurements=labels.evaluate_all('''es=>es.filter(e=>e.getClientRects().length).map(e=>{
++      const c=getComputedStyle(e),box=e.getBoundingClientRect(),value=e.nextElementSibling?.getBoundingClientRect();
++      let parent=e,background=null,opacity=1;
++      while(parent){const s=getComputedStyle(parent);opacity*=Number(s.opacity);const a=s.backgroundColor.match(/[\\d.]+/g)?.map(Number)||[];if(!background&&a.length>=3&&(a.length<4||a[3]===1))background=a.slice(0,3);parent=parent.parentElement;}
++      return {text:e.textContent,color:c.color,font_px:parseFloat(c.fontSize),line_height:c.lineHeight,background,opacity,box:{width:box.width,height:box.height,bottom:box.bottom},value_top:value?.top,scroll_width:e.scrollWidth,client_width:e.clientWidth};
++     })''')
++     assert measurements
++     for x in measurements:
++      rgb=[float(v) for v in re.findall(r'[\d.]+',x['color'])][:3];low,high=sorted([lum(rgb),lum(x['background'])]);x['contrast']=(high+.05)/(low+.05)
++      assert x['opacity']==1,x
++      if before:assert x['font_px']==10 and x['contrast']<4.5
++      else:
++       assert x['font_px']>=14 and x['contrast']>=4.5,x
++       assert x['scroll_width']<=x['client_width']+1,x
++       assert x['value_top']>=x['box']['bottom']-.5,x
++     assert p.evaluate('document.documentElement.scrollWidth<=innerWidth+3')
++     p.locator(f'#view-{view} .alt-metrics').first.screenshot(path=str(out/f'{view}_{w}.png'))
++     results.append({'resolution':[w,h],'view':view,'labels':measurements});print('INT04 BROWSER OK',view,w,h,'contrast',round(min(x['contrast'] for x in measurements),3),'font',min(x['font_px'] for x in measurements),flush=True)
++    assert s.info()==state and all(p.read_bytes()==raw for p,raw in disk.items())
++    assert not errors,errors
++   finally:p.close();httpd.shutdown();httpd.server_close()
++ b.close()
++(out/'medicoes.json').write_text(json.dumps(results,ensure_ascii=False,indent=2))
+# Binary in overlay: docs/INT04/evidencias/after/analise_1280.png
+# Binary in overlay: docs/INT04/evidencias/after/analise_1366.png
+# Binary in overlay: docs/INT04/evidencias/after/analise_1920.png
+# Binary in overlay: docs/INT04/evidencias/after/decisoes_1280.png
+# Binary in overlay: docs/INT04/evidencias/after/decisoes_1366.png
+# Binary in overlay: docs/INT04/evidencias/after/decisoes_1920.png
+--- /dev/null
++++ b/docs/INT04/evidencias/after/medicoes.json
+@@ -0,0 +1,560 @@
++[
++  {
++    "resolution": [
++      1280,
++      720
++    ],
++    "view": "analise",
++    "labels": [
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 19.59375,
++          "bottom": 2481.3125
++        },
++        "value_top": 2481.3125,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Término previsto",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 19.59375,
++          "bottom": 2481.3125
++        },
++        "value_top": 2481.3125,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Investimento",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 19.59375,
++          "bottom": 2543.90625
++        },
++        "value_top": 2543.90625,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Economia líquida",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 19.59375,
++          "bottom": 2543.90625
++        },
++        "value_top": 2543.90625,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 6.680485995736355
++      }
++    ]
++  },
++  {
++    "resolution": [
++      1280,
++      720
++    ],
++    "view": "decisoes",
++    "labels": [
++      {
++        "text": "Custo total simulado",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 255,
++          "height": 19.59375,
++          "bottom": 497.734375
++        },
++        "value_top": 497.734375,
++        "scroll_width": 255,
++        "client_width": 255,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 255,
++          "height": 19.59375,
++          "bottom": 497.734375
++        },
++        "value_top": 497.734375,
++        "scroll_width": 255,
++        "client_width": 255,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Economia líquida estimada",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 255,
++          "height": 19.59375,
++          "bottom": 560.328125
++        },
++        "value_top": 560.328125,
++        "scroll_width": 255,
++        "client_width": 255,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Conclusão da carteira",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 255,
++          "height": 19.59375,
++          "bottom": 560.328125
++        },
++        "value_top": 560.328125,
++        "scroll_width": 255,
++        "client_width": 255,
++        "contrast": 6.680485995736355
++      }
++    ]
++  },
++  {
++    "resolution": [
++      1366,
++      768
++    ],
++    "view": "analise",
++    "labels": [
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 19.59375,
++          "bottom": 2492.921875
++        },
++        "value_top": 2492.921875,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Término previsto",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 19.59375,
++          "bottom": 2492.921875
++        },
++        "value_top": 2492.921875,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Investimento",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 19.59375,
++          "bottom": 2555.515625
++        },
++        "value_top": 2555.515625,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Economia líquida",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 19.59375,
++          "bottom": 2555.515625
++        },
++        "value_top": 2555.515625,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 6.680485995736355
++      }
++    ]
++  },
++  {
++    "resolution": [
++      1366,
++      768
++    ],
++    "view": "decisoes",
++    "labels": [
++      {
++        "text": "Custo total simulado",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 276.5,
++          "height": 19.59375,
++          "bottom": 480.328125
++        },
++        "value_top": 480.328125,
++        "scroll_width": 277,
++        "client_width": 277,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 276.5,
++          "height": 19.59375,
++          "bottom": 480.328125
++        },
++        "value_top": 480.328125,
++        "scroll_width": 277,
++        "client_width": 277,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Economia líquida estimada",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 276.5,
++          "height": 19.59375,
++          "bottom": 542.921875
++        },
++        "value_top": 542.921875,
++        "scroll_width": 277,
++        "client_width": 277,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Conclusão da carteira",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 276.5,
++          "height": 19.59375,
++          "bottom": 542.921875
++        },
++        "value_top": 542.921875,
++        "scroll_width": 277,
++        "client_width": 277,
++        "contrast": 6.680485995736355
++      }
++    ]
++  },
++  {
++    "resolution": [
++      1920,
++      1080
++    ],
++    "view": "analise",
++    "labels": [
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 145,
++          "height": 19.59375,
++          "bottom": 2530.75
++        },
++        "value_top": 2530.75,
++        "scroll_width": 145,
++        "client_width": 145,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Término previsto",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 145,
++          "height": 19.59375,
++          "bottom": 2530.75
++        },
++        "value_top": 2530.75,
++        "scroll_width": 145,
++        "client_width": 145,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Investimento",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 145,
++          "height": 19.59375,
++          "bottom": 2593.34375
++        },
++        "value_top": 2593.34375,
++        "scroll_width": 145,
++        "client_width": 145,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Economia líquida",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 145,
++          "height": 19.59375,
++          "bottom": 2593.34375
++        },
++        "value_top": 2593.34375,
++        "scroll_width": 145,
++        "client_width": 145,
++        "contrast": 6.680485995736355
++      }
++    ]
++  },
++  {
++    "resolution": [
++      1920,
++      1080
++    ],
++    "view": "decisoes",
++    "labels": [
++      {
++        "text": "Custo total simulado",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 408,
++          "height": 19.59375,
++          "bottom": 507.140625
++        },
++        "value_top": 507.140625,
++        "scroll_width": 408,
++        "client_width": 408,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 408,
++          "height": 19.59375,
++          "bottom": 507.140625
++        },
++        "value_top": 507.140625,
++        "scroll_width": 408,
++        "client_width": 408,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Economia líquida estimada",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 408,
++          "height": 19.59375,
++          "bottom": 569.734375
++        },
++        "value_top": 569.734375,
++        "scroll_width": 408,
++        "client_width": 408,
++        "contrast": 6.680485995736355
++      },
++      {
++        "text": "Conclusão da carteira",
++        "color": "rgb(72, 97, 93)",
++        "font_px": 14,
++        "line_height": "19.6px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 408,
++          "height": 19.59375,
++          "bottom": 569.734375
++        },
++        "value_top": 569.734375,
++        "scroll_width": 408,
++        "client_width": 408,
++        "contrast": 6.680485995736355
++      }
++    ]
++  }
++]--- /dev/null
++++ b/docs/INT04/evidencias/banca.log
+@@ -0,0 +1,4 @@
++3 EXPERIMENTOS APROVADOS
++A: 100.0 40.0 100.0 custos 16216.67 12113.0 4103.68
++B: [(0, 5.681763308299117, 84.12881249414335), (1, 5.681763308299117, 96.09692807908425), (2, 5.681763308299117, 108.06504366402514), (3, 5.681763308299117, 120.033159248966)]
++C: Manutenção expressa · CNC 21.57530617980079 +1 operador · CNC 19.973006391870044
+--- /dev/null
++++ b/docs/INT04/evidencias/before.log
+@@ -0,0 +1,78 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++INT04 BROWSER OK analise 1280 720 contrast 3.83 font 10
++INT04 BROWSER OK decisoes 1280 720 contrast 3.83 font 10
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++INT04 BROWSER OK analise 1366 768 contrast 3.83 font 10
++INT04 BROWSER OK decisoes 1366 768 contrast 3.83 font 10
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++INT04 BROWSER OK analise 1920 1080 contrast 3.83 font 10
++INT04 BROWSER OK decisoes 1920 1080 contrast 3.83 font 10
+# Binary in overlay: docs/INT04/evidencias/before/analise_1280.png
+# Binary in overlay: docs/INT04/evidencias/before/analise_1366.png
+# Binary in overlay: docs/INT04/evidencias/before/analise_1920.png
+# Binary in overlay: docs/INT04/evidencias/before/decisoes_1280.png
+# Binary in overlay: docs/INT04/evidencias/before/decisoes_1366.png
+# Binary in overlay: docs/INT04/evidencias/before/decisoes_1920.png
+--- /dev/null
++++ b/docs/INT04/evidencias/before/medicoes.json
+@@ -0,0 +1,560 @@
++[
++  {
++    "resolution": [
++      1280,
++      720
++    ],
++    "view": "analise",
++    "labels": [
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 15.5,
++          "bottom": 2477.21875
++        },
++        "value_top": 2477.21875,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Término previsto",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 15.5,
++          "bottom": 2477.21875
++        },
++        "value_top": 2477.21875,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Investimento",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 15.5,
++          "bottom": 2535.71875
++        },
++        "value_top": 2535.71875,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Economia líquida",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 15.5,
++          "bottom": 2535.71875
++        },
++        "value_top": 2535.71875,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 3.8297293064309086
++      }
++    ]
++  },
++  {
++    "resolution": [
++      1280,
++      720
++    ],
++    "view": "decisoes",
++    "labels": [
++      {
++        "text": "Custo total simulado",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 255,
++          "height": 15.5,
++          "bottom": 493.640625
++        },
++        "value_top": 493.640625,
++        "scroll_width": 255,
++        "client_width": 255,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 255,
++          "height": 15.5,
++          "bottom": 493.640625
++        },
++        "value_top": 493.640625,
++        "scroll_width": 255,
++        "client_width": 255,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Economia líquida estimada",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 255,
++          "height": 15.5,
++          "bottom": 552.140625
++        },
++        "value_top": 552.140625,
++        "scroll_width": 255,
++        "client_width": 255,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Conclusão da carteira",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 255,
++          "height": 15.5,
++          "bottom": 552.140625
++        },
++        "value_top": 552.140625,
++        "scroll_width": 255,
++        "client_width": 255,
++        "contrast": 3.8297293064309086
++      }
++    ]
++  },
++  {
++    "resolution": [
++      1366,
++      768
++    ],
++    "view": "analise",
++    "labels": [
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 15.5,
++          "bottom": 2488.828125
++        },
++        "value_top": 2488.828125,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Término previsto",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 15.5,
++          "bottom": 2488.828125
++        },
++        "value_top": 2488.828125,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Investimento",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 15.5,
++          "bottom": 2547.328125
++        },
++        "value_top": 2547.328125,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Economia líquida",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 130,
++          "height": 15.5,
++          "bottom": 2547.328125
++        },
++        "value_top": 2547.328125,
++        "scroll_width": 130,
++        "client_width": 130,
++        "contrast": 3.8297293064309086
++      }
++    ]
++  },
++  {
++    "resolution": [
++      1366,
++      768
++    ],
++    "view": "decisoes",
++    "labels": [
++      {
++        "text": "Custo total simulado",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 276.5,
++          "height": 15.5,
++          "bottom": 476.234375
++        },
++        "value_top": 476.234375,
++        "scroll_width": 277,
++        "client_width": 277,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 276.5,
++          "height": 15.5,
++          "bottom": 476.234375
++        },
++        "value_top": 476.234375,
++        "scroll_width": 277,
++        "client_width": 277,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Economia líquida estimada",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 276.5,
++          "height": 15.5,
++          "bottom": 534.734375
++        },
++        "value_top": 534.734375,
++        "scroll_width": 277,
++        "client_width": 277,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Conclusão da carteira",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 276.5,
++          "height": 15.5,
++          "bottom": 534.734375
++        },
++        "value_top": 534.734375,
++        "scroll_width": 277,
++        "client_width": 277,
++        "contrast": 3.8297293064309086
++      }
++    ]
++  },
++  {
++    "resolution": [
++      1920,
++      1080
++    ],
++    "view": "analise",
++    "labels": [
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 145,
++          "height": 15.5,
++          "bottom": 2526.65625
++        },
++        "value_top": 2526.65625,
++        "scroll_width": 145,
++        "client_width": 145,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Término previsto",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 145,
++          "height": 15.5,
++          "bottom": 2526.65625
++        },
++        "value_top": 2526.65625,
++        "scroll_width": 145,
++        "client_width": 145,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Investimento",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 145,
++          "height": 15.5,
++          "bottom": 2585.15625
++        },
++        "value_top": 2585.15625,
++        "scroll_width": 145,
++        "client_width": 145,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Economia líquida",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 145,
++          "height": 15.5,
++          "bottom": 2585.15625
++        },
++        "value_top": 2585.15625,
++        "scroll_width": 145,
++        "client_width": 145,
++        "contrast": 3.8297293064309086
++      }
++    ]
++  },
++  {
++    "resolution": [
++      1920,
++      1080
++    ],
++    "view": "decisoes",
++    "labels": [
++      {
++        "text": "Custo total simulado",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 408,
++          "height": 15.5,
++          "bottom": 503.046875
++        },
++        "value_top": 503.046875,
++        "scroll_width": 408,
++        "client_width": 408,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Pedidos no prazo",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 408,
++          "height": 15.5,
++          "bottom": 503.046875
++        },
++        "value_top": 503.046875,
++        "scroll_width": 408,
++        "client_width": 408,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Economia líquida estimada",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 408,
++          "height": 15.5,
++          "bottom": 561.546875
++        },
++        "value_top": 561.546875,
++        "scroll_width": 408,
++        "client_width": 408,
++        "contrast": 3.8297293064309086
++      },
++      {
++        "text": "Conclusão da carteira",
++        "color": "rgb(117, 134, 129)",
++        "font_px": 10,
++        "line_height": "15.5px",
++        "background": [
++          255,
++          255,
++          255
++        ],
++        "opacity": 1,
++        "box": {
++          "width": 408,
++          "height": 15.5,
++          "bottom": 561.546875
++        },
++        "value_top": 561.546875,
++        "scroll_width": 408,
++        "client_width": 408,
++        "contrast": 3.8297293064309086
++      }
++    ]
++  }
++]--- /dev/null
++++ b/docs/INT04/evidencias/browser-am15-base.log
+@@ -0,0 +1,363 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 1 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 5 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AFTER OVERVIEW 1280 6.16186046511628
++AM15 BROWSER OK 1280 720 9 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 16 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 50 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1366 768 1 focus font px 22.08
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1366 768 5 focus font px 22.08
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AFTER OVERVIEW 1366 6.572383720930232
++AM15 BROWSER OK 1366 768 9 focus font px 22.08
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1366 768 16 focus font px 22.08
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1366 768 50 focus font px 22.08
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1920 1080 1 focus font px 36.48
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1920 1080 5 focus font px 36.48
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AFTER OVERVIEW 1920 10.860145348837209
++AM15 BROWSER OK 1920 1080 9 focus font px 36.48
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1920 1080 16 focus font px 36.48
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1920 1080 50 focus font px 36.48
+--- /dev/null
++++ b/docs/INT04/evidencias/browser-am15-initial.log
+@@ -0,0 +1,127 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 1 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 5 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AFTER OVERVIEW 1280 6.16186046511628
++AM15 BROWSER OK 1280 720 9 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 16 focus font px 20.7
++Traceback (most recent call last):
++  File "<frozen runpy>", line 198, in _run_module_as_main
++  File "<frozen runpy>", line 88, in _run_code
++  File "/workspace/work/prioridade/repo/ANTI_MURPHY_FINAL_2026/atelier/tests/browser_am15.py", line 45, in <module>
++    assert max(bounds)<=bottom+2,(w,n,max(bounds),bottom)
++           ^^^^^^^^^^^^^^^^^^^^^
++AssertionError: (1280, 50, 441.7942199707031, 371.296875)
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
+--- /dev/null
++++ b/docs/INT04/evidencias/browser-am15.log
+@@ -0,0 +1,363 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 1 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 5 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AFTER OVERVIEW 1280 6.16186046511628
++AM15 BROWSER OK 1280 720 9 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 16 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1280 720 50 focus font px 20.7
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1366 768 1 focus font px 22.08
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1366 768 5 focus font px 22.08
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AFTER OVERVIEW 1366 6.572383720930232
++AM15 BROWSER OK 1366 768 9 focus font px 22.08
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1366 768 16 focus font px 22.08
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1366 768 50 focus font px 22.08
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1920 1080 1 focus font px 36.48
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1920 1080 5 focus font px 36.48
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AFTER OVERVIEW 1920 10.860145348837209
++AM15 BROWSER OK 1920 1080 9 focus font px 36.48
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1920 1080 16 focus font px 36.48
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++AM15 BROWSER OK 1920 1080 50 focus font px 36.48
+--- /dev/null
++++ b/docs/INT04/evidencias/browser-banca.log
+@@ -0,0 +1,81 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++Modo Banca premium OK 1280x720 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++Modo Banca premium OK 1366x768 · progressive / dual panels / justification / record / report
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "POST /api/record HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++Modo Banca premium OK 1920x1080 · progressive / dual panels / justification / record / report
+--- /dev/null
++++ b/docs/INT04/evidencias/browser-charts.log
+@@ -0,0 +1,3 @@
++ACABAMENTO OK 1280 720 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1366 768 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
++ACABAMENTO OK 1920 1080 legenda 12 não sobrepõe ampliação exportações ensaios ferramentas
+--- /dev/null
++++ b/docs/INT04/evidencias/browser.log
+@@ -0,0 +1,78 @@
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++INT04 BROWSER OK analise 1280 720 contrast 6.68 font 14
++INT04 BROWSER OK decisoes 1280 720 contrast 6.68 font 14
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++INT04 BROWSER OK analise 1366 768 contrast 6.68 font 14
++INT04 BROWSER OK decisoes 1366 768 contrast 6.68 font 14
++[http] "GET / HTTP/1.1" 200 -
++[http] "GET /styles.css HTTP/1.1" 200 -
++[http] "GET /prefinal_polish.css HTTP/1.1" 200 -
++[http] "GET /dashboards.css HTTP/1.1" 200 -
++[http] "GET /studio_final.css HTTP/1.1" 200 -
++[http] "GET /design_vnext.css HTTP/1.1" 200 -
++[http] "GET /release_quality.css HTTP/1.1" 200 -
++[http] "GET /engineering_charts.css HTTP/1.1" 200 -
++[http] "GET /polimento_09_11.css HTTP/1.1" 200 -
++[http] "GET /final_banca.css HTTP/1.1" 200 -
++[http] "GET /banca.css HTTP/1.1" 200 -
++[http] "GET /integridade_final.css HTTP/1.1" 200 -
++[http] "GET /apresentacao_premium.css HTTP/1.1" 200 -
++[http] "GET /acabamento_banca_final.css HTTP/1.1" 200 -
++[http] "GET /experience_v01.css HTTP/1.1" 200 -
++[http] "GET /brand/icon-dark.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-light.svg HTTP/1.1" 200 -
++[http] "GET /brand/logo-dark.svg HTTP/1.1" 200 -
++[http] "GET /analysis_state.js HTTP/1.1" 200 -
++[http] "GET /engineering_charts.js HTTP/1.1" 200 -
++[http] "GET /app.js HTTP/1.1" 200 -
++[http] "GET /brand/icon-32.png HTTP/1.1" 200 -
++[http] "GET /api/state HTTP/1.1" 200 -
++[http] "GET /api/experiment-library HTTP/1.1" 200 -
++INT04 BROWSER OK analise 1920 1080 contrast 6.68 font 14
++INT04 BROWSER OK decisoes 1920 1080 contrast 6.68 font 14
+--- /dev/null
++++ b/docs/INT04/evidencias/comparacao.json
+@@ -0,0 +1,9 @@
++{
++  "before_font_px": 10,
++  "after_font_px": 14,
++  "before_min_contrast": 3.8297293064309086,
++  "after_min_contrast": 6.680485995736355,
++  "views_per_resolution": 2,
++  "resolutions": 3,
++  "measured_labels": 24
++}--- /dev/null
++++ b/docs/INT04/evidencias/regression.log
+@@ -0,0 +1,21 @@
++........................................................................ [  9%]
++........................................................................ [ 19%]
++........................................................................ [ 29%]
++........................................................................ [ 39%]
++........................................................................ [ 49%]
++........................................................................ [ 59%]
++........................................................................ [ 68%]
++........................................................................ [ 78%]
++........................................................................ [ 88%]
++.............................................................. [ 96%]
++......................                                                   [100%]
++=============================== warnings summary ===============================
++../../../../../opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
++  /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
++  The CallSpec2 alias will be removed in pytest 10.
++  Update imports to use CallSpec instead.
++  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
++    from _pytest.python import CallSpec2
++
++-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
++732 passed, 1 warning, 10 subtests passed in 184.46s (0:03:04)
